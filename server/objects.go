@@ -5,7 +5,7 @@
 
 
 // Package
-package lily
+package server
 
 // Imports
 import (
@@ -63,3 +63,18 @@ type Sessions struct {
 	Lock  sync.RWMutex          // Lock for editing
         Sessions map[string]Session // Map of all sessions
 }
+
+
+// Locked files object
+type LockedFiles struct {
+	Lock  sync.RWMutex          // Lock for editing
+	Files map[string]LockedFile // Map of all locked files
+}
+
+
+// Locked file object
+type LockedFile struct {
+	Path string       // Path to file
+	Lock sync.RWMutex // Lock for reading and writing
+}
+
