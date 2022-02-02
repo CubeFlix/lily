@@ -10,9 +10,10 @@ package server
 
 // Imports
 import (
-	"os"          // Operating system tools (environment variables)
-	"strconv"     // String conversion tools
-	"errors"      // Error handling
+	"os"            // Operating system tools (environment variables)
+	"strconv"       // String conversion tools
+	"path/filepath" // File path tools (absolute path)
+	"errors"        // Error handling
 )
 
 
@@ -37,23 +38,25 @@ const (
 	UsersDefault         = "lilyusers"
 	SessionLimitDefault  = 256
 	DefaultExpireDefault = 3600
-	TaskIntervalDefault  = 100
+	RateLimitDefault     = 64
+	TaskIntervalDefualt  = 100
 )
 
 
 // Server config struct
 type ServerConfig struct {
-        name              string
-        path              string
-        host              string
-        port              int
-        keyFile           string
-        certFile          string
-        usersFile         string
-        sessionLimit      int
-        defaultExpire     int
-        allowChangeExpire bool
-        taskInterval      int
+        name              string // Server name (defaults to "lily-server")
+        path              string // Server working directory (defaults to current working directory)
+        host              string // Server host name (defaults to "localhost")
+        port              int    // Server port (defaults to 8008)
+        keyFile           string // PEM Key file
+        certFile          string // PEM Certificate file
+        usersFile         string // Users file (defaults to "lilyusers")
+        sessionLimit      int    // Session limit (defaults to 256)
+        defaultExpire     int    // Default expiration time in seconds for sessions (defaults to 3600)
+        allowChangeExpire bool   // Should we allow changing expiration time (defaults to false)
+	rateLimit         int    // Rate limit (number of requests per second) (defaults to 64)
+        taskInterval      int    // Task interval (defaults to 100 ms)
 }
 
 
@@ -65,17 +68,22 @@ func setConfigDefaults(config *ServerConfig) error {
         // Check for defaults
         if config.sessionLimit == 0 {
                 // Check unset session limit
-                config.sessionLimit = 256
+                config.sessionLimit = SessionLimitDefault
         }
 
         if config.defaultExpire == 0 {
 		// Check unset default expiration time
-		config.defaultExpire = 3600
+		config.defaultExpire = DefaultExpireDefault
 	}
 
 	if config.taskInterval == 0 {
 		// Check unset task interval value
-		config.taskInterval = 100
+		config.taskInterval = TaskIntervalDefualt
+	}
+
+	if config.rateLimit == 0 {
+		// Check unset rate limit value
+		config.rateLimit = RateLimitDefault
 	}
 
 	// Check for environment variables
@@ -138,6 +146,15 @@ func setConfigDefaults(config *ServerConfig) error {
                         config.usersFile = UsersDefault
                 }
 	}
+
+	// Get absolute path
+	absPath, err := filepath.Abs(config.path)
+
+	if err != nil {
+		return err
+	}
+
+	config.path = absPath
 
 	// Completed without errors
 	return nil

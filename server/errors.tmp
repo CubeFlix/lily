@@ -1,0 +1,11 @@
+# github.com/cubeflix/lily/server [github.com/cubeflix/lily/server.test]
+./objects.go:13:2: imported and not used: "errors"
+./objects.go:116:13: invalid operation: users.Users[user.Username] (type *map[string]User does not support indexing)
+./objects.go:120:1: missing return at end of function
+./server.go:33:29: cannot use make(map[string]User) (type map[string]User) as type *map[string]User in field value
+./server.go:34:32: cannot use make(map[string]Session) (type map[string]Session) as type *map[string]Session in field value
+./config_test.go:30:25: cannot use err (type error) as type string in argument to t.common.Errorf
+./config_test.go:52:25: cannot use err (type error) as type string in argument to t.common.Errorf
+./config_test.go:84:11: cannot use err (type error) as type string in argument to t.common.Errorf
+./server_test.go:27:11: cannot use err (type error) as type string in argument to t.common.Errorf
+FAIL	github.com/cubeflix/lily/server [build failed]

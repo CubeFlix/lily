@@ -9,7 +9,7 @@ package server
 
 // Imports
 import (
-	"sync" // Syncs mutexes, goroutines, etc. 
+	"sync"   // Syncs mutexes, goroutines, etc.	
 )
 
 
@@ -22,11 +22,12 @@ type Server struct {
 	KeyFile           string       // Key PEM file path
 	CertFile          string       // Certificate PEM file path
 	UsersFile         string       // Users file path
-	Users             Users        // Users dictionary
-	Sessions          Sessions     // Sessions dictionary
+	Users             *Users       // Users dictionary
+	Sessions          *Sessions    // Sessions dictionary
 	SessionGenLock    sync.RWMutex // Session generation mutex
 	SessionLimit      int          // Maximum nubmer of sessions for a user (-1 for no limitation)
 	DefaultExpire     int          // Default number of seconds to expire sessions after (-1 for no expiration)
+	RateLimit         int          // Rate limit (per second)
 	AllowChangeExpire bool         // Should the server allow a client to change the expiration time
 	TaskInterval      int          // Background task checking interval, in milliseconds (checks expiration and health)
 }
@@ -42,8 +43,17 @@ type User struct {
 
 // Users dictionary object
 type Users struct {
-	Lock  sync.RWMutex    // Lock for editing
-        Users map[string]User // Map of all users
+	Lock  sync.RWMutex     // Lock for editing
+        Users map[string]User  // Map of all users
+}
+
+
+// Users interface
+type UsersObject interface {
+	AddUser(user *User) error
+	GetUser(username string) error
+	UpdateUserPassword(username string, password string) error
+	UpdateUserPermissions(username string, permissions string) error
 }
 
 
@@ -60,8 +70,18 @@ type Session struct {
 
 // Sessions dictionary object
 type Sessions struct {
-	Lock  sync.RWMutex          // Lock for editing
+	Lock     sync.RWMutex       // Lock for editing
         Sessions map[string]Session // Map of all sessions
+}
+
+
+// Sessions interface
+type SessionsObject interface {
+	AddSession(session *Session) error
+	GetSession(sessionID string) (error, Session)
+	UpdateCurrentDirectory(sessionID string, dir string) error
+	UpdateExpireSession(sessionID string, expiresAt int64) error
+	RemoveSession(sessionID string) error
 }
 
 
@@ -78,3 +98,24 @@ type LockedFile struct {
 	Lock sync.RWMutex // Lock for reading and writing
 }
 
+
+// Locked files interface
+type LockedFilesObject interface {
+	AcquireFile(path string) error
+	ReleaseFile(path string) error
+}
+
+
+// Users interface function definitions
+func (users *Users) AddUser(user *User) error {
+	// Acquire lock
+	users.Lock.RLock()
+
+	// Add user to users
+	users.Users[user.Username] = *user
+
+	// Release lock
+	users.Lock.RUnlock()
+
+	return nil
+}
