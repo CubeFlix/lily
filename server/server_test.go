@@ -18,7 +18,7 @@ import (
 // Create default test configuration 
 func TestCreateServerDefault(t *testing.T) {
 	// Create a server with default configuration (nonexistent key and certificate files)
-	err, server := New(&ServerConfig{
+	server, err := New(&ServerConfig{
 		keyFile:  "DOESNOTEXIST",
 		certFile: "DOESNOTEXIST",
 	})

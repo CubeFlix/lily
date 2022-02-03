@@ -129,12 +129,12 @@ func setConfigDefaults(config *ServerConfig) error {
 
 	if config.keyFile == "" {
                 // Unset key file, error
-		return errors.New("server: no keyfile specified")
+		return errors.New("no keyfile specified in config")
         }
 
 	if config.certFile == "" {
 		// Unset certificate file, error
-		return errors.New("server: no certfile specified")
+		return errors.New("no certfile specified in config")
 	}
 
 	if config.usersFile == "" {

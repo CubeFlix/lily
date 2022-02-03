@@ -9,7 +9,16 @@ package server
 
 // Imports
 import (
-	"sync"   // Syncs mutexes, goroutines, etc.	
+	"sync"   // Syncs mutexes, goroutines, etc.
+	"errors" // Error handling
+)
+
+
+// Permissions
+const (
+	PermissionRead  = "r" // Read permissions
+	PermissionWrite = "w" // Write permissions
+	PermissionAdmin = "a" // Admin permissions
 )
 
 
@@ -50,8 +59,8 @@ type Users struct {
 
 // Users interface
 type UsersObject interface {
-	AddUser(user *User) error
-	GetUser(username string) error
+	CreateUser(username string, password string, permissions string) error
+	GetUser(username string) (User, error)
 	UpdateUserPassword(username string, password string) error
 	UpdateUserPermissions(username string, permissions string) error
 }
@@ -77,8 +86,8 @@ type Sessions struct {
 
 // Sessions interface
 type SessionsObject interface {
-	AddSession(session *Session) error
-	GetSession(sessionID string) (error, Session)
+	AddSession(session Session) error
+	GetSession(sessionID string) (Session, error)
 	UpdateCurrentDirectory(sessionID string, dir string) error
 	UpdateExpireSession(sessionID string, expiresAt int64) error
 	RemoveSession(sessionID string) error
@@ -107,15 +116,111 @@ type LockedFilesObject interface {
 
 
 // Users interface function definitions
-func (users *Users) AddUser(user *User) error {
+func (users *Users) CreateUser(username string, password string, permissions string) error {
+	// Check that permissions is valid
+	if !(permissions == PermissionRead || permissions == PermissionWrite || permissions == PermissionAdmin) {
+		return errors.New("permissions for new user is not valid")
+	}
+
+	// Generate the password
+	hashedPassword, err := GenerateHashedPassword(password)
+
+	if err != nil {
+		return err
+	}
+
+	// Create the user object
+	user := User{
+		Username:     username,
+		PasswordHash: hashedPassword,
+		Permissions:  permissions,
+	}
+
 	// Acquire lock
-	users.Lock.RLock()
+	users.Lock.Lock()
 
 	// Add user to users
-	users.Users[user.Username] = *user
+	users.Users[user.Username] = user
 
 	// Release lock
-	users.Lock.RUnlock()
+	users.Lock.Unlock()
 
 	return nil
 }
+
+func (users *Users) GetUser(username string) (error, User) {
+	// Acquire read lock
+	users.Lock.RLock()
+
+	// Return users
+	user, exists := users.Users[username]
+
+	// Release read lock
+	users.Lock.RUnlock()
+
+	if exists != true {
+		return errors.New("user does not exist"), User{}
+	}
+
+	return nil, user
+}
+
+func (users *Users) UpdateUserPassword(username string, password string) error {
+	// Check that the user exists
+	err, user := users.GetUser(username)
+
+	if err != nil {
+		return err
+	}
+
+	// Hash the password
+	hashedPassword, err := GenerateHashedPassword(password)
+
+	if err != nil {
+		return err
+	}
+
+	// Acquire lock
+	users.Lock.Lock()
+
+        // Add user to users
+	user.PasswordHash = hashedPassword
+	users.Users[username] = user
+
+	// Release lock
+        users.Lock.Unlock()
+
+	return nil
+}
+
+func (users *Users) UpdateUserPermissions(username string, permissions string) error {
+	// Check that permissions is valid
+        if !(permissions == PermissionRead || permissions == PermissionWrite || permissions == PermissionAdmin) {
+                return errors.New("permissions for new user is not valid")
+        }
+
+	// Check that the user exists
+        err, user := users.GetUser(username)
+
+        if err != nil {
+                return err
+        }
+
+        // Acquire lock
+        users.Lock.Lock()
+
+        // Add user to users
+        user.Permissions = permissions
+        users.Users[username] = user
+
+        // Release lock
+        users.Lock.Unlock()
+
+        return nil
+}
+
+// AddSession(session Session) error
+// GetSession(sessionID string) (Session, error)
+// UpdateCurrentDirectory(sessionID string, dir string) error
+// UpdateExpireSession(sessionID string, expiresAt int64) error
+// RemoveSession(sessionID string) error

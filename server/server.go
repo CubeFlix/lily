@@ -14,15 +14,15 @@ import (
 
 
 // Creates a server
-func New(config *ServerConfig) (error, *Server) {
+func New(config *ServerConfig) (*Server, error) {
 	// Resolve all environment variables and defaults
 	err := setConfigDefaults(config);
 
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	return nil, &Server{
+	return &Server{
 		Name:              config.name,                                   // Server name
 		Path:              config.path,                                   // Server working directory
 		Host:              config.host,                                   // Server host
@@ -37,6 +37,6 @@ func New(config *ServerConfig) (error, *Server) {
 		AllowChangeExpire: config.allowChangeExpire,                      // Allow changing expiration time for sessions
 		RateLimit:         config.rateLimit,                              // Rate limiting (per second)
 		TaskInterval:      config.taskInterval,                           // Task interval (ms)
-	}
+	}, nil
 }
 
