@@ -10,11 +10,12 @@ package server
 // Imports
 import (
 	"golang.org/x/crypto/bcrypt"
+	"github.com/google/uuid"
 )
 
 
 // Generates a hash for a password (source: https://hackernoon.com/how-to-store-passwords-example-in-go-62712b1d2212)
-func GenerateHashedPassword(password string) (string, error) {
+func generateHashedPassword(password string) (string, error) {
 	// Use bcrypt to hash the password with salt
 	saltedBytes := []byte(password)
 	hashedBytes, err := bcrypt.GenerateFromPassword(saltedBytes, bcrypt.DefaultCost)
@@ -29,7 +30,7 @@ func GenerateHashedPassword(password string) (string, error) {
 }
 
 // Compare password to generated hash
-func CompareHashedPassword(hashedPassword string, password string) error {
+func compareHashedPassword(hashedPassword string, password string) error {
 	// Turn the password and the hash into bytes
 	incoming := []byte(password)
 	existing := []byte(hashedPassword)
@@ -38,3 +39,9 @@ func CompareHashedPassword(hashedPassword string, password string) error {
 	return bcrypt.CompareHashAndPassword(existing, incoming)
 }
 
+
+// Create a random session ID
+func generateSessionID() string {
+	// Generate a random UUID session ID
+	return uuid.New().String()
+}

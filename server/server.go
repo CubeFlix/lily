@@ -30,8 +30,8 @@ func New(config *ServerConfig) (*Server, error) {
 		KeyFile:           config.keyFile,                                // Path to PEM key file
 		CertFile:          config.certFile,                               // Path to PEM certificate file
 		UsersFile:         config.usersFile,                              // Path to users file
-		Users:             &Users{Users: make(map[string]User)},          // Users
-		Sessions:          &Sessions{Sessions: make(map[string]Session)}, // Sessions
+		Users:             &users{Users: make(map[string]user)},          // Users
+		Sessions:          &sessions{Sessions: make(map[string]session)}, // Sessions
 		SessionLimit:      config.sessionLimit,                           // Session limit (-1 for no limit)
 		DefaultExpire:     config.defaultExpire,                          // Default session expiration time (-1 for no expiration)
 		AllowChangeExpire: config.allowChangeExpire,                      // Allow changing expiration time for sessions

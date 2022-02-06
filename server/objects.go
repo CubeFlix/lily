@@ -11,6 +11,7 @@ package server
 import (
 	"sync"   // Syncs mutexes, goroutines, etc.
 	"errors" // Error handling
+	"time"   // Unix timestamp
 )
 
 
@@ -31,9 +32,8 @@ type Server struct {
 	KeyFile           string       // Key PEM file path
 	CertFile          string       // Certificate PEM file path
 	UsersFile         string       // Users file path
-	Users             *Users       // Users dictionary
-	Sessions          *Sessions    // Sessions dictionary
-	SessionGenLock    sync.RWMutex // Session generation mutex
+	Users             *users       // Users dictionary
+	Sessions          *sessions    // Sessions dictionary
 	SessionLimit      int          // Maximum nubmer of sessions for a user (-1 for no limitation)
 	DefaultExpire     int          // Default number of seconds to expire sessions after (-1 for no expiration)
 	RateLimit         int          // Rate limit (per second)
@@ -43,7 +43,7 @@ type Server struct {
 
 
 // User object
-type User struct {
+type user struct {
 	Username     string // Username
 	PasswordHash string // Password hash
 	Permissions  string // Permissions for the user
@@ -51,86 +51,88 @@ type User struct {
 
 
 // Users dictionary object
-type Users struct {
+type users struct {
 	Lock  sync.RWMutex     // Lock for editing
-        Users map[string]User  // Map of all users
+        Users map[string]user  // Map of all users
 }
 
 
 // Users interface
-type UsersObject interface {
-	CreateUser(username string, password string, permissions string) error
-	GetUser(username string) (User, error)
-	UpdateUserPassword(username string, password string) error
-	UpdateUserPermissions(username string, permissions string) error
+type usersObject interface {
+	createUser(username string, password string, permissions string) error
+	getUser(username string) (user, error)
+	updateUserPassword(username string, password string) error
+	updateUserPermissions(username string, permissions string) error
 }
 
 
 // Session object
-type Session struct {
+type session struct {
 	Host             string // The host IP
 	SessionID        string // Session ID
 	Username         string // Username
 	CurrentDirectory string // Current working directory
-	ExpiresAfter     int    // Number of seconds to expire after
+	ExpiresAfter     int    // Number of seconds to expire after (-1 for no expiration)
 	ExpiresAt        int64  // When the session will expire
 }
 
 
 // Sessions dictionary object
-type Sessions struct {
-	Lock     sync.RWMutex       // Lock for editing
-        Sessions map[string]Session // Map of all sessions
+type sessions struct {
+	Lock             sync.RWMutex       // Lock for editing
+        Sessions         map[string]session // Map of all sessions
+	SessionGenLock   sync.RWMutex       // Session generation mutex
+	SessionsToExpire []string           // All session IDs to expire
 }
 
 
 // Sessions interface
-type SessionsObject interface {
-	AddSession(session Session) error
-	GetSession(sessionID string) (Session, error)
-	UpdateCurrentDirectory(sessionID string, dir string) error
-	UpdateExpireSession(sessionID string, expiresAt int64) error
-	RemoveSession(sessionID string) error
+type sessionsObject interface {
+	createSession(host string, username string, expiresAfter int) (string, error)
+	getSession(sessionID string) (session, error)
+	updateSessionCurrentDirectory(sessionID string, dir string) error
+	updateExpireSession(sessionID string, expiresAt int64) error
+	removeSession(sessionID string) error
 }
 
 
 // Locked files object
-type LockedFiles struct {
+type lockedFiles struct {
 	Lock  sync.RWMutex          // Lock for editing
-	Files map[string]LockedFile // Map of all locked files
+	Files map[string]lockedFile // Map of all locked files
 }
 
 
 // Locked file object
-type LockedFile struct {
+type lockedFile struct {
 	Path string       // Path to file
 	Lock sync.RWMutex // Lock for reading and writing
 }
 
 
 // Locked files interface
-type LockedFilesObject interface {
-	AcquireFile(path string) error
-	ReleaseFile(path string) error
+type lockedFilesObject interface {
+	acquireFile(path string) error
+	releaseFile(path string) error
 }
 
 
 // Users interface function definitions
-func (users *Users) CreateUser(username string, password string, permissions string) error {
+func (users *users) createUser(username string, password string, permissions string) error {
 	// Check that permissions is valid
 	if !(permissions == PermissionRead || permissions == PermissionWrite || permissions == PermissionAdmin) {
 		return errors.New("permissions for new user is not valid")
 	}
 
 	// Generate the password
-	hashedPassword, err := GenerateHashedPassword(password)
+	hashedPassword, err := generateHashedPassword(password)
 
 	if err != nil {
 		return err
 	}
 
 	// Create the user object
-	user := User{
+	user := user{
 		Username:     username,
 		PasswordHash: hashedPassword,
 		Permissions:  permissions,
@@ -139,42 +141,42 @@ func (users *Users) CreateUser(username string, password string, permissions str
 	// Acquire lock
 	users.Lock.Lock()
 
+	// Release lock
+        defer users.Lock.Unlock()
+
 	// Add user to users
 	users.Users[user.Username] = user
-
-	// Release lock
-	users.Lock.Unlock()
 
 	return nil
 }
 
-func (users *Users) GetUser(username string) (error, User) {
+func (users *users) getUser(username string) (user, error) {
 	// Acquire read lock
 	users.Lock.RLock()
 
-	// Return users
-	user, exists := users.Users[username]
-
 	// Release read lock
-	users.Lock.RUnlock()
+        defer users.Lock.RUnlock()
+
+	// Return users
+	userobj, exists := users.Users[username]
 
 	if exists != true {
-		return errors.New("user does not exist"), User{}
+		return user{}, errors.New("user does not exist")
 	}
 
-	return nil, user
+	return userobj, nil
 }
 
-func (users *Users) UpdateUserPassword(username string, password string) error {
+func (users *users) updateUserPassword(username string, password string) error {
 	// Check that the user exists
-	err, user := users.GetUser(username)
+	user, err := users.getUser(username)
 
 	if err != nil {
 		return err
 	}
 
 	// Hash the password
-	hashedPassword, err := GenerateHashedPassword(password)
+	hashedPassword, err := generateHashedPassword(password)
 
 	if err != nil {
 		return err
@@ -183,24 +185,24 @@ func (users *Users) UpdateUserPassword(username string, password string) error {
 	// Acquire lock
 	users.Lock.Lock()
 
-        // Add user to users
+	// Release lock
+        defer users.Lock.Unlock()
+
+	// Add user to users
 	user.PasswordHash = hashedPassword
 	users.Users[username] = user
-
-	// Release lock
-        users.Lock.Unlock()
 
 	return nil
 }
 
-func (users *Users) UpdateUserPermissions(username string, permissions string) error {
+func (users *users) updateUserPermissions(username string, permissions string) error {
 	// Check that permissions is valid
         if !(permissions == PermissionRead || permissions == PermissionWrite || permissions == PermissionAdmin) {
                 return errors.New("permissions for new user is not valid")
         }
 
 	// Check that the user exists
-        err, user := users.GetUser(username)
+        user, err := users.getUser(username)
 
         if err != nil {
                 return err
@@ -209,18 +211,123 @@ func (users *Users) UpdateUserPermissions(username string, permissions string) e
         // Acquire lock
         users.Lock.Lock()
 
-        // Add user to users
+	// Release lock
+        defer users.Lock.Unlock()
+
+	// Add user to users
         user.Permissions = permissions
         users.Users[username] = user
-
-        // Release lock
-        users.Lock.Unlock()
 
         return nil
 }
 
-// AddSession(session Session) error
-// GetSession(sessionID string) (Session, error)
-// UpdateCurrentDirectory(sessionID string, dir string) error
-// UpdateExpireSession(sessionID string, expiresAt int64) error
-// RemoveSession(sessionID string) error
+
+func (sessions *sessions) createSession(host string, username string, expiresAfter int) (string, error) {
+	// Check that the expiration time is valid
+	if expiresAfter < -1 || expiresAfter == 0 {
+		return "", errors.New("expiration time must be larger than 0 or -1")
+	}
+
+	// Attempt to acquire a session ID
+	sessions.SessionGenLock.Lock()
+
+	// Release the lock
+	defer sessions.SessionGenLock.Unlock()
+
+	sessionID := generateSessionID()
+	// Continually create a new ID until the ID is valid
+	for {
+		// Check if the session ID is valid
+		_, exists := sessions.Sessions[sessionID]
+
+		if exists == false {
+			break
+		}
+
+		// Invalid session ID, create a new one
+		sessionID = generateSessionID()
+	}
+
+	// Calculate expiration time
+	var expiresAt int64
+
+	if expiresAfter != -1 {
+		expiresAt = time.Now().Unix() + int64(expiresAfter)
+	} else {
+		expiresAt = -1
+	}
+
+	// Create the session object
+	sessionObj := session{
+		Host:             host,
+		SessionID:        sessionID,
+		Username:         username,
+		CurrentDirectory: "",
+		ExpiresAfter:     expiresAfter,
+		ExpiresAt:        expiresAt,
+	}
+
+	// Acquire lock
+        sessions.Lock.Lock()
+
+	// Release lock
+        defer sessions.Lock.Unlock()
+
+        // Add session to sessions
+        sessions.Sessions[sessionID] = sessionObj
+
+	// Append the session to the list of sessions to expire
+	if expiresAfter != -1 {
+		sessions.SessionsToExpire = append(sessions.SessionsToExpire, sessionID)
+	}
+
+	return sessionID, nil
+}
+
+func (sessions *sessions) getSession(sessionID string) (session, error) {
+        // Acquire read lock
+	sessions.Lock.RLock()
+
+	// Release read lock
+        defer sessions.Lock.RUnlock()
+
+        // Return session
+        sessionObj, exists := sessions.Sessions[sessionID]
+
+        if exists != true {
+                return session{}, errors.New("session does not exist")
+        }
+
+        return sessionObj, nil
+}
+
+func (sessions *sessions) updateSessionCurrentDirectory(sessionID string, dir string) error {
+	// NOTE: This function does not check if the directory dir is valid. The logic should be implemented elsewhere.
+
+	// Check that the session exists
+        session, err := sessions.getSession(sessionID)
+
+        if err != nil {
+                return err
+        }
+
+        // Acquire lock
+        sessions.Lock.Lock()
+
+	// Release lock
+        defer sessions.Lock.Unlock()
+
+	// Add session to sessions
+        session.CurrentDirectory = dir
+        sessions.Sessions[sessionID] = session
+
+        return nil
+}
+
+func (sessions *sessions) updateExpireSession(sessionID string, expiresAt int64) error {
+	return nil
+}
+
+func (sessions *sessions) removeSession(sessionID string) error {
+	return nil
+}
