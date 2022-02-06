@@ -19,7 +19,7 @@ func acquireFile(path string) (*flock.Flock, error) {
 	// NOTE: This function does not check if the path is valid. The logic should be implemented elsewhere.
 	// Lock the file
 	fileLock := flock.New(path)
-	_, err := fileLock.TryLock()
+	err := fileLock.Lock()
 	if err != nil {
 		return fileLock, err
 	}
@@ -31,7 +31,7 @@ func acquireFileRead(path string) (*flock.Flock, error) {
         // NOTE: This function does not check if the path is valid. The logic should be implemented elsewhere.
         // Lock the file
         fileLock := flock.New(path)
-        _, err := fileLock.TryRLock()
+        err := fileLock.RLock()
         if err != nil {
                 return fileLock, err
         }

@@ -9,7 +9,8 @@ package server
 
 // Imports
 import (
-	"testing" // Testing
+	"testing"                // Testing
+	"github.com/gofrs/flock" // File lock
 )
 
 
@@ -20,7 +21,17 @@ func TestFileLock(t *testing.T) {
 	// Lock a file
 	lock, err := acquireFile("test")
 	if err != nil {
-		t.Logf("Error with acquiring file lock.")
+		t.Errorf("Error with acquiring file lock.")
+	}
+
+	// Try to acquire the same file
+	newLock := flock.New("test")
+	locked, err := newLock.TryLock()
+	if err != nil {
+                t.Errorf("Error with acquiring file lock.")
+        }
+	if locked != false {
+		t.Errorf("Still able to acquire file even after locked.")
 	}
 
 	// Unlock the file
@@ -29,7 +40,7 @@ func TestFileLock(t *testing.T) {
 	// Read lock a file
 	lock, err = acquireFileRead("test")
         if err != nil {
-                t.Logf("Error with acquiring read file lock.")
+                t.Errorf("Error with acquiring read file lock.")
         }
 
         // Unlock the file
