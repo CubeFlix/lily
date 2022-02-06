@@ -9,9 +9,9 @@ package server
 
 // Imports
 import (
-	"sync"   // Syncs mutexes, goroutines, etc.
-	"errors" // Error handling
-	"time"   // Unix timestamp
+	"sync"                   // Syncs mutexes, goroutines, etc.
+	"errors"                 // Error handling
+	"time"                   // Unix timestamp
 )
 
 
@@ -81,7 +81,7 @@ type session struct {
 // Sessions dictionary object
 type sessions struct {
 	Lock             sync.RWMutex       // Lock for editing
-        Sessions         map[string]session // Map of all sessions
+	Sessions         map[string]session // Map of all sessions
 	SessionGenLock   sync.RWMutex       // Session generation mutex
 	SessionsToExpire []string           // All session IDs to expire
 }
@@ -94,27 +94,6 @@ type sessionsObject interface {
 	updateSessionCurrentDirectory(sessionID string, dir string) error
 	updateSessionExpire(sessionID string) error
 	removeSession(sessionID string) error
-}
-
-
-// Locked files object
-type lockedFiles struct {
-	Lock  sync.RWMutex          // Lock for editing
-	Files map[string]lockedFile // Map of all locked files
-}
-
-
-// Locked file object
-type lockedFile struct {
-	Path string       // Path to file
-	Lock sync.RWMutex // Lock for reading and writing
-}
-
-
-// Locked files interface
-type lockedFilesObject interface {
-	acquireFile(path string) error
-	releaseFile(path string) error
 }
 
 
@@ -317,7 +296,7 @@ func (sessions *sessions) getSession(sessionID string) (session, error) {
 
         if exists != true {
                 return session{}, errors.New("session does not exist")
-        }
+	}
 
         return sessionObj, nil
 }

@@ -15,6 +15,28 @@ import (
 
 // Testing
 
+// Test the file lock
+func TestFileLock(t *testing.T) {
+	// Lock a file
+	lock, err := acquireFile("test")
+	if err != nil {
+		t.Logf("Error with acquiring file lock.")
+	}
+
+	// Unlock the file
+	releaseFile(lock)
+
+	// Read lock a file
+	lock, err = acquireFileRead("test")
+        if err != nil {
+                t.Logf("Error with acquiring read file lock.")
+        }
+
+        // Unlock the file
+        releaseFile(lock)
+}
+
+
 // Create default test configuration 
 func TestCreateServerDefault(t *testing.T) {
 	// Create a server with default configuration (nonexistent key and certificate files)
