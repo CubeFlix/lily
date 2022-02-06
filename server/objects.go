@@ -63,6 +63,7 @@ type usersObject interface {
 	getUser(username string) (user, error)
 	updateUserPassword(username string, password string) error
 	updateUserPermissions(username string, permissions string) error
+	removeUser(username string) error
 }
 
 
@@ -91,7 +92,7 @@ type sessionsObject interface {
 	createSession(host string, username string, expiresAfter int) (string, error)
 	getSession(sessionID string) (session, error)
 	updateSessionCurrentDirectory(sessionID string, dir string) error
-	updateExpireSession(sessionID string, expiresAt int64) error
+	updateSessionExpire(sessionID string) error
 	removeSession(sessionID string) error
 }
 
@@ -221,6 +222,26 @@ func (users *users) updateUserPermissions(username string, permissions string) e
         return nil
 }
 
+func (users *users) removeUser(username string) error {
+	// Check that the user exists
+        _, err := users.getUser(username)
+
+        if err != nil {
+                return err
+        }
+
+        // Acquire lock
+        users.Lock.Lock()
+
+        // Release lock
+        defer users.Lock.Unlock()
+
+        // Remove user
+	delete(users.Users, username)
+
+        return nil
+}
+
 
 func (sessions *sessions) createSession(host string, username string, expiresAfter int) (string, error) {
 	// Check that the expiration time is valid
@@ -324,10 +345,52 @@ func (sessions *sessions) updateSessionCurrentDirectory(sessionID string, dir st
         return nil
 }
 
-func (sessions *sessions) updateExpireSession(sessionID string, expiresAt int64) error {
+func (sessions *sessions) updateSessionExpire(sessionID string) error {
+	// Recalculates the session's new expiration time
+
+	// Check that the session exists
+        session, err := sessions.getSession(sessionID)
+
+        if err != nil {
+                return err
+        }
+
+	if session.ExpiresAfter == -1 {
+		return errors.New("session cannot expire")
+	}
+
+        // Acquire lock
+        sessions.Lock.Lock()
+
+        // Release lock
+        defer sessions.Lock.Unlock()
+
+        // Calculate the new expiration timestamp
+        var expiresAt int64 = time.Now().Unix() + int64(session.ExpiresAfter)
+
+	// Add session to sessions
+        session.ExpiresAt = expiresAt
+        sessions.Sessions[sessionID] = session
+
 	return nil
 }
 
 func (sessions *sessions) removeSession(sessionID string) error {
+        // Check that the session exists
+        _, err := sessions.getSession(sessionID)
+
+        if err != nil {
+                return err
+        }
+
+        // Acquire lock
+        sessions.Lock.Lock()
+
+        // Release lock
+        defer sessions.Lock.Unlock()
+
+        // Remove user
+        delete(sessions.Sessions, sessionID)
+
 	return nil
 }

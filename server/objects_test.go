@@ -70,11 +70,17 @@ func TestUsersObject(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Error with getting user.")
-
+		return
 	}
 
         t.Logf("User Object: %+v\n", user)
 	t.Logf("User Object: %+v\n", user2)
+
+	// Remove one user
+	err = usersObject.removeUser("test2")
+	if err != nil {
+		t.Errorf("Error with removing user.")
+	}
 }
 
 
@@ -131,5 +137,18 @@ func TestSessionsObject(t *testing.T) {
                 t.Errorf("Incorrect current directory for session: %s", sessionObj.CurrentDirectory)
         }
 
+	// Update the new expiration time
+	err = sessionsObject.updateSessionExpire(sessionID)
+	if err != nil {
+		t.Errorf("Error with updating session expiration time.")
+		return
+	}
+
 	t.Logf("Sessions Object: %+v\n", sessions)
+
+	// Remove one session
+	err = sessionsObject.removeSession(sessionID2)
+	if err != nil {
+		t.Errorf("Error with removing session.")
+	}
 }
