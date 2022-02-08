@@ -39,6 +39,8 @@ const (
 	SessionLimitDefault  = 256
 	DefaultExpireDefault = 3600
 	RateLimitDefault     = 64
+	CacheExpireDefault   = 300
+	CachePurgeDefault    = 600
 	TaskIntervalDefualt  = 100
 )
 
@@ -56,6 +58,8 @@ type ServerConfig struct {
         defaultExpire     int    // Default expiration time in seconds for sessions (defaults to 3600)
         allowChangeExpire bool   // Should we allow changing expiration time (defaults to false)
 	rateLimit         int    // Rate limit (number of requests per second) (defaults to 64)
+	cacheExpire       int    // After how long the cache objects should expire in seconds (defaults to 300)
+	cachePurge        int    // After how long expired cache objects should be purged in seconds (defaults to 600)
         taskInterval      int    // Task interval (defaults to 100 ms)
 }
 
@@ -84,6 +88,16 @@ func setConfigDefaults(config *ServerConfig) error {
 	if config.rateLimit == 0 {
 		// Check unset rate limit value
 		config.rateLimit = RateLimitDefault
+	}
+
+	if config.cacheExpire == 0 {
+		// Check unset cache expiration value
+		config.cacheExpire = CacheExpireDefault
+	}
+
+	if config.cachePurge == 0 {
+		// Check unset cache purge value
+		config.cachePurge = CachePurgeDefault
 	}
 
 	// Check for environment variables

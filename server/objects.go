@@ -9,9 +9,10 @@ package server
 
 // Imports
 import (
-	"sync"                   // Syncs mutexes, goroutines, etc.
-	"errors"                 // Error handling
-	"time"                   // Unix timestamp
+	"sync"                          // Syncs mutexes, goroutines, etc.
+	"errors"                        // Error handling
+	"time"                          // Unix timestamp
+	"github.com/patrickmn/go-cache" // File caching
 )
 
 
@@ -38,6 +39,7 @@ type Server struct {
 	DefaultExpire     int          // Default number of seconds to expire sessions after (-1 for no expiration)
 	RateLimit         int          // Rate limit (per second)
 	AllowChangeExpire bool         // Should the server allow a client to change the expiration time
+	FileCache         *cache.Cache // File cache for performance
 	TaskInterval      int          // Background task checking interval, in milliseconds (checks expiration and health)
 }
 

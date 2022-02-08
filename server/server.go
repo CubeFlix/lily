@@ -9,8 +9,10 @@ package server
 
 // Imports
 import (
-        _ "sync"                            // Syncs mutexes, goroutines, etc.
-	"github.com/gofrs/flock"            // File locking
+        _ "sync"                        // Syncs mutexes, goroutines, etc.
+	"time"                          // Time
+	"github.com/gofrs/flock"        // File locking
+	"github.com/patrickmn/go-cache" // File caching
 )
 
 
@@ -54,6 +56,10 @@ func New(config *ServerConfig) (*Server, error) {
 		return nil, err
 	}
 
+	// Handle cache expiration values
+	cacheExpire := time.Duration(config.cacheExpire) * time.Second
+	cachePurge := time.Duration(config.cachePurge) * time.Second
+
 	return &Server{
 		Name:              config.name,                                            // Server name
 		Path:              config.path,                                            // Server working directory
@@ -68,6 +74,7 @@ func New(config *ServerConfig) (*Server, error) {
 		DefaultExpire:     config.defaultExpire,                                   // Default session expiration time (-1 for no expiration)
 		AllowChangeExpire: config.allowChangeExpire,                               // Allow changing expiration time for sessions
 		RateLimit:         config.rateLimit,                                       // Rate limiting (per second)
+		FileCache:         cache.New(cacheExpire, cachePurge),                     // File caching
 		TaskInterval:      config.taskInterval,                                    // Task interval (ms)
 	}, nil
 }

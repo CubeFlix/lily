@@ -9,9 +9,20 @@ package server
 
 // Imports
 import (
-	"testing"                // Testing
-	"github.com/gofrs/flock" // File lock
+	"testing"                       // Testing
+	"bufio"                         // Buffer for testing file cache
+	"github.com/gofrs/flock"        // File lock
+	"github.com/patrickmn/go-cache" // File cache
 )
+
+
+// Buffer writer for testing file cache
+type Writer int
+
+// Implement the writing function (source: https://medium.com/golangspec/introduction-to-bufio-package-in-golang-ad7d1877f762)
+func (*Writer) Write(p []byte) (int, error) {
+	return len(p), nil
+}
 
 
 // Testing
@@ -47,6 +58,31 @@ func TestFileLock(t *testing.T) {
         releaseFile(lock)
 }
 
+// Test the file cache
+func TestFileCache(t *testing.T) {
+	// Create a server with default configuration (nonexistent key and certificate files)
+        server, err := New(&ServerConfig{
+                keyFile:  "DOESNOTEXIST",
+                certFile: "DOESNOTEXIST",
+        })
+
+        if err != nil {
+                t.Errorf(err.Error())
+        }
+
+	// Store an object in the file cache
+	w := new(Writer)
+	bw := bufio.NewWriter(w)
+	bw.Write([]byte("teststuff"))
+	err = bw.Flush()
+
+	if err != nil {
+		t.Errorf("Error with flushing buffer while testing file cache.")
+		return
+	}
+
+	server.FileCache.Set("test", bw, cache.DefaultExpiration)
+}
 
 // Create default test configuration 
 func TestCreateServerDefault(t *testing.T) {
