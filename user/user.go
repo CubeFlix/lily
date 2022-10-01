@@ -7,13 +7,15 @@
 package user
 
 import (
-	"github.com/cubeflix/lily/security"
-
-	"golang.org/x/crypto/bcrypt"
+	// "golang.org/x/crypto/bcrypt"
 	"sync"
 	"fmt"
 	"errors"
 )
+
+
+// Clearance level definition.
+type ClearanceLevel interface {}
 
 
 // User type structure.
@@ -25,7 +27,7 @@ type User struct {
 	password  []byte
 
 	// Security clearance.
-	clearance security.ClearanceLevel
+	clearance ClearanceLevel
 }
 
 
@@ -41,18 +43,18 @@ type UsernameList struct {
 
 
 // Username already exists.
-func usernameAlreadyExistsError(user Username) {
+func usernameAlreadyExistsError(user Username) error {
 	return errors.New(fmt.Sprintf("lily.user: Username already exists: %s", string(user)))
 }
 
 // Username not found.
-func usernameNotFoundError(user Username) {
+func usernameNotFoundError(user Username) error {
 	return errors.New(fmt.Sprintf("lily.user: Username not found: %s", string(user)))
 }
 
 
 // Check if a username is in the list.
-func (l *UsernameList) checkList(user Username) bool {
+func (l *UsernameList) CheckList(user Username) bool {
 	// Acquire the read lock.
 	l.lock.RLock()
 	defer l.lock.RUnlock()
@@ -69,7 +71,7 @@ func (l *UsernameList) checkList(user Username) bool {
 }
 
 // Add user(s) to the list.
-func (l *UsernameList) addUsers(users []Username) error {
+func (l *UsernameList) AddUsers(users []Username) error {
 	// Acquire the write lock.
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -84,14 +86,14 @@ func (l *UsernameList) addUsers(users []Username) error {
 		}
 
 		// Add the user to the list.
-		l.list = append(l.list, users[j])
+		l.list = append(l.list, users[i])
 	}
 
 	return nil
 }
 
 // Remove user(s) from the list.
-func (l *UsernameList) removeUsers(users []Username) error {
+func (l *UsernameList) RemoveUsers(users []Username) error {
 	// Acquire the write lock.
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -101,9 +103,9 @@ func (l *UsernameList) removeUsers(users []Username) error {
 		foundUser := false
 
 		// Find the index of the user.
-                for j := 0; j < len(l.list); j++ {
-                        if l.list[j] == users[i] {
-                                // Replace the index of the username with the index of the last element.
+        for j := 0; j < len(l.list); j++ {
+			if l.list[j] == users[i] {
+                // Replace the index of the username with the index of the last element.
 				l.list[j] = l.list[len(l.list) - 1]
 
 				// Remove the last element.
@@ -111,8 +113,8 @@ func (l *UsernameList) removeUsers(users []Username) error {
 
 				// Mark that the user was found and deleted.
 				foundUser = true
-                        }
-                }
+            }
+        }
 
 		// If the user wasn't found, return an error.
 		if !foundUser {

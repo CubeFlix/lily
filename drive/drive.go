@@ -26,7 +26,7 @@ type Drive struct {
 
 	// Drive settings.
 	name         string
-	secutiry     secutiry.settings
+	security     *security.AccessSettings
 
 	// Root filesystem object.
 	fs           *fs.Directory
