@@ -6,6 +6,7 @@ package fs
 import (
 	"github.com/cubeflix/lily/security/access"
 
+	"errors"
 	"sync"
 )
 
@@ -33,6 +34,9 @@ type Directory struct {
 	subdirs  map[string]*Directory
 	files    map[string]*File
 }
+
+
+var ItemNotFoundError = errors.New("lily.fs: Item not found.")
 
 
 // Create a new directory object.
@@ -160,11 +164,89 @@ func (d *Directory) SetFiles(files map[string]*File) {
 	d.files = files
 }
 
-// Get files or directories by name.
-func (d *Directory) GetFilesByName(names []string) {
+// List the directory.
+func (d *Directory) ListDir() []string {
 	// Acquire the read lock.
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 
-	// TODO
+	// Loop through the subdirectories and files and return a list of them.
+	keys := make([]string, len(d.subdirs) + len(d.files))
+	i := 0
+	for k := range d.subdirs {
+    	keys[i] = k
+    	i++
+	}
+	for k := range d.files {
+		keys[i] = k
+		i++
+	}
+
+	return keys
+}
+
+// Get subdirectories by name. NOTE: Before modifying any file, get the directory
+// write lock first.
+func (d *Directory) GetSubdirsByName(names []string) ([]*Directory, error) {
+	// Acquire the read lock.
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+
+	// Get subdirectories by name.
+	dirs := make([]*Directory, len(names))
+	for i := range names {
+		dir, ok := d.subdirs[names[i]]
+		if !ok {
+			return dirs, ItemNotFoundError
+		}
+		dirs[i] = dir
+	}
+
+	// Return the directories.
+	return dirs, nil
+}
+
+// Set subdirectories by name.
+func (d *Directory) SetSubdirsByName(dirs map[string]*Directory) {
+	// Acquire the write lock.
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+
+	// Set subdirectories by name.
+	for i := range dirs {
+		d.subdirs[i] = dirs[i]
+	}
+}
+
+// Get files by name. NOTE: Before modifying any file, get the directory write 
+// lock first.
+func (d *Directory) GetFilesByName(names []string) ([]*File, error) {
+	// Acquire the read lock.
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+
+	// Get files by name.
+	files := make([]*File, len(names))
+	for i := range names {
+		file, ok := d.files[names[i]]
+		if !ok {
+			return files, ItemNotFoundError
+		}
+		files[i] = file
+	}
+
+	// Return the files.
+	return files, nil
+}
+
+// Set files by name.
+func (d *Directory) SetFilesByName(files map[string]*File) {
+	// Acquire the write lock.
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+
+	// Set files by name.
+	for i := range files {
+		d.files[i] = files[i]
+	}
 }
