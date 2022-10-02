@@ -1,126 +1,122 @@
 // user/user.go
 // Lily server users.
 
+// Package user provides definitions and functions for user-related objects.
+
 // Users in Lily are identified by a User object, containing a string for the
 // username and a password hash (bcrypt), along with its security clearance.
 
 package user
 
 import (
-	// "golang.org/x/crypto/bcrypt"
+	"github.com/cubeflix/lily/security/access"
+	"github.com/cubeflix/lily/security/auth"
+
 	"sync"
-	"fmt"
-	"errors"
 )
-
-
-// Clearance level definition.
-type ClearanceLevel interface {}
 
 
 // User type structure.
 type User struct {
+	// Using a mutex to sync the struct.
+	lock      sync.RWMutex
+
 	// Username.
 	username  Username
 
 	// Password hash.
-	password  []byte
+	password  auth.PasswordHash
 
 	// Security clearance.
-	clearance ClearanceLevel
+	clearance access.Clearance
 }
-
 
 // Username type.
 type Username string
 
 
-// Username list object.
-type UsernameList struct {
-	lock sync.RWMutex
-	list []Username
+// Create a new user object.
+func NewUser(username, password string, clearance access.Clearance) (*User, error) {
+	// Hash the password.
+	passwordHash, err := auth.NewPasswordHash(password)
+	if err != nil {
+		return &User{}, err
+	}
+
+	return &User{
+		username:  Username(username),
+		password:  passwordHash,
+		clearance: clearance,
+	}, nil
 }
 
-
-// Username already exists.
-func usernameAlreadyExistsError(user Username) error {
-	return errors.New(fmt.Sprintf("lily.user: Username already exists: %s", string(user)))
-}
-
-// Username not found.
-func usernameNotFoundError(user Username) error {
-	return errors.New(fmt.Sprintf("lily.user: Username not found: %s", string(user)))
-}
-
-
-// Check if a username is in the list.
-func (l *UsernameList) CheckList(user Username) bool {
+// Get the username.
+func (u *User) GetUsername() Username {
 	// Acquire the read lock.
-	l.lock.RLock()
-	defer l.lock.RUnlock()
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 
-	// Loop over the list and check if the username matches.
-	for i := 0; i < len(l.list); i++ {
-		if l.list[i] == user {
-			return true
-		}
-	}
-
-	// List does not contain username.
-	return false
+	return u.username
 }
 
-// Add user(s) to the list.
-func (l *UsernameList) AddUsers(users []Username) error {
+// Set the username.
+func (u *User) SetUsername(username Username) {
 	// Acquire the write lock.
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	// Loop over the users and add each one.
-	for i := 0; i < len(users); i++ {
-		// Check if the user already exists.
-		for j := 0; j < len(l.list); j++ {
-			if l.list[j] == users[i] {
-				return usernameAlreadyExistsError(users[j])
-			}
-		}
+	u.username = username
+}
 
-		// Add the user to the list.
-		l.list = append(l.list, users[i])
+// Compare the password hash with a password.
+func (u *User) ComparePassword(password string) bool {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	return u.password.Compare(password)
+}
+
+// Set the password.
+func (u *User) SetPassword(password string) error {
+	// Acquire the write lock.
+	u.lock.Lock()
+	defer u.lock.Unlock()
+
+	// Hash the new password.
+	hash, err := auth.NewPasswordHash(password)
+	if err != nil {
+		return err
 	}
 
+	// Set the hash and return.
+	u.password = hash
 	return nil
 }
 
-// Remove user(s) from the list.
-func (l *UsernameList) RemoveUsers(users []Username) error {
+// Get the clearance level.
+func (u *User) GetClearance() access.Clearance {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	return u.clearance
+}
+
+// Check if the clearance level is sufficient, given a base level.
+func (u *User) IsClearanceSufficient(c access.Clearance) bool {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	return u.clearance.IsSufficient(c)
+}
+
+// Set a new clearance level.
+func (u *User) SetClearance(c access.Clearance) {
 	// Acquire the write lock.
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	// Loop over the users and remove each one.
-	for i := 0; i < len(users); i++ {
-		foundUser := false
-
-		// Find the index of the user.
-        for j := 0; j < len(l.list); j++ {
-			if l.list[j] == users[i] {
-                // Replace the index of the username with the index of the last element.
-				l.list[j] = l.list[len(l.list) - 1]
-
-				// Remove the last element.
-				l.list = l.list[:len(l.list) - 1]
-
-				// Mark that the user was found and deleted.
-				foundUser = true
-            }
-        }
-
-		// If the user wasn't found, return an error.
-		if !foundUser {
-			return usernameNotFoundError(users[i])
-		}
-	}
-
-	return nil
+	u.clearance = c
 }
