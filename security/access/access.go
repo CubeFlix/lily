@@ -13,42 +13,31 @@
 package access
 
 import (
+	"github.com/cubeflix/lily/user/namelist"
+
 	"errors"
 )
-
-
-// Username interface.
-type Username interface {}
-
-// Username list interface (package user).
-type UsernameList interface {
-	CheckList(Username)     bool
-	GetList()               []Username
-	AddUsers([]Username)    error
-	RemoveUsers([]Username) error
-}
 
 
 // The access settings object.
 type AccessSettings struct {
 	// Base access clearance.
-	AccessClearance Clearance
+	accessClearance Clearance
 	
 	// Modify access clearance.
-	ModifyClearance Clearance
+	modifyClearance Clearance
 
-	// Username lists do not have to be pointers as they are interfaces.
 	// Access whitelist.
-	AccessWhitelist UsernameList
+	accessWhitelist *namelist.UsernameList
 
 	// Modify access whitelist.
-	ModifyWhitelist UsernameList
+	modifyWhitelist *namelist.UsernameList
 
 	// Access blacklist.
-	AccessBlacklist UsernameList
+	accessBlacklist *namelist.UsernameList
 
 	// Modify access blacklist.
-	ModifyBlacklist UsernameList
+	modifyBlacklist *namelist.UsernameList
 }
 
 
@@ -58,19 +47,36 @@ var InvalidAccessModifyClearances = errors.New("lily.security.access: Invalid " 
 											   "clearance should be higher than " + 
 											   "access clearance.")
 
+
+// Create a new empty access settings object.
+func NewAccessSettings(access, modify Clearance) (*AccessSettings, error) {
+	if !modify.IsSufficient(access) {
+		return &AccessSettings{}, InvalidAccessModifyClearances
+	} 
+
+	return &AccessSettings{
+		accessClearance: access,
+		modifyClearance: modify,
+		accessWhitelist: &namelist.UsernameList{},
+		modifyWhitelist: &namelist.UsernameList{},
+		accessBlacklist: &namelist.UsernameList{},
+		modifyBlacklist: &namelist.UsernameList{},
+	}, nil
+}
+
 // Check if a clearance level is sufficient for access.
 func (a *AccessSettings) IsAccessSufficient(c Clearance) bool {
-	return c.IsSufficient(a.AccessClearance)
+	return c.IsSufficient(a.accessClearance)
 }
 
 // Check if a clearance level is sufficient for modifying.
 func (a *AccessSettings) IsModifySufficient(c Clearance) bool {
-	return c.IsSufficient(a.ModifyClearance)
+	return c.IsSufficient(a.modifyClearance)
 }
 
 // Get the clearance levels.
 func (a *AccessSettings) GetClearances() (Clearance, Clearance) {
-	return a.AccessClearance, a.ModifyClearance
+	return a.accessClearance, a.modifyClearance
 }
 
 // Set the clearance levels.
@@ -79,126 +85,198 @@ func (a *AccessSettings) SetClearances(access, modify Clearance) error {
 		return InvalidAccessModifyClearances
 	}
 	
-	a.AccessClearance, a.ModifyClearance = access, modify
+	a.accessClearance, a.modifyClearance = access, modify
 	return nil
 }
 
 // Check if a user is whitelisted to access.
-func (a *AccessSettings) IsAccessWhitelisted(username Username) bool {
-	return a.AccessWhitelist.CheckList(username)
+func (a *AccessSettings) IsAccessWhitelisted(username string) bool {
+	return a.accessWhitelist.CheckList(username)
 }
 
 // Check if a user is whitelisted to modify.
-func (a *AccessSettings) IsModifyWhitelisted(username Username) bool {
-	return a.ModifyWhitelist.CheckList(username)
+func (a *AccessSettings) IsModifyWhitelisted(username string) bool {
+	return a.modifyWhitelist.CheckList(username)
 }
 
 // Check if a user is blacklisted to access.
-func (a *AccessSettings) IsAccessBlacklisted(username Username) bool {
-	return a.AccessBlacklist.CheckList(username)
+func (a *AccessSettings) IsAccessBlacklisted(username string) bool {
+	return a.accessBlacklist.CheckList(username)
 }
 
 // Check if a user is blacklisted to modify.
-func (a *AccessSettings) IsModifyBlacklisted(username Username) bool {
-	return a.ModifyBlacklist.CheckList(username)
+func (a *AccessSettings) IsModifyBlacklisted(username string) bool {
+	return a.modifyBlacklist.CheckList(username)
 }
 
 // Get the access whitelist.
-func (a *AccessSettings) GetAccessWhitelist() []Username {
-	return a.AccessWhitelist.GetList()
+func (a *AccessSettings) GetAccessWhitelist() []string {
+	return a.accessWhitelist.GetList()
 }
 
 // Get the modify whitelist.
-func (a *AccessSettings) GetModifyWhitelist() []Username {
-	return a.ModifyWhitelist.GetList()
+func (a *AccessSettings) GetModifyWhitelist() []string {
+	return a.modifyWhitelist.GetList()
 }
 
 // Add users to the access whitelist.
-func (a *AccessSettings) AddUsersAccessWhitelist(users []Username) error {
-	return a.AccessWhitelist.AddUsers(users)
+func (a *AccessSettings) AddUsersAccessWhitelist(users []string) error {
+	err := a.accessWhitelist.AddUsers(users)
+	if err != nil {
+		return err
+	}
+
+	// Go through the list and track the ones that are in the access blacklist.
+	toRemove := make([]string, 0)
+	for i := 0; i < len(users); i++ {
+		if a.accessBlacklist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
+		}
+	}
+
+	// Remove the new list of users from the access blacklist.
+	return a.accessBlacklist.RemoveUsers(toRemove)
 }
 
 // Remove users from the access whitelist.
-func (a *AccessSettings) RemoveUsersAccessWhitelist(users []Username) error {
-	return a.AccessWhitelist.RemoveUsers(users)
+func (a *AccessSettings) RemoveUsersAccessWhitelist(users []string) error {
+	err := a.accessWhitelist.RemoveUsers(users)
+	if err != nil {
+		return err
+	}
+
+	// Go through the list and track the ones that are in the modify blacklist.
+	toRemove := make([]string, 0)
+	for i := 0; i < len(users); i++ {
+		if a.modifyWhitelist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
+		}
+	}
+
+	// Remove the new list of users from the modify whitelist.
+	return a.modifyWhitelist.RemoveUsers(toRemove)
 }
 
 // Add users to the modify whitelist.
-func (a *AccessSettings) AddUsersModifyWhitelist(users []Username) error {
-	err := a.ModifyWhitelist.AddUsers(users)
+func (a *AccessSettings) AddUsersModifyWhitelist(users []string) error {
+	err := a.modifyWhitelist.AddUsers(users)
 	if err != nil {
 		return err
 	}
 
 	// Go through the list and track the ones that are not in the access whitelist.
-	toAdd := make([]Username, 1)
+	toAdd := make([]string, 0)
 	for i := 0; i < len(users); i++ {
-		if !a.AccessWhitelist.CheckList(users[i]) {
+		if !a.accessWhitelist.CheckList(users[i]) {
 			toAdd = append(toAdd, users[i])
 		}
 	}
 
 	// Add the new list of users to the access whitelist.
-	return a.AccessWhitelist.AddUsers(toAdd)
-}
-
-// Remove users from the modify whitelist.
-func (a *AccessSettings) RemoveUsersModifyWhitelist(users []Username) error {
-	err := a.ModifyWhitelist.RemoveUsers(users)
+	err = a.accessWhitelist.AddUsers(toAdd)
 	if err != nil {
 		return err
 	}
 
-	// Remove the users from the access whitelist as well.
-	return a.AccessWhitelist.RemoveUsers(users)
-}
-
-// Get the access blacklist.
-func (a *AccessSettings) GetAccessBlacklist() []Username {
-	return a.AccessBlacklist.GetList()
-}
-
-// Get the modify blacklist.
-func (a *AccessSettings) GetModifyBlacklist() []Username {
-	return a.ModifyBlacklist.GetList()
-}
-
-// Add users to the access blacklist.
-func (a *AccessSettings) AddUsersAccessBlacklist(users []Username) error {
-	return a.AccessBlacklist.AddUsers(users)
-}
-
-// Remove users from the access blacklist.
-func (a *AccessSettings) RemoveUsersAccessBlacklist(users []Username) error {
-	return a.AccessBlacklist.RemoveUsers(users)
-}
-
-// Add users to the modify blacklist.
-func (a *AccessSettings) AddUsersModifyBlacklist(users []Username) error {
-	err := a.ModifyBlacklist.AddUsers(users)
-	if err != nil {
-		return err
-	}
-
-	// Go through the list and track the ones that are not in the access blacklist.
-	toAdd := make([]Username, 1)
+	// Go through the list and track the ones that are in the access blacklist.
+	toRemove := make([]string, 0)
 	for i := 0; i < len(users); i++ {
-		if !a.AccessBlacklist.CheckList(users[i]) {
-			toAdd = append(toAdd, users[i])
+		if a.accessBlacklist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
 		}
 	}
 
-	// Add the new list of users to the access blacklist.
-	return a.AccessBlacklist.AddUsers(toAdd)
-}
-
-// Remove users from the modify blacklist.
-func (a *AccessSettings) RemoveUsersModifyBlacklist(users []Username) error {
-	err := a.ModifyBlacklist.RemoveUsers(users)
+	// Remove the new list of users from the access blacklist.
+	err = a.accessBlacklist.RemoveUsers(toRemove)
 	if err != nil {
 		return err
 	}
 
-	// Remove the users from the access blacklist as well.
-	return a.AccessBlacklist.RemoveUsers(users)
+	// Go through the list and track the ones that are in the modify blacklist.
+	toRemove = []string{}
+	for i := 0; i < len(users); i++ {
+		if a.modifyBlacklist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
+		}
+	}
+
+	// Remove the new list of users from the modify blacklist.
+	return a.modifyBlacklist.RemoveUsers(toRemove)
+}
+
+// Remove users from the modify whitelist.
+func (a *AccessSettings) RemoveUsersModifyWhitelist(users []string) error {
+	return a.modifyWhitelist.RemoveUsers(users)
+}
+
+// Get the access blacklist.
+func (a *AccessSettings) GetAccessBlacklist() []string {
+	return a.accessBlacklist.GetList()
+}
+
+// Get the modify blacklist.
+func (a *AccessSettings) GetModifyBlacklist() []string {
+	return a.modifyBlacklist.GetList()
+}
+
+// Add users to the access blacklist.
+func (a *AccessSettings) AddUsersAccessBlacklist(users []string) error {
+	err := a.accessBlacklist.AddUsers(users)
+	if err != nil {
+		return err
+	}
+
+	// Go through the list and track the ones that are in the access whitelist.
+	toRemove := make([]string, 0)
+	for i := 0; i < len(users); i++ {
+		if a.accessWhitelist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
+		}
+	}
+
+	// Remove the new list of users from the access whitelist.
+	err = a.accessWhitelist.RemoveUsers(toRemove)
+	if err != nil {
+		return err
+	}
+
+	// Go through the list and track the ones that are in the modify whitelist.
+	toRemove = []string{}
+	for i := 0; i < len(users); i++ {
+		if a.modifyWhitelist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
+		}
+	}
+
+	// Remove the new list of users from the modify blacklist.
+	return a.modifyWhitelist.RemoveUsers(toRemove)
+}
+
+// Remove users from the access blacklist.
+func (a *AccessSettings) RemoveUsersAccessBlacklist(users []string) error {
+	return a.accessBlacklist.RemoveUsers(users)
+}
+
+// Add users to the modify blacklist.
+func (a *AccessSettings) AddUsersModifyBlacklist(users []string) error {
+	err := a.modifyBlacklist.AddUsers(users)
+	if err != nil {
+		return err
+	}
+
+	// Go through the list and track the ones that are in the modify whitelist.
+	toRemove := make([]string, 0)
+	for i := 0; i < len(users); i++ {
+		if a.modifyWhitelist.CheckList(users[i]) {
+			toRemove = append(toRemove, users[i])
+		}
+	}
+
+	// Remove the new list of users from the modify blacklist.
+	return a.modifyWhitelist.RemoveUsers(toRemove)
+}
+
+// Remove users from the modify blacklist.
+func (a *AccessSettings) RemoveUsersModifyBlacklist(users []string) error {
+	return a.modifyBlacklist.RemoveUsers(users)
 }

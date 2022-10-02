@@ -22,7 +22,7 @@ type User struct {
 	lock      sync.RWMutex
 
 	// Username.
-	username  Username
+	username  string
 
 	// Password hash.
 	password  auth.PasswordHash
@@ -30,9 +30,6 @@ type User struct {
 	// Security clearance.
 	clearance access.Clearance
 }
-
-// Username type.
-type Username string
 
 
 // Create a new user object.
@@ -44,14 +41,14 @@ func NewUser(username, password string, clearance access.Clearance) (*User, erro
 	}
 
 	return &User{
-		username:  Username(username),
+		username:  username,
 		password:  passwordHash,
 		clearance: clearance,
 	}, nil
 }
 
 // Get the username.
-func (u *User) GetUsername() Username {
+func (u *User) GetUsername() string {
 	// Acquire the read lock.
 	u.lock.RLock()
 	defer u.lock.RUnlock()
@@ -60,7 +57,7 @@ func (u *User) GetUsername() Username {
 }
 
 // Set the username.
-func (u *User) SetUsername(username Username) {
+func (u *User) SetUsername(username string) {
 	// Acquire the write lock.
 	u.lock.Lock()
 	defer u.lock.Unlock()

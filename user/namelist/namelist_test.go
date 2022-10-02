@@ -1,7 +1,7 @@
-// user/namelist_test.go
+// user/namelist/namelist_test.go
 // Testing for user/namelist.go.
 
-package user
+package namelist
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ func TestCheckUsernameList(t *testing.T) {
 	list := NewUsernameList()
 
 	// Add some users.
-	err := list.AddUsers([]Username{Username("foo"), Username("bar"), Username("lily")})
+	err := list.AddUsers([]string{"foo", "bar", "lily"})
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -32,19 +32,19 @@ func TestAddRemoveUsernameList(t *testing.T) {
 	list := NewUsernameList()
 
 	// Add some users.
-	err := list.AddUsers([]Username{Username("foo"), Username("bar"), Username("lily")})
+	err := list.AddUsers([]string{"foo", "bar", "lily"})
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	// Attempt to add an already existing user.
-	err = list.AddUsers([]Username{Username("foo")})
+	err = list.AddUsers([]string{"foo"})
 	if err == nil {
 		t.Fail()
 	}
 
 	// Remove some users.
-	err = list.RemoveUsers([]Username{Username("bar"), Username("lily")})
+	err = list.RemoveUsers([]string{"bar", "lily"})
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -55,12 +55,12 @@ func TestAddRemoveUsernameList(t *testing.T) {
 	}
 
 	// Check that the list only contains "foo".
-	if list.GetList()[0] != Username("foo") && len(list.GetList()) != 1 {
+	if list.GetList()[0] != "foo" || len(list.GetList()) != 1 {
 		t.Fail()
 	}
 
 	// Attempt to remove a nonexistent user.
-	err = list.RemoveUsers([]Username{Username("bar")})
+	err = list.RemoveUsers([]string{"bar"})
 	if err == nil {
 		t.Fail()
 	}

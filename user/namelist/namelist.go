@@ -1,7 +1,7 @@
-// user/namelist.go
+// user/namelist/namelist.go
 // Username lists for access permissions.
 
-package user
+package namelist
 
 import (
 	"sync"
@@ -14,15 +14,15 @@ type UsernameList struct {
 	// Using a mutex to sync the slice.
 	lock sync.RWMutex
 
-	list []Username
+	list []string
 }
 
 
 // Username already exists.
-var UsernameAlreadyExistsError = errors.New("lily.user: Username already exists")
+var UsernameAlreadyExistsError = errors.New("lily.user: Username already exists.")
 
 // Username not found.
-var UsernameNotFoundError = errors.New("lily.user: Username not found")
+var UsernameNotFoundError = errors.New("lily.user: Username not found.")
 
 
 // Create a new username list.
@@ -31,7 +31,7 @@ func NewUsernameList() *UsernameList {
 }
 
 // Check if a username is in the list.
-func (l *UsernameList) CheckList(user Username) bool {
+func (l *UsernameList) CheckList(user string) bool {
 	// Acquire the read lock.
 	l.lock.RLock()
 	defer l.lock.RUnlock()
@@ -48,7 +48,7 @@ func (l *UsernameList) CheckList(user Username) bool {
 }
 
 // Get the list.
-func (l *UsernameList) GetList() []Username {
+func (l *UsernameList) GetList() []string {
 	// Acquire the read lock.
 	l.lock.RLock()
 	defer l.lock.RUnlock()
@@ -57,7 +57,7 @@ func (l *UsernameList) GetList() []Username {
 }
 
 // Add user(s) to the list.
-func (l *UsernameList) AddUsers(users []Username) error {
+func (l *UsernameList) AddUsers(users []string) error {
 	// Acquire the write lock.
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -79,7 +79,7 @@ func (l *UsernameList) AddUsers(users []Username) error {
 }
 
 // Remove user(s) from the list.
-func (l *UsernameList) RemoveUsers(users []Username) error {
+func (l *UsernameList) RemoveUsers(users []string) error {
 	// Acquire the write lock.
 	l.lock.Lock()
 	defer l.lock.Unlock()
