@@ -1,6 +1,8 @@
 // user/namelist/namelist.go
 // Username lists for access permissions.
 
+// Package namelist provides username lists for access permissions.
+
 package namelist
 
 import (
@@ -12,7 +14,7 @@ import (
 // Username list object.
 type UsernameList struct {
 	// Using a mutex to sync the slice.
-	lock sync.RWMutex
+	lock *sync.RWMutex
 
 	list []string
 }

@@ -1,4 +1,4 @@
-// security/access.go
+// security/access/access.go
 // Security access settings for drives, folders, files, and various settings.
 
 // All drives, folders, files, and settings on Lily servers are access
@@ -248,7 +248,7 @@ func (a *AccessSettings) AddUsersAccessBlacklist(users []string) error {
 		}
 	}
 
-	// Remove the new list of users from the modify blacklist.
+	// Remove the new list of users from the modify whitelist.
 	return a.modifyWhitelist.RemoveUsers(toRemove)
 }
 

@@ -19,7 +19,7 @@ import (
 // User type structure.
 type User struct {
 	// Using a mutex to sync the struct.
-	lock      sync.RWMutex
+	lock      *sync.RWMutex
 
 	// Username.
 	username  string
@@ -116,4 +116,51 @@ func (u *User) SetClearance(c access.Clearance) {
 	defer u.lock.Unlock()
 
 	u.clearance = c
+}
+
+// Check if the user can access, given an access settings object. The drive/
+// directory/file/setting object we are accessing should already be read-locked.
+func (u *User) CanAccess(settings *access.AccessSettings) bool {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	// Check if we are blacklisted.
+	if settings.IsAccessBlacklisted(u.username) {
+		return false
+	}
+
+	// Check if we are whitelisted.
+	if settings.IsAccessWhitelisted(u.username) {
+		return true
+	}
+
+	// We can only access if the clearance is sufficient.
+	return settings.IsAccessSufficient(u.clearance)
+}
+
+// Check if the user can modify, given an access settings object. The drive/
+// directory/file/setting object we are modifying should already be write-locked.
+func (u *User) CanModify(settings *access.AccessSettings) bool {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	// Check if we can access.
+	if !u.CanAccess(settings) {
+		return false
+	}
+
+	// Check if we are blacklisted.
+	if settings.IsModifyBlacklisted(u.username) {
+		return false
+	}
+
+	// Check if we are whitelisted.
+	if settings.IsModifyWhitelisted(u.username) {
+		return true
+	}
+
+	// We can only modify if the clearance is sufficient.
+	return settings.IsModifySufficient(u.clearance)
 }

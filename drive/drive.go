@@ -1,7 +1,7 @@
 // drive/drive.go
 // Objects and functions for drives.
 
-// Package drive provides objects for storing drives.
+// Package drive implements drives for Lily servers.
 
 // Drives essentially function as large file stores; each one represents a
 // directory on the host's filesystem. A Lily server contains at least one
@@ -10,12 +10,12 @@
 // master lock for handling the drive's properties, and each directory and 
 // file holds a lock for reading and modifying its properties.
 
-package drive
+package fs
 
 import (
 	"sync"
 
-	"github.com/cubeflix/lily/security"
+	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/fs"
 )
 
@@ -24,12 +24,14 @@ import (
 // active drive on the server.
 type Drive struct {
 	// Main drive lock.
-	lock         sync.RWMutex
+	lock    *sync.RWMutex
 
-	// Drive settings.
-	name         string
-	security     *security.AccessSettings
+	// Drive settings. Security access determines if a user can access the 
+	// drive and if the user can modify the name.
+	name    string
+	path    string
+	access  *access.AccessSettings
 
 	// Root filesystem object.
-	fs           *fs.Directory
+	fs      *fs.Directory
 }

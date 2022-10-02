@@ -59,16 +59,22 @@ func TestAccessUserLists(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+
+	// Check the values.
 	if a.IsModifyWhitelisted("lily") {
 		t.Fail()
 	}
 	if !a.IsAccessBlacklisted("lily") {
 		t.Fail()
 	}
+
+
 	err = a.AddUsersModifyBlacklist([]string{"foo"})
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+
+	// Check the values.
 	if !a.IsAccessWhitelisted("foo") {
 		t.Fail()
 	}
@@ -81,6 +87,8 @@ func TestAccessUserLists(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+
+	// Add "lily" to the modify whitelist so we can remove her afterwards.
 	err = a.AddUsersModifyWhitelist([]string{"lily"})
 	if err != nil {
 		t.Errorf(err.Error())
@@ -97,10 +105,13 @@ func TestAccessUserLists(t *testing.T) {
 		t.Fail()
 	}
 
+	// Remove the remaining users.
 	err = a.RemoveUsersModifyBlacklist([]string{"foo"})
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+
+	// Add and remove "lily" from the access blacklist.
 	err = a.AddUsersAccessBlacklist([]string{"lily"})
 	if err != nil {
 		t.Errorf(err.Error())
@@ -109,6 +120,7 @@ func TestAccessUserLists(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+	// Check that the blacklists are empty.
 	if len(a.GetAccessBlacklist()) != 0 || len(a.GetModifyBlacklist()) != 0 {
 		t.Fail()
 	}
