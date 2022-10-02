@@ -1,6 +1,8 @@
 // drive/drive.go
 // Objects and functions for drives.
 
+// Package drive provides objects for storing drives.
+
 // Drives essentially function as large file stores; each one represents a
 // directory on the host's filesystem. A Lily server contains at least one
 // drive. Each drive's internal file structure is stored in memory, allowing 
