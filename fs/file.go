@@ -7,6 +7,8 @@ import (
 	"github.com/cubeflix/lily/security/access"
 
 	"sync"
+	"errors"
+	"strings"
 )
 
 
@@ -15,7 +17,7 @@ type File struct {
 	// File lock.
 	Lock     *sync.RWMutex
 
-	// File path (local path within drive).
+	// File path (local path within directory).
 	path     string
 
 	// File security access settings. Exposing the settings object so we don't
@@ -24,6 +26,21 @@ type File struct {
 	Settings *access.AccessSettings
 }
 
+
+var InvalidFilePathError = errors.New("lily.fs.File: Invalid file path.")
+
+
+// Create a new file object.
+func NewFile(path string, settings *access.AccessSettings) (*File, error) {
+	if strings.Contains(path, "/") || strings.Contains(path, "\\") {
+		return &File{}, InvalidFilePathError
+	}
+
+	return &File{
+		path:     path,
+		Settings: settings,
+	}, nil
+}
 
 // Acquire the read lock.
 func (f *File) AcquireRLock() {

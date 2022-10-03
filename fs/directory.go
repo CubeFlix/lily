@@ -6,6 +6,7 @@ package fs
 import (
 	"github.com/cubeflix/lily/security/access"
 
+	"strings"
 	"errors"
 	"sync"
 )
@@ -16,7 +17,7 @@ type Directory struct {
 	// Directory lock.
 	Lock     *sync.RWMutex
 
-	// Directory path (local path within drive).
+	// Directory path (local path within parent).
 	path     string
 
 	// Is the directory the root.
@@ -36,12 +37,17 @@ type Directory struct {
 }
 
 
-var ItemNotFoundError = errors.New("lily.fs: Item not found.")
+var ItemNotFoundError = errors.New("lily.fs.Directory: Item not found.")
+var InvalidDirectoryPathError = errors.New("lily.fs.Directory: Invalid directory path.")
 
 
 // Create a new directory object.
 func NewDirectory(path string, isRoot bool, parent *Directory, 
-				  settings *access.AccessSettings) *Directory {
+				  settings *access.AccessSettings) (*Directory, error) {
+	if strings.Contains(path, "/") || strings.Contains(path, "\\") {
+		return &Directory{}, InvalidDirectoryPathError
+	}
+	
 	return &Directory{
 		path:     path,
 		isRoot:   isRoot,
@@ -49,7 +55,7 @@ func NewDirectory(path string, isRoot bool, parent *Directory,
 		Settings: settings,
 		subdirs:  make(map[string]*Directory),
 		files:    make(map[string]*File),
-	}
+	}, nil
 }
 
 // Get the read lock.
@@ -128,39 +134,23 @@ func (d *Directory) SetParent(parent *Directory) {
 	d.parent = parent
 }
 
-// Get the subdirectories.
+// Get the subdirectories. NOTE: Get the lock before doing this.
 func (d *Directory) GetSubdirs() map[string]*Directory {
-	// Acquire the read lock.
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
-
 	return d.subdirs
 }
 
 // Set the subdirectories. Again, DO NOT USE if you do not know what you are doing.
 func (d *Directory) SetSubdirs(subdirs map[string]*Directory) {
-	// Acquire the write lock.
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
-
 	d.subdirs = subdirs
 }
 
-// Get the files.
+// Get the files. NOTE: Get the lock before doing this.
 func (d *Directory) GetFiles() map[string]*File {
-	// Acquire the read lock.
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
-
 	return d.files
 }
 
 // Set the files. Again, DO NOT USE if you do not know what you are doing.
 func (d *Directory) SetFiles(files map[string]*File) {
-	// Acquire the write lock.
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
-
 	d.files = files
 }
 
