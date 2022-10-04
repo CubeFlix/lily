@@ -9,21 +9,29 @@ import (
 	"sync"
 	"errors"
 	"strings"
+	"time"
 )
 
 
 // File system file object.
 type File struct {
 	// File lock.
-	Lock     *sync.RWMutex
+	Lock       *sync.RWMutex
 
 	// File path (local path within directory).
-	path     string
+	path       string
 
 	// File security access settings. Exposing the settings object so we don't
 	// have to rewrite all the getters and setters. NOTE: When using the 
 	// .Settings field, acquire the RWLock.
-	Settings *access.AccessSettings
+	Settings   *access.AccessSettings
+
+	// Last editor.
+	lastEditor string
+
+	// Last edit.
+	lastEdit   time.Time
+
 }
 
 
@@ -80,4 +88,40 @@ func (f *File) SetPath(path string) {
 	defer f.Lock.Unlock()
 
 	f.path = path
+}
+
+// Get the last editor.
+func (f *File) GetLastEditor() string {
+	// Acquire the read lock.
+	f.Lock.RLock()
+	defer f.Lock.RUnlock()
+
+	return f.lastEditor
+}
+
+// Set the last editor. 
+func (f *File) SetLastEditor(lastEditor string) {
+	// Acquire the write lock.
+	f.Lock.Lock()
+	defer f.Lock.Unlock()
+
+	f.lastEditor = lastEditor
+}
+
+// Get the last edit time.
+func (f *File) GetLastEditTime() time.Time {
+	// Acquire the read lock.
+	f.Lock.RLock()
+	defer f.Lock.RUnlock()
+
+	return f.lastEdit
+}
+
+// Set the last edit time. 
+func (f *File) SetLastEditTime(lastEdit time.Time) {
+	// Acquire the write lock.
+	f.Lock.Lock()
+	defer f.Lock.Unlock()
+
+	f.lastEdit = lastEdit
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/cubeflix/lily/security/access"
 
 	"testing"
+	"time"
 )
 
 
@@ -45,6 +46,26 @@ func TestFileFuncs(t *testing.T) {
 	}
 	f.SetPath("foo.txt")
 	if f.GetPath() != "foo.txt" {
+		t.Fail()
+	}
+
+	// Test lastEditor.
+	if f.GetLastEditor() != "" {
+		t.Fail()
+	}
+	f.SetLastEditor("lily")
+	if f.GetLastEditor() != "lily" {
+		t.Fail()
+	}
+
+	// Test lastEdit.
+	emptyTime := time.Time{}
+	if f.GetLastEditTime() != emptyTime {
+		t.Fail()
+	}
+	lastTime := time.Now()
+	f.SetLastEditTime(lastTime)
+	if f.GetLastEditTime() != lastTime {
 		t.Fail()
 	}
 }

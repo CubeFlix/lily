@@ -7,6 +7,7 @@ import (
 	"github.com/cubeflix/lily/security/access"
 
 	"testing"
+	"time"
 )
 
 
@@ -63,6 +64,26 @@ func TestDirectoryFuncs(t *testing.T) {
 	}
 	f.SetParent(f)
 	if f.GetParent() != f {
+		t.Fail()
+	}
+
+	// Test lastEditor.
+	if f.GetLastEditor() != "" {
+		t.Fail()
+	}
+	f.SetLastEditor("lily")
+	if f.GetLastEditor() != "lily" {
+		t.Fail()
+	}
+
+	// Test lastEdit.
+	emptyTime := time.Time{}
+	if f.GetLastEditTime() != emptyTime {
+		t.Fail()
+	}
+	lastTime := time.Now()
+	f.SetLastEditTime(lastTime)
+	if f.GetLastEditTime() != lastTime {
 		t.Fail()
 	}
 }
@@ -125,5 +146,40 @@ func TestSubdirsFilesName(t *testing.T) {
 	}
 
 	// Get and set subdirs by name.
-	
+	d.AcquireLock()
+	d2 := d
+	d2.SetParent(d)
+	subdirs := map[string]*Directory{"dir": d2}
+	d.SetSubdirsByName(subdirs)
+	d.ReleaseLock()
+
+	d.AcquireRLock()
+	lsubdirs, err := d.GetSubdirsByName([]string{"dir"})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if lsubdirs[0] != d2 {
+		t.Fail()
+	}
+	d.ReleaseRLock()
+
+	// Test files.
+	d.AcquireLock()
+	f, err := NewFile("file.txt", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	files := map[string]*File{"file.txt": f}
+	d.SetFilesByName(files)
+	d.ReleaseLock()
+
+	d.AcquireRLock()
+	lfiles, err := d.GetFilesByName([]string{"file.txt"})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if lfiles[0] != f {
+		t.Fail()
+	}
+	d.ReleaseRLock()
 }

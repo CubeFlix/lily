@@ -9,6 +9,7 @@ import (
 	"strings"
 	"errors"
 	"sync"
+	"time"
 )
 
 
@@ -30,6 +31,12 @@ type Directory struct {
 	// don't have to rewrite all the getters and setters. NOTE: When using the
 	// .Settings field, acquire the RWLock.
 	Settings *access.AccessSettings
+
+	// Last editor.
+	lastEditor string
+
+	// Last edit.
+	lastEdit   time.Time
 
 	// Directory contents.
 	subdirs  map[string]*Directory
@@ -134,6 +141,43 @@ func (d *Directory) SetParent(parent *Directory) {
 	d.parent = parent
 }
 
+// Get the last editor.
+func (d *Directory) GetLastEditor() string {
+	// Acquire the read lock.
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+
+	return d.lastEditor
+}
+
+// Set the last editor. 
+func (d *Directory) SetLastEditor(lastEditor string) {
+	// Acquire the write lock.
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+
+	d.lastEditor = lastEditor
+}
+
+// Get the last edit time.
+func (d *Directory) GetLastEditTime() time.Time {
+	// Acquire the read lock.
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+
+	return d.lastEdit
+}
+
+// Set the last edit time. 
+func (d *Directory) SetLastEditTime(lastEdit time.Time) {
+	// Acquire the write lock.
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+
+	d.lastEdit = lastEdit
+}
+
+
 // Get the subdirectories. NOTE: Get the lock before doing this.
 func (d *Directory) GetSubdirs() map[string]*Directory {
 	return d.subdirs
@@ -178,10 +222,6 @@ func (d *Directory) ListDir() []string {
 // Get subdirectories by name. NOTE: Before modifying any file, get the directory
 // write lock first.
 func (d *Directory) GetSubdirsByName(names []string) ([]*Directory, error) {
-	// Acquire the read lock.
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
-
 	// Get subdirectories by name.
 	dirs := make([]*Directory, len(names))
 	for i := range names {
@@ -198,10 +238,6 @@ func (d *Directory) GetSubdirsByName(names []string) ([]*Directory, error) {
 
 // Set subdirectories by name.
 func (d *Directory) SetSubdirsByName(dirs map[string]*Directory) {
-	// Acquire the write lock.
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
-
 	// Set subdirectories by name.
 	for i := range dirs {
 		d.subdirs[i] = dirs[i]
@@ -211,10 +247,6 @@ func (d *Directory) SetSubdirsByName(dirs map[string]*Directory) {
 // Get files by name. NOTE: Before modifying any file, get the directory write 
 // lock first.
 func (d *Directory) GetFilesByName(names []string) ([]*File, error) {
-	// Acquire the read lock.
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
-
 	// Get files by name.
 	files := make([]*File, len(names))
 	for i := range names {
@@ -231,10 +263,6 @@ func (d *Directory) GetFilesByName(names []string) ([]*File, error) {
 
 // Set files by name.
 func (d *Directory) SetFilesByName(files map[string]*File) {
-	// Acquire the write lock.
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
-
 	// Set files by name.
 	for i := range files {
 		d.files[i] = files[i]
