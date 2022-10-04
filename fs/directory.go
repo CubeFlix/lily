@@ -43,6 +43,15 @@ type Directory struct {
 	files    map[string]*File
 }
 
+// A single list directory object.
+type ListDirObj struct {
+	// Name.
+	name string
+
+	// Is file, otherwise is directory.
+	file bool
+}
+
 
 var ItemNotFoundError = errors.New("lily.fs.Directory: Item not found.")
 var InvalidDirectoryPathError = errors.New("lily.fs.Directory: Invalid directory path.")
@@ -199,20 +208,20 @@ func (d *Directory) SetFiles(files map[string]*File) {
 }
 
 // List the directory.
-func (d *Directory) ListDir() []string {
+func (d *Directory) ListDir() []ListDirObj {
 	// Acquire the read lock.
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 
 	// Loop through the subdirectories and files and return a list of them.
-	keys := make([]string, len(d.subdirs) + len(d.files))
+	keys := make([]ListDirObj, len(d.subdirs) + len(d.files))
 	i := 0
 	for k := range d.subdirs {
-    	keys[i] = k
+    	keys[i] = ListDirObj{k, false}
     	i++
 	}
 	for k := range d.files {
-		keys[i] = k
+		keys[i] = ListDirObj{k, true}
 		i++
 	}
 
@@ -220,7 +229,7 @@ func (d *Directory) ListDir() []string {
 }
 
 // Get subdirectories by name. NOTE: Before modifying any file, get the directory
-// write lock first.
+// read lock first.
 func (d *Directory) GetSubdirsByName(names []string) ([]*Directory, error) {
 	// Get subdirectories by name.
 	dirs := make([]*Directory, len(names))
@@ -236,7 +245,8 @@ func (d *Directory) GetSubdirsByName(names []string) ([]*Directory, error) {
 	return dirs, nil
 }
 
-// Set subdirectories by name.
+// Set subdirectories by name. NOTE: Before modifying any file, get the directory
+// write lock first.
 func (d *Directory) SetSubdirsByName(dirs map[string]*Directory) {
 	// Set subdirectories by name.
 	for i := range dirs {

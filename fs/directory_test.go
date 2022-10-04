@@ -183,3 +183,41 @@ func TestSubdirsFilesName(t *testing.T) {
 	}
 	d.ReleaseRLock()
 }
+
+// Test directory ListDir function.
+func TestDirectoryListDir(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	d, err := NewDirectory("dir", true, &Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Add files and subdirs.
+	d.AcquireLock()
+	f, err := NewFile("file.txt", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	files := map[string]*File{"file.txt": f}
+	d.SetFilesByName(files)
+	d.ReleaseLock()
+
+	d.AcquireLock()
+	d2 := d
+	d2.SetParent(d)
+	subdirs := map[string]*Directory{"dir": d2}
+	d.SetSubdirsByName(subdirs)
+	d.ReleaseLock()
+
+	// Test the list directory command.
+	ldir := d.ListDir()
+	if ldir[0].name != "file.txt" && ldir[0].file != true {
+		t.Fail()
+	}
+	if ldir[1].name != "dir" && ldir[1].file != false {
+		t.Fail()
+	}
+}
