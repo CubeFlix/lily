@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 )
-
+// TODO: HASH and ISencrypted
 
 // File system file object.
 type File struct {
@@ -32,6 +32,11 @@ type File struct {
 	// Last edit.
 	lastEdit   time.Time
 
+	// Optional hash data.
+	hash       []byte
+
+	// Is file encrypted.
+	encrypted  bool
 }
 
 
@@ -45,6 +50,7 @@ func NewFile(path string, settings *access.AccessSettings) (*File, error) {
 	}
 
 	return &File{
+		Lock:     &sync.RWMutex{},
 		path:     path,
 		Settings: settings,
 	}, nil
@@ -124,4 +130,40 @@ func (f *File) SetLastEditTime(lastEdit time.Time) {
 	defer f.Lock.Unlock()
 
 	f.lastEdit = lastEdit
+}
+
+// Get the hash.
+func (f *File) GetHash() []byte {
+	// Acquire the read lock.
+	f.Lock.RLock()
+	defer f.Lock.RUnlock()
+
+	return f.hash
+}
+
+// Set the hash. 
+func (f *File) SetHash(hash []byte) {
+	// Acquire the write lock.
+	f.Lock.Lock()
+	defer f.Lock.Unlock()
+
+	f.hash = hash
+}
+
+// Get is encrypted.
+func (f *File) GetIsEncrypted() bool {
+	// Acquire the read lock.
+	f.Lock.RLock()
+	defer f.Lock.RUnlock()
+
+	return f.encrypted
+}
+
+// Set is encrypted. 
+func (f *File) SetIsEncrypted(encrypted bool) {
+	// Acquire the write lock.
+	f.Lock.Lock()
+	defer f.Lock.Unlock()
+
+	f.encrypted = encrypted
 }

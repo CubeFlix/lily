@@ -16,21 +16,21 @@ import (
 // File system directory object.
 type Directory struct {
 	// Directory lock.
-	Lock     *sync.RWMutex
+	Lock       *sync.RWMutex
 
 	// Directory path (local path within parent).
-	path     string
+	path       string
 
 	// Is the directory the root.
-	isRoot   bool
+	isRoot     bool
 
 	// The parent directory, if it is not the root.
-	parent   *Directory
+	parent     *Directory
 
 	// Directory security access settings. Exposing the settings object so we
 	// don't have to rewrite all the getters and setters. NOTE: When using the
 	// .Settings field, acquire the RWLock.
-	Settings *access.AccessSettings
+	Settings   *access.AccessSettings
 
 	// Last editor.
 	lastEditor string
@@ -65,6 +65,7 @@ func NewDirectory(path string, isRoot bool, parent *Directory,
 	}
 	
 	return &Directory{
+		Lock:     &sync.RWMutex{},
 		path:     path,
 		isRoot:   isRoot,
 		parent:   parent,

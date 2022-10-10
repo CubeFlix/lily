@@ -57,10 +57,10 @@ func NewAccessSettings(access, modify Clearance) (*AccessSettings, error) {
 	return &AccessSettings{
 		accessClearance: access,
 		modifyClearance: modify,
-		accessWhitelist: &namelist.UsernameList{},
-		modifyWhitelist: &namelist.UsernameList{},
-		accessBlacklist: &namelist.UsernameList{},
-		modifyBlacklist: &namelist.UsernameList{},
+		accessWhitelist: namelist.NewUsernameList(),
+		modifyWhitelist: namelist.NewUsernameList(),
+		accessBlacklist: namelist.NewUsernameList(),
+		modifyBlacklist: namelist.NewUsernameList(),
 	}, nil
 }
 

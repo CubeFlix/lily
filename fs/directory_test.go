@@ -8,6 +8,7 @@ import (
 
 	"testing"
 	"time"
+	"sync"
 )
 
 
@@ -35,7 +36,7 @@ func TestDirectoryFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	f, err := NewDirectory("dir", true, &Directory{}, a)
+	f, err := NewDirectory("dir", true, &Directory{Lock: &sync.RWMutex{}}, a)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -98,12 +99,14 @@ func TestSubdirsFilesFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+	d2, err := NewDirectory("dir", false, d, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
 	
 	// Test subdirs.
 	d.AcquireLock()
 	subdirs := d.GetSubdirs()
-	d2 := d
-	d2.SetParent(d)
 	subdirs["dir"] = d2
 	d.SetSubdirs(subdirs)
 	d.ReleaseLock()
@@ -144,11 +147,13 @@ func TestSubdirsFilesName(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+	d2, err := NewDirectory("dir", false, d, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
 
 	// Get and set subdirs by name.
 	d.AcquireLock()
-	d2 := d
-	d2.SetParent(d)
 	subdirs := map[string]*Directory{"dir": d2}
 	d.SetSubdirsByName(subdirs)
 	d.ReleaseLock()
@@ -194,6 +199,10 @@ func TestDirectoryListDir(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+	d2, err := NewDirectory("dir", false, d, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
 
 	// Add files and subdirs.
 	d.AcquireLock()
@@ -206,18 +215,16 @@ func TestDirectoryListDir(t *testing.T) {
 	d.ReleaseLock()
 
 	d.AcquireLock()
-	d2 := d
-	d2.SetParent(d)
 	subdirs := map[string]*Directory{"dir": d2}
 	d.SetSubdirsByName(subdirs)
 	d.ReleaseLock()
 
 	// Test the list directory command.
 	ldir := d.ListDir()
-	if ldir[0].name != "file.txt" && ldir[0].file != true {
+	if ldir[1].name != "file.txt" || ldir[1].file != true {
 		t.Fail()
 	}
-	if ldir[1].name != "dir" && ldir[1].file != false {
+	if ldir[0].name != "dir" || ldir[0].file != false {
 		t.Fail()
 	}
 }

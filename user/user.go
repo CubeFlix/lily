@@ -41,6 +41,7 @@ func NewUser(username, password string, clearance access.Clearance) (*User, erro
 	}
 
 	return &User{
+		lock:      &sync.RWMutex{},
 		username:  username,
 		password:  passwordHash,
 		clearance: clearance,

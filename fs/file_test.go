@@ -68,4 +68,22 @@ func TestFileFuncs(t *testing.T) {
 	if f.GetLastEditTime() != lastTime {
 		t.Fail()
 	}
+
+	// Test hash.
+	if len(f.GetHash()) != 0 {
+		t.Fail()
+	}
+	f.SetHash([]byte("abc"))
+	if string(f.GetHash()) != "abc" {
+		t.Fail()
+	}
+
+	// Test is encrypted.
+	if f.GetIsEncrypted() != false {
+		t.Fail()
+	}
+	f.SetIsEncrypted(true)
+	if f.GetIsEncrypted() != true {
+		t.Fail()
+	}
 }

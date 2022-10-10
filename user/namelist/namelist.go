@@ -29,7 +29,7 @@ var UsernameNotFoundError = errors.New("lily.user: Username not found.")
 
 // Create a new username list.
 func NewUsernameList() *UsernameList {
-	return &UsernameList{}
+	return &UsernameList{lock: &sync.RWMutex{}}
 }
 
 // Check if a username is in the list.
