@@ -6,47 +6,44 @@ package fs
 import (
 	"github.com/cubeflix/lily/security/access"
 
-	"sync"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 )
-// TODO: HASH and ISencrypted
 
 // File system file object.
 type File struct {
 	// File lock.
-	Lock       *sync.RWMutex
+	Lock *sync.RWMutex
 
 	// File path (local path within directory).
-	path       string
+	path string
 
 	// File security access settings. Exposing the settings object so we don't
-	// have to rewrite all the getters and setters. NOTE: When using the 
+	// have to rewrite all the getters and setters. NOTE: When using the
 	// .Settings field, acquire the RWLock.
-	Settings   *access.AccessSettings
+	Settings *access.AccessSettings
 
 	// Last editor.
 	lastEditor string
 
 	// Last edit.
-	lastEdit   time.Time
+	lastEdit time.Time
 
 	// Optional hash data.
-	hash       []byte
+	hash []byte
 
 	// Is file encrypted.
-	encrypted  bool
+	encrypted bool
 }
 
-
-var InvalidFilePathError = errors.New("lily.fs.File: Invalid file path.")
-
+var ErrInvalidFilePath = errors.New("lily.fs.File: Invalid file path")
 
 // Create a new file object.
 func NewFile(path string, settings *access.AccessSettings) (*File, error) {
 	if strings.Contains(path, "/") || strings.Contains(path, "\\") {
-		return &File{}, InvalidFilePathError
+		return &File{}, ErrInvalidFilePath
 	}
 
 	return &File{
@@ -105,7 +102,7 @@ func (f *File) GetLastEditor() string {
 	return f.lastEditor
 }
 
-// Set the last editor. 
+// Set the last editor.
 func (f *File) SetLastEditor(lastEditor string) {
 	// Acquire the write lock.
 	f.Lock.Lock()
@@ -123,7 +120,7 @@ func (f *File) GetLastEditTime() time.Time {
 	return f.lastEdit
 }
 
-// Set the last edit time. 
+// Set the last edit time.
 func (f *File) SetLastEditTime(lastEdit time.Time) {
 	// Acquire the write lock.
 	f.Lock.Lock()
@@ -141,7 +138,7 @@ func (f *File) GetHash() []byte {
 	return f.hash
 }
 
-// Set the hash. 
+// Set the hash.
 func (f *File) SetHash(hash []byte) {
 	// Acquire the write lock.
 	f.Lock.Lock()
@@ -159,7 +156,7 @@ func (f *File) GetIsEncrypted() bool {
 	return f.encrypted
 }
 
-// Set is encrypted. 
+// Set is encrypted.
 func (f *File) SetIsEncrypted(encrypted bool) {
 	// Acquire the write lock.
 	f.Lock.Lock()

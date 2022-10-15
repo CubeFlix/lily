@@ -6,41 +6,40 @@ package fs
 import (
 	"github.com/cubeflix/lily/security/access"
 
-	"strings"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 )
 
-
 // File system directory object.
 type Directory struct {
 	// Directory lock.
-	Lock       *sync.RWMutex
+	Lock *sync.RWMutex
 
 	// Directory path (local path within parent).
-	path       string
+	path string
 
 	// Is the directory the root.
-	isRoot     bool
+	isRoot bool
 
 	// The parent directory, if it is not the root.
-	parent     *Directory
+	parent *Directory
 
 	// Directory security access settings. Exposing the settings object so we
 	// don't have to rewrite all the getters and setters. NOTE: When using the
 	// .Settings field, acquire the RWLock.
-	Settings   *access.AccessSettings
+	Settings *access.AccessSettings
 
 	// Last editor.
 	lastEditor string
 
 	// Last edit.
-	lastEdit   time.Time
+	lastEdit time.Time
 
 	// Directory contents.
-	subdirs  map[string]*Directory
-	files    map[string]*File
+	subdirs map[string]*Directory
+	files   map[string]*File
 }
 
 // A single list directory object.
@@ -52,18 +51,16 @@ type ListDirObj struct {
 	file bool
 }
 
-
-var ItemNotFoundError = errors.New("lily.fs.Directory: Item not found.")
-var InvalidDirectoryPathError = errors.New("lily.fs.Directory: Invalid directory path.")
-
+var ErrItemNotFound = errors.New("lily.fs.Directory: Item not found")
+var ErrInvalidDirectoryPath = errors.New("lily.fs.Directory: Invalid directory path")
 
 // Create a new directory object.
-func NewDirectory(path string, isRoot bool, parent *Directory, 
-				  settings *access.AccessSettings) (*Directory, error) {
+func NewDirectory(path string, isRoot bool, parent *Directory,
+	settings *access.AccessSettings) (*Directory, error) {
 	if strings.Contains(path, "/") || strings.Contains(path, "\\") {
-		return &Directory{}, InvalidDirectoryPathError
+		return &Directory{}, ErrInvalidDirectoryPath
 	}
-	
+
 	return &Directory{
 		Lock:     &sync.RWMutex{},
 		path:     path,
@@ -160,7 +157,7 @@ func (d *Directory) GetLastEditor() string {
 	return d.lastEditor
 }
 
-// Set the last editor. 
+// Set the last editor.
 func (d *Directory) SetLastEditor(lastEditor string) {
 	// Acquire the write lock.
 	d.Lock.Lock()
@@ -178,7 +175,7 @@ func (d *Directory) GetLastEditTime() time.Time {
 	return d.lastEdit
 }
 
-// Set the last edit time. 
+// Set the last edit time.
 func (d *Directory) SetLastEditTime(lastEdit time.Time) {
 	// Acquire the write lock.
 	d.Lock.Lock()
@@ -186,7 +183,6 @@ func (d *Directory) SetLastEditTime(lastEdit time.Time) {
 
 	d.lastEdit = lastEdit
 }
-
 
 // Get the subdirectories. NOTE: Get the lock before doing this.
 func (d *Directory) GetSubdirs() map[string]*Directory {
@@ -215,11 +211,11 @@ func (d *Directory) ListDir() []ListDirObj {
 	defer d.Lock.RUnlock()
 
 	// Loop through the subdirectories and files and return a list of them.
-	keys := make([]ListDirObj, len(d.subdirs) + len(d.files))
+	keys := make([]ListDirObj, len(d.subdirs)+len(d.files))
 	i := 0
 	for k := range d.subdirs {
-    	keys[i] = ListDirObj{k, false}
-    	i++
+		keys[i] = ListDirObj{k, false}
+		i++
 	}
 	for k := range d.files {
 		keys[i] = ListDirObj{k, true}
@@ -237,7 +233,7 @@ func (d *Directory) GetSubdirsByName(names []string) ([]*Directory, error) {
 	for i := range names {
 		dir, ok := d.subdirs[names[i]]
 		if !ok {
-			return dirs, ItemNotFoundError
+			return dirs, ErrItemNotFound
 		}
 		dirs[i] = dir
 	}
@@ -255,7 +251,7 @@ func (d *Directory) SetSubdirsByName(dirs map[string]*Directory) {
 	}
 }
 
-// Get files by name. NOTE: Before modifying any file, get the directory write 
+// Get files by name. NOTE: Before modifying any file, get the directory write
 // lock first.
 func (d *Directory) GetFilesByName(names []string) ([]*File, error) {
 	// Get files by name.
@@ -263,7 +259,7 @@ func (d *Directory) GetFilesByName(names []string) ([]*File, error) {
 	for i := range names {
 		file, ok := d.files[names[i]]
 		if !ok {
-			return files, ItemNotFoundError
+			return files, ErrItemNotFound
 		}
 		files[i] = file
 	}
