@@ -50,6 +50,7 @@ var ErrPathNotFound = errors.New("lily.drive: Path not found")
 func NewDrive(name, path string, doHash bool, settings *access.AccessSettings,
 	fs *fs.Directory, fsobj *afero.Fs) *Drive {
 	return &Drive{
+		Lock:     &sync.RWMutex{},
 		name:     name,
 		path:     path,
 		doHash:   doHash,

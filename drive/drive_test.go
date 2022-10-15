@@ -48,7 +48,7 @@ func TestDriveFuncs(t *testing.T) {
 		t.Fail()
 	}
 	d.SetPath("path/path")
-	if d.GetPath() != "path" {
+	if d.GetPath() != "path/path" {
 		t.Fail()
 	}
 
@@ -103,14 +103,17 @@ func TestDriveDirsFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+	d1.SetSubdirsByName(map[string]*fs.Directory{"b": d2})
 	d3, err := fs.NewDirectory("c", false, d2, a)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	_, err = fs.NewDirectory("d", false, d3, a)
+	d2.SetSubdirsByName(map[string]*fs.Directory{"c": d3})
+	d4, err := fs.NewDirectory("d", false, d3, a)
 	if err != nil {
 		t.Error(err.Error())
 	}
+	d3.SetSubdirsByName(map[string]*fs.Directory{"d": d4})
 	d := NewDrive("foo", "path", true, a, d1, nil)
 
 	// Get a directory by path.
@@ -140,4 +143,56 @@ func TestDriveDirsFuncs(t *testing.T) {
 	}
 }
 
-// TODO: FINISH THE TESTS!!!
+// Test getting and setting files by path.
+func TestDriveFilesFuncs(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	d1, err := fs.NewDirectory("a", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	d2, err := fs.NewDirectory("b", false, d1, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	d1.SetSubdirsByName(map[string]*fs.Directory{"b": d2})
+	d3, err := fs.NewDirectory("c", false, d2, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	d2.SetSubdirsByName(map[string]*fs.Directory{"c": d3})
+	f, err := fs.NewFile("d", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	d3.SetFilesByName(map[string]*fs.File{"d": f})
+	d := NewDrive("foo", "path", true, a, d1, nil)
+
+	// Get a file by path.
+	file, err := d.GetFileByPath("b/c/d")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if file.GetPath() != "d" {
+		t.Fail()
+	}
+
+	// Set a file by path.
+	newfile, err := fs.NewFile("newfile", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	err = d.SetFileByPath("b/c/newfile", newfile)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	file, err = d.GetFileByPath("b/c/newfile")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if file.GetPath() != "newfile" {
+		t.Fail()
+	}
+}
