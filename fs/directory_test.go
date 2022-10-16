@@ -6,11 +6,10 @@ package fs
 import (
 	"github.com/cubeflix/lily/security/access"
 
+	"sync"
 	"testing"
 	"time"
-	"sync"
 )
-
 
 // Test acquiring read and write locks.
 func TestDirectoryLocks(t *testing.T) {
@@ -103,7 +102,7 @@ func TestSubdirsFilesFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	
+
 	// Test subdirs.
 	d.AcquireLock()
 	subdirs := d.GetSubdirs()
@@ -221,10 +220,10 @@ func TestDirectoryListDir(t *testing.T) {
 
 	// Test the list directory command.
 	ldir := d.ListDir()
-	if ldir[1].name != "file.txt" || ldir[1].file != true {
+	if ldir[1].Name != "file.txt" || ldir[1].File != true {
 		t.Fail()
 	}
-	if ldir[0].name != "dir" || ldir[0].file != false {
+	if ldir[0].Name != "dir" || ldir[0].File != false {
 		t.Fail()
 	}
 }

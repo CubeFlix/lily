@@ -6,7 +6,6 @@ package drive
 import (
 	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/security/access"
-	"github.com/spf13/afero"
 
 	"testing"
 )
@@ -17,7 +16,7 @@ func TestDriveLocks(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	d := NewDrive("foo", "path", true, a, nil, nil)
+	d := NewDrive("foo", "path", true, a, nil)
 
 	// Test the locks.
 	d.AcquireRLock()
@@ -32,7 +31,7 @@ func TestDriveFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	d := NewDrive("foo", "path", true, a, nil, nil)
+	d := NewDrive("foo", "path", true, a, nil)
 
 	// Test name.
 	if d.GetName() != "foo" {
@@ -75,18 +74,6 @@ func TestDriveFuncs(t *testing.T) {
 		t.Fail()
 	}
 	d.ReleaseLock()
-
-	// Test Afero filesystem object.
-	d.AcquireLock()
-	af := afero.NewOsFs()
-	if d.GetFS() != nil {
-		t.Fail()
-	}
-	d.SetFS(&af)
-	if d.GetFS() == nil {
-		t.Fail()
-	}
-	d.ReleaseLock()
 }
 
 // Test getting and setting directories by path.
@@ -114,7 +101,7 @@ func TestDriveDirsFuncs(t *testing.T) {
 		t.Error(err.Error())
 	}
 	d3.SetSubdirsByName(map[string]*fs.Directory{"d": d4})
-	d := NewDrive("foo", "path", true, a, d1, nil)
+	d := NewDrive("foo", "path", true, a, d1)
 
 	// Get a directory by path.
 	dir, err := d.GetDirectoryByPath("b/c/d")
@@ -168,7 +155,7 @@ func TestDriveFilesFuncs(t *testing.T) {
 		t.Error(err.Error())
 	}
 	d3.SetFilesByName(map[string]*fs.File{"d": f})
-	d := NewDrive("foo", "path", true, a, d1, nil)
+	d := NewDrive("foo", "path", true, a, d1)
 
 	// Get a file by path.
 	file, err := d.GetFileByPath("b/c/d")

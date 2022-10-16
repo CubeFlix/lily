@@ -15,6 +15,11 @@ var ErrInvalidPathStart = errors.New("lily.fs: Invalid path start (attempted to 
 
 // Clean up a path.
 func CleanPath(path string) (string, error) {
+	// If it's empty, return.
+	if path == "" {
+		return "", nil
+	}
+
 	// Clean up relative paths.
 	path = filepath.Clean(path)
 

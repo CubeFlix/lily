@@ -32,6 +32,15 @@ func TestCleanPath(t *testing.T) {
 	if err == nil {
 		t.Fail()
 	}
+
+	// Test another path.
+	clean, err = CleanPath("")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if clean != "" {
+		t.Fail()
+	}
 }
 
 // Test splitting a path.
@@ -63,6 +72,15 @@ func TestSplitPath(t *testing.T) {
 	// Test another path.
 	_, err = SplitPath("../foo/bar")
 	if err == nil {
+		t.Fail()
+	}
+
+	// Test another path.
+	split, err = SplitPath("")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(split) != 0 {
 		t.Fail()
 	}
 }

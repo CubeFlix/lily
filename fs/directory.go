@@ -45,10 +45,10 @@ type Directory struct {
 // A single list directory object.
 type ListDirObj struct {
 	// Name.
-	name string
+	Name string
 
 	// Is file, otherwise is directory.
-	file bool
+	File bool
 }
 
 var ErrItemNotFound = errors.New("lily.fs.Directory: Item not found")

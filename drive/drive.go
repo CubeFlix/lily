@@ -8,8 +8,8 @@
 // drive. Each drive's internal file structure is stored in memory, allowing
 // one object to handle every lock in the filesystem. A drive contains a
 // master lock for handling the drive's properties, and each directory and
-// file holds a lock for reading and modifying its properties. Drives use Afero
-// file system objects to interact with the host's internal file system.
+// file holds a lock for reading and modifying its properties. Drives use
+// the host's internal file system via the os module.
 
 package drive
 
@@ -19,8 +19,6 @@ import (
 
 	"errors"
 	"sync"
-
-	"github.com/spf13/afero"
 )
 
 // The main drive object. The Lily server holds one drive object for each
@@ -39,16 +37,13 @@ type Drive struct {
 
 	// Root filesystem object.
 	fs *fs.Directory
-
-	// Afero filesystem object.
-	fsobj *afero.Fs
 }
 
 var ErrPathNotFound = errors.New("lily.drive: Path not found")
 
 // Create a new drive object.
 func NewDrive(name, path string, doHash bool, settings *access.AccessSettings,
-	fs *fs.Directory, fsobj *afero.Fs) *Drive {
+	fs *fs.Directory) *Drive {
 	return &Drive{
 		Lock:     &sync.RWMutex{},
 		name:     name,
@@ -56,7 +51,6 @@ func NewDrive(name, path string, doHash bool, settings *access.AccessSettings,
 		doHash:   doHash,
 		Settings: settings,
 		fs:       fs,
-		fsobj:    fsobj,
 	}
 }
 
@@ -138,18 +132,6 @@ func (d *Drive) GetRoot() *fs.Directory {
 // modifying anything on the object.
 func (d *Drive) SetRoot(fs *fs.Directory) {
 	d.fs = fs
-}
-
-// Get Afero filesystem object. NOTE: Remember to get the read lock before accessing or
-// modifying anything on the object.
-func (d *Drive) GetFS() *afero.Fs {
-	return d.fsobj
-}
-
-// Set Afero filesystem object. NOTE: Remember to get the write lock before accessing or
-// modifying anything on the object.
-func (d *Drive) SetFS(fsobj *afero.Fs) {
-	d.fsobj = fsobj
 }
 
 // Get a directory object by path.
