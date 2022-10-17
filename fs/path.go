@@ -66,8 +66,10 @@ func SplitPath(path string) ([]string, error) {
 		next = filepath.Base(current)
 		current = filepath.Dir(current)
 
-		// Add the next part of the path.
-		split = append(split, next)
+		if next != "." {
+			// Add the next part of the path.
+			split = append(split, next)
+		}
 
 		// Check if the current part is empty; if so, we can break.
 		if current == "." {

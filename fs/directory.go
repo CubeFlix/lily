@@ -7,9 +7,11 @@ import (
 	"github.com/cubeflix/lily/security/access"
 
 	"errors"
+	"sort"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 // File system directory object.
@@ -221,6 +223,38 @@ func (d *Directory) ListDir() []ListDirObj {
 		keys[i] = ListDirObj{k, true}
 		i++
 	}
+
+	// Sort by name. Source: https://stackoverflow.com/questions/35076109/in-golang-how-can-i-sort-a-list-of-strings-alphabetically-without-completely-ig
+	sort.Slice(keys, func(i, j int) bool {
+		iRunes := []rune(keys[i].Name)
+		jRunes := []rune(keys[j].Name)
+
+		max := len(iRunes)
+		if max > len(jRunes) {
+			max = len(jRunes)
+		}
+
+		for idx := 0; idx < max; idx++ {
+			ir := iRunes[idx]
+			jr := jRunes[idx]
+
+			lir := unicode.ToLower(ir)
+			ljr := unicode.ToLower(jr)
+
+			if lir != ljr {
+				return lir < ljr
+			}
+
+			// the lowercase runes are the same, so compare the original
+			if ir != jr {
+				return ir < jr
+			}
+		}
+
+		// If the strings are the same up to the length of the shortest string,
+		// the shorter string comes first
+		return len(iRunes) < len(jRunes)
+	})
 
 	return keys
 }
