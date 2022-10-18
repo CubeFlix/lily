@@ -453,7 +453,7 @@ func TestReadFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Read.
-	err = drive.ReadFiles([]string{"foo", "bar"}, *c, 6)
+	err = drive.ReadFiles([]string{"foo", "bar"}, []int{0, 4}, []int{-1, 8}, *c, 6)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -469,7 +469,7 @@ func TestReadFile(t *testing.T) {
 	if chunks[0].Name != "foo" || chunks[0].NumChunks != 2 {
 		t.Fail()
 	}
-	if chunks[1].Name != "bar" || chunks[1].NumChunks != 2 {
+	if chunks[1].Name != "bar" || chunks[1].NumChunks != 1 {
 		t.Fail()
 	}
 
@@ -508,30 +508,95 @@ func TestReadFile(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if name != "bar" || length != 6 {
+	if name != "bar" || length != 4 {
 		t.Fail()
 	}
-	data = make([]byte, 6)
+	data = make([]byte, 4)
 	err = c.GetChunk(&data)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if string(data) != "hello " {
+	if string(data) != "o ba" {
 		t.Fail()
 	}
-	name, length, err = c.GetChunkInfo()
+}
+
+// Test writing some files.
+func TestWriteFile(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if name != "bar" || length != 3 {
-		t.Fail()
-	}
-	data = make([]byte, 3)
-	err = c.GetChunk(&data)
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if string(data) != "bar" {
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Add the files.
+	file1, err := fs.NewFile("foo", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	file2, err := fs.NewFile("bar", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root.SetFilesByName(map[string]*fs.File{"foo": file1, "bar": file2})
+	file, err := os.Create(drive.getHostPath("foo"))
+	if err != nil {
+		t.Error(err.Error())
+	}
+	file.Close()
+	file, err = os.Create(drive.getHostPath("bar"))
+	if err != nil {
+		t.Error(err.Error())
+	}
+	file.Write([]byte("bar"))
+	file.Close()
+
+	// Write the files by creating a chunked handler.
+	ts := &TestStream{
+		[]byte{},
+	}
+	ds := network.DataStream(ts)
+
+	// Make the ChunkedHandler.
+	c := network.NewChunkHandler(ds)
+
+	// Add some text to write.
+	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}})
+	c.WriteChunkInfo("foo", 6)
+	data := []byte("hello ")
+	c.WriteChunk(&data)
+	c.WriteChunkInfo("foo", 5)
+	data = []byte("world")
+	c.WriteChunk(&data)
+	c.WriteChunkInfo("bar", 5)
+	data = []byte("hello")
+	c.WriteChunk(&data)
+
+	// Write.
+	err = drive.WriteFiles([]string{"foo", "bar"}, []int{0, 2}, *c)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Read the files.
+	data, err = os.ReadFile(drive.getHostPath("foo"))
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if string(data) != "hello world" {
+		t.Fail()
+	}
+	data, err = os.ReadFile(drive.getHostPath("bar"))
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if string(data) != "bahello" {
 		t.Fail()
 	}
 }

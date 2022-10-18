@@ -4,14 +4,25 @@
 package fs
 
 import (
-	"io"
+	"errors"
 	"os"
 
 	"github.com/cubeflix/lily/network"
 )
 
+var ErrInvalidChunk = errors.New("lily.fs: Invalid chunk")
+
 // Read a file into a chunked handler.
-func ReadFileChunks(name, path string, numChunks, chunkSize int, handler network.ChunkHandler) (outputErr error) {
+func ReadFileChunks(name, path string, numChunks, chunkSize, start, end int, handler network.ChunkHandler) (outputErr error) {
+	if end == -1 {
+		// End at the end of the file.
+		stat, err := os.Stat(path)
+		if err != nil {
+			return err
+		}
+		end = int(stat.Size())
+	}
+
 	// Open the file.
 	file, err := os.Open(path)
 	if err != nil {
@@ -31,22 +42,26 @@ func ReadFileChunks(name, path string, numChunks, chunkSize int, handler network
 	}()
 
 	// Read in chunks.
-	d := make([]byte, chunkSize)
+	_, err = file.Seek(int64(start), 0)
+	if err != nil {
+		return err
+	}
+	current := start
 	for i := 0; i < numChunks; i++ {
 		// Read the chunk.
+		var d []byte
+		if current+chunkSize > end {
+			// Too much data.
+			d = make([]byte, end-current)
+		} else {
+			// Keep reading.
+			d = make([]byte, chunkSize)
+		}
 		size, err := file.Read(d)
 		if err != nil {
-			if err == io.EOF {
-				// Truncate the length of the data.
-				d = d[:size]
-			} else {
-				return err
-			}
+			return err
 		}
-		if size != chunkSize {
-			// Truncate the length of the data.
-			d = d[:size]
-		}
+		current += size
 
 		// Write the chunk.
 		err = handler.WriteChunkInfo(name, size)
@@ -54,6 +69,57 @@ func ReadFileChunks(name, path string, numChunks, chunkSize int, handler network
 			return err
 		}
 		err = handler.WriteChunk(&d)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Write to a file from a chunked handler.
+func WriteFileChunks(name, path string, numChunks, start int, handler network.ChunkHandler) (outputErr error) {
+	// Open the file.
+	file, err := os.OpenFile(path, os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		// We close the file and if we encounter an error, we check if the
+		// standard error is nil, then return the close error. Else, we just
+		// allow ourselves to return the original error as that's probably
+		// more descriptive of the actual problem.
+		err := file.Close()
+		if err != nil {
+			if outputErr == nil {
+				outputErr = err
+			}
+		}
+	}()
+
+	// Write in chunks.
+	current := start
+	for i := 0; i < numChunks; i++ {
+		// Get the chunk info.
+		cName, size, err := handler.GetChunkInfo()
+		if err != nil {
+			return err
+		}
+		if name != cName {
+			return ErrInvalidChunk
+		}
+		d := make([]byte, size)
+
+		// Read the chunk data.
+		err = handler.GetChunk(&d)
+		if err != nil {
+			return err
+		}
+
+		// Write the chunk.
+		size, err = file.WriteAt(d, int64(current))
+		current += size
 		if err != nil {
 			return err
 		}

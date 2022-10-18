@@ -21,6 +21,8 @@ var ErrAlreadyExists = errors.New("lily.drive: Path already exists")
 var ErrInvalidDirectoryTree = errors.New("lily.drive: Invalid directory tree")
 var ErrInvalidName = errors.New("lily.drive: Invalid name")
 var ErrInvalidLength = errors.New("lily.drive: Invalid length of array")
+var ErrInvalidChunks = errors.New("lily.drive: Invalid chunks")
+var ErrInvalidStartEnd = errors.New("lily.drive: Invalid start and end values")
 
 var IllegalNames = "\"*/:<>?\\|"
 
@@ -1086,7 +1088,7 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 }
 
 // Read files.
-func (d *Drive) ReadFiles(files []string, handler network.ChunkHandler, chunkSize int) error {
+func (d *Drive) ReadFiles(files []string, start []int, end []int, handler network.ChunkHandler, chunkSize int) error {
 	var err error
 
 	// Clean the paths.
@@ -1095,6 +1097,11 @@ func (d *Drive) ReadFiles(files []string, handler network.ChunkHandler, chunkSiz
 		if err != nil {
 			return err
 		}
+	}
+
+	// Check that the length of starts and ends are correct.
+	if len(files) != len(start) || len(files) != len(end) {
+		return ErrInvalidStartEnd
 	}
 
 	// Get the sizes of each file.
@@ -1119,9 +1126,23 @@ func (d *Drive) ReadFiles(files []string, handler network.ChunkHandler, chunkSiz
 			return err
 		}
 
-		chunks = append(chunks, network.ChunkInfo{
-			Name:      files[i],
-			NumChunks: int(math.Ceil(float64(info.Size()) / float64(chunkSize)))})
+		if end[i] == -1 {
+			if !(start[i] < int(info.Size())) {
+				file.ReleaseRLock()
+				return ErrInvalidStartEnd
+			}
+			chunks = append(chunks, network.ChunkInfo{
+				Name:      files[i],
+				NumChunks: int(math.Ceil(float64(int(info.Size())-start[i]) / float64(chunkSize)))})
+		} else {
+			if !(start[i] < int(info.Size()) && start[i] >= 0) || !(end[i] <= int(info.Size()) && end[i] > 0) || !(start[i] <= end[i]) {
+				file.ReleaseRLock()
+				return ErrInvalidStartEnd
+			}
+			chunks = append(chunks, network.ChunkInfo{
+				Name:      files[i],
+				NumChunks: int(math.Ceil(float64((end[i] - start[i])) / float64(chunkSize)))})
+		}
 	}
 
 	// Write the chunks to the handler.
@@ -1139,7 +1160,7 @@ func (d *Drive) ReadFiles(files []string, handler network.ChunkHandler, chunkSiz
 
 		// Read the file into the chunk handler.
 		numChunks := chunks[i].NumChunks
-		err = fs.ReadFileChunks(files[i], d.getHostPath(files[i]), numChunks, chunkSize, handler)
+		err = fs.ReadFileChunks(files[i], d.getHostPath(files[i]), numChunks, chunkSize, start[i], end[i], handler)
 		if err != nil {
 			file.ReleaseRLock()
 			return err
@@ -1147,6 +1168,77 @@ func (d *Drive) ReadFiles(files []string, handler network.ChunkHandler, chunkSiz
 
 		// Release the lock.
 		file.ReleaseRLock()
+	}
+
+	// Return.
+	return nil
+}
+
+// Write files.
+func (d *Drive) WriteFiles(files []string, start []int, handler network.ChunkHandler) error {
+	var err error
+
+	// Clean the paths.
+	for i := range files {
+		files[i], err = fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Check that the length of starts and ends are correct.
+	if len(files) != len(start) {
+		return ErrInvalidStartEnd
+	}
+
+	// Read the chunks from the handler.
+	chunks, err := handler.GetChunkRequestInfo()
+	if err != nil {
+		return err
+	}
+
+	// Ensure the chunks are correct.
+	if len(files) != len(chunks) {
+		return ErrInvalidChunks
+	}
+	for i := range chunks {
+		if chunks[i].Name != files[i] {
+			return ErrInvalidChunks
+		}
+	}
+
+	for i := range files {
+		// Check for an empty path.
+		if files[i] == "" {
+			return ErrEmptyPath
+		}
+
+		// Get the file lock.
+		file, err := d.GetFileByPath(files[i])
+		if err != nil {
+			return err
+		}
+		file.AcquireLock()
+
+		// Check that the start is correct.
+		stat, err := os.Stat(d.getHostPath(files[i]))
+		if err != nil {
+			file.ReleaseLock()
+			return err
+		}
+		if !(start[i] <= int(stat.Size()) && start[i] >= 0) {
+			return ErrInvalidStartEnd
+		}
+
+		// Write to the file from the chunk handler.
+		err = fs.WriteFileChunks(files[i], d.getHostPath(files[i]), int(chunks[i].NumChunks), start[i], handler)
+		if err != nil {
+			file.ReleaseLock()
+			return err
+		}
+
+		// Release the lock.
+		file.ReleaseLock()
 	}
 
 	// Return.
