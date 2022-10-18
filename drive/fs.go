@@ -27,6 +27,13 @@ var ErrInvalidStartEnd = errors.New("lily.drive: Invalid start and end values")
 
 var IllegalNames = "\"*/:<>?\\|"
 
+// Path status.
+type PathStatus struct {
+	Exists bool
+	Name   string
+	IsFile bool
+}
+
 // Get the full host system path for a local path, given a drive.
 func (d *Drive) getHostPath(path string) string {
 	return filepath.Join(d.path, path)
@@ -769,7 +776,7 @@ func (d *Drive) MoveDirs(dirs, dests []string) error {
 	return nil
 }
 
-// Delete the directories.
+// Delete directories.
 func (d *Drive) DeleteDirs(dirs []string, performMutexOptimization bool) error {
 	var err error
 
@@ -880,7 +887,7 @@ func (d *Drive) DeleteDirs(dirs []string, performMutexOptimization bool) error {
 			delete(subdirs, split[len(split)-1])
 			parent.SetSubdirs(subdirs)
 
-			// Create the new directory in the host filesystem.
+			// Delete the new directory in the host filesystem.
 			err = os.RemoveAll(d.getHostPath(dirs[i]))
 			if err != nil {
 				parent.ReleaseLock()
@@ -1090,16 +1097,6 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 
 // Read files.
 func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler network.ChunkHandler, chunkSize int64) error {
-	var err error
-
-	// Clean the paths.
-	for i := range files {
-		files[i], err = fs.CleanPath(files[i])
-		if err != nil {
-			return err
-		}
-	}
-
 	// Check that the length of starts and ends are correct.
 	if len(files) != len(start) || len(files) != len(end) {
 		return ErrInvalidStartEnd
@@ -1109,19 +1106,23 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 	chunks := []network.ChunkInfo{}
 	for i := range files {
 		// Check for an empty file.
-		if files[i] == "" {
+		clean, err := fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+		if clean == "" {
 			return ErrEmptyPath
 		}
 
 		// Get the file lock.
-		file, err := d.GetFileByPath(files[i])
+		file, err := d.GetFileByPath(clean)
 		if err != nil {
 			return err
 		}
 		file.AcquireRLock()
 
 		// Get the file size.
-		info, err := os.Stat(d.getHostPath(files[i]))
+		info, err := os.Stat(d.getHostPath(clean))
 		if err != nil {
 			file.ReleaseRLock()
 			return err
@@ -1151,9 +1152,13 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 
 	for i := range files {
 		// We don't have to check again.
+		clean, err := fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
 
 		// Get the file lock.
-		file, err := d.GetFileByPath(files[i])
+		file, err := d.GetFileByPath(clean)
 		if err != nil {
 			return err
 		}
@@ -1161,7 +1166,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 
 		// Read the file into the chunk handler.
 		numChunks := chunks[i].NumChunks
-		err = fs.ReadFileChunks(files[i], d.getHostPath(files[i]), numChunks, chunkSize, start[i], end[i], handler)
+		err = fs.ReadFileChunks(files[i], d.getHostPath(clean), numChunks, chunkSize, start[i], end[i], handler)
 		if err != nil {
 			file.ReleaseRLock()
 			return err
@@ -1178,14 +1183,6 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 // Write files.
 func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkHandler) error {
 	var err error
-
-	// Clean the paths.
-	for i := range files {
-		files[i], err = fs.CleanPath(files[i])
-		if err != nil {
-			return err
-		}
-	}
 
 	// Check that the length of starts and ends are correct.
 	if len(files) != len(start) {
@@ -1210,19 +1207,23 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkH
 
 	for i := range files {
 		// Check for an empty path.
-		if files[i] == "" {
+		clean, err := fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+		if clean == "" {
 			return ErrEmptyPath
 		}
 
 		// Get the file lock.
-		file, err := d.GetFileByPath(files[i])
+		file, err := d.GetFileByPath(clean)
 		if err != nil {
 			return err
 		}
 		file.AcquireLock()
 
 		// Check that the start is correct.
-		stat, err := os.Stat(d.getHostPath(files[i]))
+		stat, err := os.Stat(d.getHostPath(clean))
 		if err != nil {
 			file.ReleaseLock()
 			return err
@@ -1232,7 +1233,7 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkH
 		}
 
 		// Write to the file from the chunk handler.
-		err = fs.WriteFileChunks(files[i], d.getHostPath(files[i]), int(chunks[i].NumChunks), start[i], handler)
+		err = fs.WriteFileChunks(files[i], d.getHostPath(clean), int(chunks[i].NumChunks), start[i], handler)
 		if err != nil {
 			file.ReleaseLock()
 			return err
@@ -1575,4 +1576,187 @@ func (d *Drive) MoveFiles(files, dests []string) error {
 
 	// Return.
 	return nil
+}
+
+// Delete files.
+func (d *Drive) DeleteFiles(files []string, performMutexOptimization bool) error {
+	var err error
+
+	// Clean the files.
+	for i := range files {
+		files[i], err = fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Perform mutex optimization.
+	if performMutexOptimization {
+		// Group the files by parent directory.
+		var groups map[string][]string
+		groups, _, err = groupPathsByParentDir(files, []*access.AccessSettings{})
+		if err != nil {
+			return err
+		}
+
+		// Delete the files in groups.
+		for key := range groups {
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(key)
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Delete the files.
+			dirFiles := parent.GetFiles()
+			for dir := range groups[key] {
+				// Check for an empty path.
+				if groups[key][dir] == "" {
+					parent.ReleaseLock()
+					return ErrEmptyPath
+				}
+
+				// Split the file.
+				split, err := fs.SplitPath(groups[key][dir])
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+
+				// Check to make sure the file already exists.
+				_, err = parent.GetFilesByName([]string{split[len(split)-1]})
+				if err != nil {
+					// Does not exist.
+					parent.ReleaseLock()
+					if err == fs.ErrItemNotFound {
+						return ErrPathNotFound
+					}
+				}
+
+				// Delete the file object.
+				delete(dirFiles, split[len(split)-1])
+			}
+
+			// Set the files of the parent.
+			parent.SetFiles(dirFiles)
+
+			// Delete the new files in the host filesystem.
+			for i := range groups[key] {
+				err := os.Remove(d.getHostPath(groups[key][i]))
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	} else {
+		// Do not perform mutex optimization.
+		for i := range files {
+			// Check for an empty path.
+			if files[i] == "" {
+				return ErrEmptyPath
+			}
+
+			// Split the path.
+			split, err := fs.SplitPath(files[i])
+			if err != nil {
+				return err
+			}
+
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(strings.Join(split[:len(split)-1], "/"))
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Check if the file already exists.
+			_, err = parent.GetFilesByName([]string{split[len(split)-1]})
+			if err != nil {
+				// Does not exist.
+				parent.ReleaseLock()
+				if err == fs.ErrItemNotFound {
+					return ErrPathNotFound
+				}
+			}
+
+			// Delete the file object.
+			dirFiles := parent.GetFiles()
+			delete(dirFiles, split[len(split)-1])
+			parent.SetFiles(dirFiles)
+
+			// Delete the new file in the host filesystem.
+			err = os.Remove(d.getHostPath(files[i]))
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Get the status for paths.
+func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
+	// Loop over each path.
+	outputs := []PathStatus{}
+	for i := range paths {
+		// Split the path.
+		split, err := fs.SplitPath(paths[i])
+		if err != nil {
+			return []PathStatus{}, err
+		}
+
+		// If the path is empty, return the stat for the root.
+		if len(split) == 0 {
+			outputs = append(outputs, PathStatus{
+				Exists: true,
+				Name:   paths[i],
+				IsFile: false,
+			})
+			continue
+		}
+
+		// List the parent directory.
+		parent := strings.Join(split[:len(split)-1], "/")
+		listdir, err := d.ListDir(parent)
+		if err != nil {
+			return []PathStatus{}, err
+		}
+
+		// Try to find our item.
+		found := false
+		for j := range listdir {
+			if listdir[j].Name == split[len(split)-1] {
+				// Found it.
+				outputs = append(outputs, PathStatus{
+					Exists: true,
+					Name:   paths[i],
+					IsFile: listdir[j].File,
+				})
+				found = true
+			}
+		}
+		if found == true {
+			continue
+		}
+		// Did not find it.
+		outputs = append(outputs, PathStatus{
+			Exists: false,
+			Name:   paths[i],
+			IsFile: false,
+		})
+	}
+
+	// Return.
+	return outputs, nil
 }

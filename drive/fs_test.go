@@ -453,7 +453,7 @@ func TestReadFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Read.
-	err = drive.ReadFiles([]string{"foo", "bar"}, []int64{0, 4}, []int64{-1, 8}, *c, 6)
+	err = drive.ReadFiles([]string{"./foo", "bar"}, []int64{0, 4}, []int64{-1, 8}, *c, 6)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -466,7 +466,7 @@ func TestReadFile(t *testing.T) {
 	if len(chunks) != 2 {
 		t.Fail()
 	}
-	if chunks[0].Name != "foo" || chunks[0].NumChunks != 2 {
+	if chunks[0].Name != "./foo" || chunks[0].NumChunks != 2 {
 		t.Fail()
 	}
 	if chunks[1].Name != "bar" || chunks[1].NumChunks != 1 {
@@ -479,7 +479,7 @@ func TestReadFile(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if name != "foo" || length != 6 {
+	if name != "./foo" || length != 6 {
 		t.Fail()
 	}
 	err = c.GetChunk(&data)
@@ -493,7 +493,7 @@ func TestReadFile(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if name != "foo" || length != 5 {
+	if name != "./foo" || length != 5 {
 		t.Fail()
 	}
 	data = make([]byte, 5)
@@ -567,11 +567,11 @@ func TestWriteFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Add some text to write.
-	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}})
-	c.WriteChunkInfo("foo", 6)
+	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}})
+	c.WriteChunkInfo("./foo", 6)
 	data := []byte("hello ")
 	c.WriteChunk(&data)
-	c.WriteChunkInfo("foo", 5)
+	c.WriteChunkInfo("./foo", 5)
 	data = []byte("world")
 	c.WriteChunk(&data)
 	c.WriteChunkInfo("bar", 5)
@@ -579,7 +579,7 @@ func TestWriteFile(t *testing.T) {
 	c.WriteChunk(&data)
 
 	// Write.
-	err = drive.WriteFiles([]string{"foo", "bar"}, []int64{0, 2}, *c)
+	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, *c)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -715,6 +715,99 @@ func TestMoveFile(t *testing.T) {
 		t.Fail()
 	}
 	if osldir[0].Name() != "d" || osldir[1].Name() != "e" || osldir[2].Name() != "f" {
+		t.Fail()
+	}
+}
+
+// Test deleting some files.
+func TestDeleteFile(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Create several files.
+	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Delete some files.
+	err = drive.DeleteFiles([]string{"a/", "b/"}, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Delete some files.
+	err = drive.DeleteFiles([]string{"c"}, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// List the directory.
+	ldir, err := drive.ListDir(".")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(ldir) != 0 {
+		t.Fail()
+	}
+
+	osldir, err := os.ReadDir(tempdir)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(osldir) != 0 {
+		t.Fail()
+	}
+}
+
+// Test checking file/path stat.
+func TestStat(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Create a file.
+	err = drive.CreateFiles([]string{"a"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Create a directory.
+	err = drive.CreateDirs([]string{"b"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Check stat.
+	stat, err := drive.Stat([]string{"./a", "b", "c/"})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(stat) != 3 {
+		t.Fail()
+	}
+	if stat[0].Exists != true || stat[0].Name != "./a" || stat[0].IsFile != true {
+		t.Fail()
+	}
+	if stat[1].Exists != true || stat[1].Name != "b" || stat[1].IsFile != false {
+		t.Fail()
+	}
+	if stat[2].Exists != false || stat[2].Name != "c/" || stat[2].IsFile != false {
 		t.Fail()
 	}
 }
