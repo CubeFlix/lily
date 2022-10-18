@@ -111,7 +111,7 @@ func TestWritingChunkedHandler(t *testing.T) {
 	c := NewChunkHandler(ds)
 
 	// Write the main data.
-	err := c.WriteChunkResponseInfo([]ChunkInfo{ChunkInfo{"foo", 1}})
+	err := c.WriteChunkResponseInfo([]ChunkInfo{{"foo", 1}})
 	if err != nil {
 		t.Error(err.Error())
 	}

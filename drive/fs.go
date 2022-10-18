@@ -5,11 +5,13 @@ package drive
 
 import (
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/cubeflix/lily/fs"
+	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/access"
 )
 
@@ -1077,6 +1079,74 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 			// Release the lock on the parent.
 			parent.ReleaseLock()
 		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Read files.
+func (d *Drive) ReadFiles(files []string, handler network.ChunkHandler, chunkSize int) error {
+	var err error
+
+	// Clean the paths.
+	for i := range files {
+		files[i], err = fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Get the sizes of each file.
+	chunks := []network.ChunkInfo{}
+	for i := range files {
+		// Check for an empty file.
+		if files[i] == "" {
+			return ErrEmptyPath
+		}
+
+		// Get the file lock.
+		file, err := d.GetFileByPath(files[i])
+		if err != nil {
+			return err
+		}
+		file.AcquireRLock()
+
+		// Get the file size.
+		info, err := os.Stat(d.getHostPath(files[i]))
+		if err != nil {
+			file.ReleaseRLock()
+			return err
+		}
+
+		chunks = append(chunks, network.ChunkInfo{
+			Name:      files[i],
+			NumChunks: int(math.Ceil(float64(info.Size()) / float64(chunkSize)))})
+	}
+
+	// Write the chunks to the handler.
+	handler.WriteChunkResponseInfo(chunks)
+
+	for i := range files {
+		// We don't have to check again.
+
+		// Get the file lock.
+		file, err := d.GetFileByPath(files[i])
+		if err != nil {
+			return err
+		}
+		file.AcquireRLock()
+
+		// Read the file into the chunk handler.
+		numChunks := chunks[i].NumChunks
+		err = fs.ReadFileChunks(files[i], d.getHostPath(files[i]), numChunks, chunkSize, handler)
+		if err != nil {
+			file.ReleaseRLock()
+			return err
+		}
+
+		// Release the lock.
+		file.ReleaseRLock()
 	}
 
 	// Return.

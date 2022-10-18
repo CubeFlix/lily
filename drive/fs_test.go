@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/cubeflix/lily/fs"
+	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/access"
 )
 
@@ -381,6 +382,156 @@ func TestDeleteDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	if len(osldir) != 0 {
+		t.Fail()
+	}
+}
+
+// Testing DataStream.
+type TestStream struct {
+	data []byte
+}
+
+// Read from the testing DataStream.
+func (t *TestStream) Read(b *[]byte) (int, error) {
+	l := len(*b)
+	*b = t.data[:l]
+	t.data = t.data[l:]
+
+	return l, nil
+}
+
+// Write to the testing DataStream.
+func (t *TestStream) Write(b *[]byte) (int, error) {
+	l := len(*b)
+	t.data = append(t.data, *b...)
+
+	return l, nil
+}
+
+// Test reading some files.
+func TestReadFile(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Add the files.
+	file1, err := fs.NewFile("foo", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	file2, err := fs.NewFile("bar", a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root.SetFilesByName(map[string]*fs.File{"foo": file1, "bar": file2})
+
+	// Add some text to the files.
+	err = os.WriteFile(drive.getHostPath("foo"), []byte("hello world"), 0644)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	err = os.WriteFile(drive.getHostPath("bar"), []byte("hello bar"), 0644)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Read the files by creating a chunked handler.
+	ts := &TestStream{
+		[]byte{},
+	}
+	ds := network.DataStream(ts)
+
+	// Make the ChunkedHandler.
+	c := network.NewChunkHandler(ds)
+
+	// Read.
+	err = drive.ReadFiles([]string{"foo", "bar"}, *c, 6)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Get the data back from the chunks.
+	chunks, err := c.GetChunkRequestInfo()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(chunks) != 2 {
+		t.Fail()
+	}
+	if chunks[0].Name != "foo" || chunks[0].NumChunks != 2 {
+		t.Fail()
+	}
+	if chunks[1].Name != "bar" || chunks[1].NumChunks != 2 {
+		t.Fail()
+	}
+
+	// Get the chunks.
+	data := make([]byte, 6)
+	name, length, err := c.GetChunkInfo()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if name != "foo" || length != 6 {
+		t.Fail()
+	}
+	err = c.GetChunk(&data)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if string(data) != "hello " {
+		t.Fail()
+	}
+	name, length, err = c.GetChunkInfo()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if name != "foo" || length != 5 {
+		t.Fail()
+	}
+	data = make([]byte, 5)
+	err = c.GetChunk(&data)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if string(data) != "world" {
+		t.Fail()
+	}
+	name, length, err = c.GetChunkInfo()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if name != "bar" || length != 6 {
+		t.Fail()
+	}
+	data = make([]byte, 6)
+	err = c.GetChunk(&data)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if string(data) != "hello " {
+		t.Fail()
+	}
+	name, length, err = c.GetChunkInfo()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if name != "bar" || length != 3 {
+		t.Fail()
+	}
+	data = make([]byte, 3)
+	err = c.GetChunk(&data)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if string(data) != "bar" {
 		t.Fail()
 	}
 }
