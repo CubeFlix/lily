@@ -11,6 +11,7 @@ import (
 )
 
 var ErrInvalidChunk = errors.New("lily.fs: Invalid chunk")
+var ErrInsufficientMemory = errors.New("lily.fs: Insufficient memory for chunk")
 
 // Read a file into a chunked handler.
 func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int64, handler network.ChunkHandler) (outputErr error) {
@@ -56,6 +57,9 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 		} else {
 			// Keep reading.
 			d = make([]byte, chunkSize)
+		}
+		if d == nil {
+			return ErrInsufficientMemory
 		}
 		size, err := file.Read(d)
 		if err != nil {
@@ -110,6 +114,9 @@ func WriteFileChunks(name, path string, numChunks int, start int64, handler netw
 			return ErrInvalidChunk
 		}
 		d := make([]byte, size)
+		if d == nil {
+			return ErrInsufficientMemory
+		}
 
 		// Read the chunk data.
 		err = handler.GetChunk(&d)
