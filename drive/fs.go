@@ -1089,7 +1089,7 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 }
 
 // Read files.
-func (d *Drive) ReadFiles(files []string, start []int, end []int, handler network.ChunkHandler, chunkSize int) error {
+func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler network.ChunkHandler, chunkSize int64) error {
 	var err error
 
 	// Clean the paths.
@@ -1128,15 +1128,15 @@ func (d *Drive) ReadFiles(files []string, start []int, end []int, handler networ
 		}
 
 		if end[i] == -1 {
-			if !(start[i] < int(info.Size())) {
+			if !(start[i] < info.Size()) {
 				file.ReleaseRLock()
 				return ErrInvalidStartEnd
 			}
 			chunks = append(chunks, network.ChunkInfo{
 				Name:      files[i],
-				NumChunks: int(math.Ceil(float64(int(info.Size())-start[i]) / float64(chunkSize)))})
+				NumChunks: int(math.Ceil(float64(info.Size()-start[i]) / float64(chunkSize)))})
 		} else {
-			if !(start[i] < int(info.Size()) && start[i] >= 0) || !(end[i] <= int(info.Size()) && end[i] > 0) || !(start[i] <= end[i]) {
+			if !(start[i] < info.Size() && start[i] >= 0) || !(end[i] <= info.Size() && end[i] > 0) || !(start[i] <= end[i]) {
 				file.ReleaseRLock()
 				return ErrInvalidStartEnd
 			}
@@ -1176,7 +1176,7 @@ func (d *Drive) ReadFiles(files []string, start []int, end []int, handler networ
 }
 
 // Write files.
-func (d *Drive) WriteFiles(files []string, start []int, handler network.ChunkHandler) error {
+func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkHandler) error {
 	var err error
 
 	// Clean the paths.
@@ -1227,7 +1227,7 @@ func (d *Drive) WriteFiles(files []string, start []int, handler network.ChunkHan
 			file.ReleaseLock()
 			return err
 		}
-		if !(start[i] <= int(stat.Size()) && start[i] >= 0) {
+		if !(start[i] <= stat.Size() && start[i] >= 0) {
 			return ErrInvalidStartEnd
 		}
 

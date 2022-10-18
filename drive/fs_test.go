@@ -453,7 +453,7 @@ func TestReadFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Read.
-	err = drive.ReadFiles([]string{"foo", "bar"}, []int{0, 4}, []int{-1, 8}, *c, 6)
+	err = drive.ReadFiles([]string{"foo", "bar"}, []int64{0, 4}, []int64{-1, 8}, *c, 6)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -579,7 +579,7 @@ func TestWriteFile(t *testing.T) {
 	c.WriteChunk(&data)
 
 	// Write.
-	err = drive.WriteFiles([]string{"foo", "bar"}, []int{0, 2}, *c)
+	err = drive.WriteFiles([]string{"foo", "bar"}, []int64{0, 2}, *c)
 	if err != nil {
 		t.Error(err.Error())
 	}

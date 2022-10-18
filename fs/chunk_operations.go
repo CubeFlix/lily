@@ -13,14 +13,14 @@ import (
 var ErrInvalidChunk = errors.New("lily.fs: Invalid chunk")
 
 // Read a file into a chunked handler.
-func ReadFileChunks(name, path string, numChunks, chunkSize, start, end int, handler network.ChunkHandler) (outputErr error) {
+func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int64, handler network.ChunkHandler) (outputErr error) {
 	if end == -1 {
 		// End at the end of the file.
 		stat, err := os.Stat(path)
 		if err != nil {
 			return err
 		}
-		end = int(stat.Size())
+		end = stat.Size()
 	}
 
 	// Open the file.
@@ -42,7 +42,7 @@ func ReadFileChunks(name, path string, numChunks, chunkSize, start, end int, han
 	}()
 
 	// Read in chunks.
-	_, err = file.Seek(int64(start), 0)
+	_, err = file.Seek(start, 0)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func ReadFileChunks(name, path string, numChunks, chunkSize, start, end int, han
 		if err != nil {
 			return err
 		}
-		current += size
+		current += int64(size)
 
 		// Write the chunk.
 		err = handler.WriteChunkInfo(name, size)
@@ -79,7 +79,7 @@ func ReadFileChunks(name, path string, numChunks, chunkSize, start, end int, han
 }
 
 // Write to a file from a chunked handler.
-func WriteFileChunks(name, path string, numChunks, start int, handler network.ChunkHandler) (outputErr error) {
+func WriteFileChunks(name, path string, numChunks int, start int64, handler network.ChunkHandler) (outputErr error) {
 	// Open the file.
 	file, err := os.OpenFile(path, os.O_WRONLY, 0644)
 	if err != nil {
@@ -119,7 +119,7 @@ func WriteFileChunks(name, path string, numChunks, start int, handler network.Ch
 
 		// Write the chunk.
 		size, err = file.WriteAt(d, int64(current))
-		current += size
+		current += int64(size)
 		if err != nil {
 			return err
 		}
