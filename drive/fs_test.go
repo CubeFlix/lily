@@ -217,3 +217,170 @@ func TestListDir(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Test renaming some directories.
+func TestRenameDir(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Create several directories.
+	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Rename some directories.
+	err = drive.RenameDirs([]string{"a/", "b/", "c/"}, []string{"d", "e", "f"}, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// List the directory.
+	ldir, err := drive.ListDir(".")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(ldir) != 3 {
+		t.Fail()
+	}
+	if ldir[0].Name != "d" || ldir[1].Name != "e" || ldir[2].Name != "f" {
+		t.Fail()
+	}
+
+	// Rename some directories.
+	err = drive.RenameDirs([]string{"d/", "e/", "f/"}, []string{"g", "h", "i"}, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// List the directory.
+	ldir, err = drive.ListDir(".")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(ldir) != 3 {
+		t.Fail()
+	}
+	if ldir[0].Name != "g" || ldir[1].Name != "h" || ldir[2].Name != "i" {
+		t.Fail()
+	}
+
+	// Check that the dirs are renamed on the host filesystem.
+	osldir, err := os.ReadDir(tempdir)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(osldir) != 3 {
+		t.Fail()
+	}
+	if osldir[0].Name() != "g" || osldir[1].Name() != "h" || osldir[2].Name() != "i" {
+		t.Fail()
+	}
+}
+
+// Test moving some directories.
+func TestMoveDir(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Create several directories.
+	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Rename some directories.
+	err = drive.MoveDirs([]string{"a/", "b/", "c/"}, []string{"d", "e", "f"})
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// List the directory.
+	ldir, err := drive.ListDir(".")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(ldir) != 3 {
+		t.Fail()
+	}
+	if ldir[0].Name != "d" || ldir[1].Name != "e" || ldir[2].Name != "f" {
+		t.Fail()
+	}
+
+	// Check that the dirs are renamed on the host filesystem.
+	osldir, err := os.ReadDir(tempdir)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(osldir) != 3 {
+		t.Fail()
+	}
+	if osldir[0].Name() != "d" || osldir[1].Name() != "e" || osldir[2].Name() != "f" {
+		t.Fail()
+	}
+}
+
+// Test deleting some directories.
+func TestDeleteDir(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Create several directories.
+	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Delete some directories.
+	err = drive.DeleteDirs([]string{"a/", "b/"}, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Delete some directories.
+	err = drive.DeleteDirs([]string{"c"}, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// List the directory.
+	ldir, err := drive.ListDir(".")
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(ldir) != 0 {
+		t.Fail()
+	}
+
+	osldir, err := os.ReadDir(tempdir)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(osldir) != 0 {
+		t.Fail()
+	}
+}

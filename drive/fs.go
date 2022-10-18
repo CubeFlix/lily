@@ -18,6 +18,7 @@ var ErrNotAChildOf = errors.New("lily.drive: Path is not a child of parent")
 var ErrAlreadyExists = errors.New("lily.drive: Path already exists")
 var ErrInvalidDirectoryTree = errors.New("lily.drive: Invalid directory tree")
 var ErrInvalidName = errors.New("lily.drive: Invalid name")
+var ErrInvalidLength = errors.New("lily.drive: Invalid length of array")
 
 var IllegalNames = "\"*/:<>?\\|"
 
@@ -71,6 +72,13 @@ func groupPathsByParentDir(dirs []string,
 // Create directories.
 func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, useParentAccessSettings, performMutexOptimization bool) error {
 	var err error
+
+	// Check that the lengths of the slices are correct.
+	if !useParentAccessSettings {
+		if len(dirs) != len(settings) {
+			return ErrInvalidLength
+		}
+	}
 
 	// Clean the directories.
 	for i := range dirs {
@@ -130,7 +138,13 @@ func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, use
 				if err == nil {
 					// Already exists.
 					parent.ReleaseLock()
-					return err
+					return ErrAlreadyExists
+				}
+				_, err = parent.GetFilesByName([]string{split[len(split)-1]})
+				if err == nil {
+					// Already exists.
+					parent.ReleaseLock()
+					return ErrAlreadyExists
 				}
 
 				// Create the directory object.
@@ -198,7 +212,13 @@ func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, use
 			if err == nil {
 				// Already exists.
 				parent.ReleaseLock()
-				return err
+				return ErrAlreadyExists
+			}
+			_, err = parent.GetFilesByName([]string{split[len(split)-1]})
+			if err == nil {
+				// Already exists.
+				parent.ReleaseLock()
+				return ErrAlreadyExists
 			}
 
 			// Create the directory object.
@@ -254,6 +274,15 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 		}
 	}
 
+	// Check for an empty path.
+	cleanParent, err := fs.CleanPath(parent)
+	if err != nil {
+		return err
+	}
+	if cleanParent == "" {
+		return ErrEmptyPath
+	}
+
 	// Get the parent's parent dir.
 	split, err := fs.SplitPath(parent)
 	if err != nil {
@@ -267,17 +296,29 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 	// Grab the lock on the parent's parent.
 	parentParent.AcquireLock()
 
+	// Check if the directory already exists.
+	_, err = parentParent.GetSubdirsByName([]string{split[len(split)-1]})
+	if err == nil {
+		// Already exists.
+		return ErrAlreadyExists
+	}
+	_, err = parentParent.GetFilesByName([]string{split[len(split)-1]})
+	if err == nil {
+		// Already exists.
+		return ErrAlreadyExists
+	}
+
 	// Create the parent directory object.
 	var root *fs.Directory
 	if useParentAccessSettings {
 		parentSettings := *parentParent.Settings
-		root, err = fs.NewDirectory(parent, false, parentParent, &parentSettings)
+		root, err = fs.NewDirectory(split[len(split)-1], false, parentParent, &parentSettings)
 		if err != nil {
 			parentParent.ReleaseLock()
 			return err
 		}
 	} else {
-		root, err = fs.NewDirectory(parent, false, parentParent, parentSettings)
+		root, err = fs.NewDirectory(split[len(split)-1], false, parentParent, parentSettings)
 		if err != nil {
 			parentParent.ReleaseLock()
 			return err
@@ -344,10 +385,19 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 		}
 
 		// Create the directory object.
-		newdir, err := fs.NewDirectory(parent, false, current, parentSettings)
-		if err != nil {
-			root.ReleaseLock()
-			return err
+		var newdir *fs.Directory
+		if useParentAccessSettings {
+			newdir, err = fs.NewDirectory(splitPath[len(splitPath)-1], false, current, parentSettings)
+			if err != nil {
+				root.ReleaseLock()
+				return err
+			}
+		} else {
+			newdir, err = fs.NewDirectory(splitPath[len(splitPath)-1], false, current, settings[i])
+			if err != nil {
+				root.ReleaseLock()
+				return err
+			}
 		}
 
 		// Add the new directory to the parent.
@@ -380,4 +430,655 @@ func (d *Drive) ListDir(dir string) ([]fs.ListDirObj, error) {
 
 	// Return the listed directory.
 	return dirobj.ListDir(), nil
+}
+
+// Rename directories.
+func (d *Drive) RenameDirs(dirs []string, newNames []string, performMatrixOptimization bool) error {
+	var err error
+
+	// Check that the lengths of the slices are correct.
+	if len(dirs) != len(newNames) {
+		return ErrInvalidLength
+	}
+
+	// Clean the directories and check that all the new names are valid. Also
+	// create a map of dirs to new names.
+	dirsToNames := map[string]string{}
+	for i := range dirs {
+		dirs[i], err = fs.CleanPath(dirs[i])
+		if err != nil {
+			return err
+		}
+
+		// Make sure that the name is correct.
+		if strings.ContainsAny(newNames[i], IllegalNames) || newNames[i] == "" {
+			return ErrInvalidName
+		}
+
+		// Add it to the map.
+		dirsToNames[dirs[i]] = newNames[i]
+	}
+
+	if performMatrixOptimization {
+		// Perform matrix optimization. Group the directories by parent
+		// directory.
+		var groups map[string][]string
+		groups, _, err = groupPathsByParentDir(dirs, []*access.AccessSettings{})
+		if err != nil {
+			return err
+		}
+
+		// Create the directories in groups.
+		for key := range groups {
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(key)
+			if err != nil {
+				if err == fs.ErrItemNotFound {
+					return ErrPathNotFound
+				} else {
+					return err
+				}
+			}
+			parent.AcquireLock()
+
+			// Create the directories.
+			directories := map[string]*fs.Directory{}
+			for dir := range groups[key] {
+				// Check for an empty path.
+				if groups[key][dir] == "" {
+					parent.ReleaseLock()
+					return ErrEmptyPath
+				}
+
+				// Split the path.
+				split, err := fs.SplitPath(groups[key][dir])
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+
+				// Check that the new name doesn't already exist.
+				_, err = parent.GetSubdirsByName([]string{dirsToNames[groups[key][dir]]})
+				if err == nil {
+					// Already exists.
+					parent.ReleaseLock()
+					return ErrAlreadyExists
+				}
+				_, err = parent.GetFilesByName([]string{dirsToNames[groups[key][dir]]})
+				if err == nil {
+					// Already exists.
+					parent.ReleaseLock()
+					return ErrAlreadyExists
+				}
+
+				// Delete the old object but save the access settings.
+				oldSubdir, err := parent.GetSubdirsByName([]string{split[len(split)-1]})
+				if err != nil {
+					parent.ReleaseLock()
+					if err == fs.ErrItemNotFound {
+						return ErrPathNotFound
+					} else {
+						return err
+					}
+				}
+				accessSettings := oldSubdir[0].Settings
+
+				oldSubdirs := parent.GetSubdirs()
+				delete(oldSubdirs, split[len(split)-1])
+				parent.SetSubdirs(oldSubdirs)
+
+				// Create the new directory object.
+				dirobj, err := fs.NewDirectory(dirsToNames[groups[key][dir]], false, parent, accessSettings)
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+
+				// Add the new object.
+				directories[dirsToNames[groups[key][dir]]] = dirobj
+			}
+			// Add the directories to the parent.
+			parent.SetSubdirsByName(directories)
+
+			// Create the new directories in the host filesystem.
+			for i := range groups[key] {
+				err := os.Rename(d.getHostPath(groups[key][i]), d.getHostPath(filepath.Join(key, dirsToNames[groups[key][i]])))
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	} else {
+		// Do not perform mutex optimization.
+		for i := range dirs {
+			// Split the directory.
+			split, err := fs.SplitPath(dirs[i])
+			if err != nil {
+				return err
+			}
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(strings.Join(split[:len(split)-1], "/"))
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Check if the directory already exists.
+			_, err = parent.GetSubdirsByName([]string{dirsToNames[dirs[i]]})
+			if err == nil {
+				// Already exists.
+				parent.ReleaseLock()
+				return ErrAlreadyExists
+			}
+			_, err = parent.GetFilesByName([]string{dirsToNames[dirs[i]]})
+			if err == nil {
+				// Already exists.
+				parent.ReleaseLock()
+				return ErrAlreadyExists
+			}
+
+			// Delete the old object.
+			oldSubdir, err := parent.GetSubdirsByName([]string{split[len(split)-1]})
+			if err != nil {
+				parent.ReleaseLock()
+				if err == fs.ErrItemNotFound {
+					return ErrPathNotFound
+				} else {
+					return err
+				}
+			}
+			accessSettings := oldSubdir[0].Settings
+
+			oldSubdirs := parent.GetSubdirs()
+			delete(oldSubdirs, split[len(split)-1])
+			parent.SetSubdirs(oldSubdirs)
+
+			// Create the directory object.
+			var newdir *fs.Directory
+			newdir, err = fs.NewDirectory(dirsToNames[dirs[i]], false,
+				parent, accessSettings)
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+
+			// Set the new directory object in the parent.
+			parent.SetSubdirsByName(map[string]*fs.Directory{dirsToNames[dirs[i]]: newdir})
+
+			// Rename the directory in the host filesystem.
+			err = os.Rename(d.getHostPath(dirs[i]),
+				d.getHostPath(filepath.Join(strings.Join(split[:len(split)-1], "/"), dirsToNames[dirs[i]])))
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Move directories.
+func (d *Drive) MoveDirs(dirs, dests []string) error {
+	var err error
+
+	// Check that the lengths of the slices are correct.
+	if len(dirs) != len(dests) {
+		return ErrInvalidLength
+	}
+
+	// Clean the directories and check that all the new destinations are valid.
+	for i := range dirs {
+		dirs[i], err = fs.CleanPath(dirs[i])
+		if err != nil {
+			return err
+		}
+
+		// Clean the destination paths.
+		dests[i], err = fs.CleanPath(dests[i])
+		if err != nil {
+			return err
+		}
+
+		// Split the destination path.
+		split, err := fs.SplitPath(dests[i])
+		if err != nil {
+			return err
+		}
+
+		// Make sure that the name is correct.
+		if strings.ContainsAny(split[len(split)-1], IllegalNames) || split[len(split)-1] == "" {
+			return ErrInvalidName
+		}
+	}
+
+	// Move each directory.
+	for i := range dirs {
+		// Split the directory and the destination.
+		splitDir, err := fs.SplitPath(dirs[i])
+		if err != nil {
+			return err
+		}
+		splitDest, err := fs.SplitPath(dests[i])
+		if err != nil {
+			return err
+		}
+
+		// Grab the lock on the parents of the directory and destination.
+		parentDir, err := d.GetDirectoryByPath(strings.Join(splitDir[:len(splitDir)-1], "/"))
+		if err != nil {
+			return err
+		}
+		parentDir.AcquireLock()
+		// If the directory and destination parents are the same, we shouldn't get the destination
+		// again.
+		var parentDest *fs.Directory
+		if strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/") {
+			parentDest = parentDir
+		} else {
+			parentDest, err = d.GetDirectoryByPath(strings.Join(splitDest[:len(splitDest)-1], "/"))
+			if err != nil {
+				parentDir.ReleaseLock()
+				return err
+			}
+			parentDest.AcquireLock()
+		}
+
+		// Check if the directory exists.
+		_, err = parentDest.GetSubdirsByName([]string{splitDest[len(splitDest)-1]})
+		if err == nil {
+			// Already exists.
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return ErrAlreadyExists
+		}
+		_, err = parentDest.GetFilesByName([]string{splitDest[len(splitDest)-1]})
+		if err == nil {
+			// Already exists.
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return ErrAlreadyExists
+		}
+
+		// Get the old subdir object.
+		oldSubdir, err := parentDir.GetSubdirsByName([]string{splitDir[len(splitDir)-1]})
+		if err != nil {
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return err
+		}
+
+		accessSettings := oldSubdir[0].Settings
+
+		oldSubdirs := parentDir.GetSubdirs()
+		delete(oldSubdirs, splitDir[len(splitDir)-1])
+		parentDir.SetSubdirs(oldSubdirs)
+
+		// Create the directory object.
+		var newdir *fs.Directory
+		newdir, err = fs.NewDirectory(splitDest[len(splitDest)-1], false,
+			parentDest, accessSettings)
+		if err != nil {
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return err
+		}
+
+		// Set the new directory object in the parent.
+		parentDest.SetSubdirsByName(map[string]*fs.Directory{splitDest[len(splitDest)-1]: newdir})
+
+		// Move the directory on the host filesystem.
+		err = os.Rename(d.getHostPath(dirs[i]), d.getHostPath(dests[i]))
+		if err != nil {
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return err
+		}
+
+		// Release the locks from the parents.
+		parentDir.ReleaseLock()
+		if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+			parentDest.ReleaseLock()
+		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Delete the directories.
+func (d *Drive) DeleteDirs(dirs []string, performMutexOptimization bool) error {
+	var err error
+
+	// Clean the directories.
+	for i := range dirs {
+		dirs[i], err = fs.CleanPath(dirs[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Perform mutex optimization.
+	if performMutexOptimization {
+		// Group the directories by parent directory.
+		var groups map[string][]string
+		groups, _, err = groupPathsByParentDir(dirs, []*access.AccessSettings{})
+		if err != nil {
+			return err
+		}
+
+		// Delete the directories in groups.
+		for key := range groups {
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(key)
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Delete the directories.
+			directories := parent.GetSubdirs()
+			for dir := range groups[key] {
+				// Check for an empty directory.
+				if groups[key][dir] == "" {
+					parent.ReleaseLock()
+					return ErrEmptyPath
+				}
+
+				// Split the directory.
+				split, err := fs.SplitPath(groups[key][dir])
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+
+				// Check to make sure the directory already exists.
+				_, err = parent.GetSubdirsByName([]string{split[len(split)-1]})
+				if err != nil {
+					// Does not exist.
+					parent.ReleaseLock()
+					if err == fs.ErrItemNotFound {
+						return ErrPathNotFound
+					}
+				}
+
+				// Delete the directory object.
+				delete(directories, split[len(split)-1])
+			}
+
+			// Set the directories of the parent.
+			parent.SetSubdirs(directories)
+
+			// Delete the new directories in the host filesystem.
+			for i := range groups[key] {
+				err := os.RemoveAll(d.getHostPath(groups[key][i]))
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	} else {
+		// Do not perform mutex optimization.
+		for i := range dirs {
+			// Check for an empty directory.
+			if dirs[i] == "" {
+				return ErrEmptyPath
+			}
+
+			// Split the directory.
+			split, err := fs.SplitPath(dirs[i])
+			if err != nil {
+				return err
+			}
+
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(strings.Join(split[:len(split)-1], "/"))
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Check if the directory already exists.
+			_, err = parent.GetSubdirsByName([]string{split[len(split)-1]})
+			if err != nil {
+				// Does not exist.
+				parent.ReleaseLock()
+				if err == fs.ErrItemNotFound {
+					return ErrPathNotFound
+				}
+			}
+
+			// Delete the directory object.
+			subdirs := parent.GetSubdirs()
+			delete(subdirs, split[len(split)-1])
+			parent.SetSubdirs(subdirs)
+
+			// Create the new directory in the host filesystem.
+			err = os.RemoveAll(d.getHostPath(dirs[i]))
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Create files.
+func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, useParentAccessSettings, performMutexOptimization bool) error {
+	var err error
+
+	// Check that the lengths of the slices are correct.
+	if !useParentAccessSettings {
+		if len(files) != len(settings) {
+			return ErrInvalidLength
+		}
+	}
+
+	// Clean the paths.
+	for i := range files {
+		files[i], err = fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Perform mutex optimization.
+	if performMutexOptimization {
+		// Group the files by parent directory.
+		var groups map[string][]string
+		var accessGroups map[string][]*access.AccessSettings
+		if useParentAccessSettings {
+			groups, accessGroups, err = groupPathsByParentDir(files, []*access.AccessSettings{})
+		} else {
+			groups, accessGroups, err = groupPathsByParentDir(files, settings)
+		}
+		if err != nil {
+			return err
+		}
+
+		// Create the files in groups.
+		for key := range groups {
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(key)
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Create the files.
+			newFiles := map[string]*fs.File{}
+			for dir := range groups[key] {
+				// Check for an empty file.
+				if groups[key][dir] == "" {
+					parent.ReleaseLock()
+					return ErrEmptyPath
+				}
+
+				// Split the file.
+				split, err := fs.SplitPath(groups[key][dir])
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+
+				// Check that the name is valid.
+				if strings.ContainsAny(split[len(split)-1], IllegalNames) {
+					parent.ReleaseLock()
+					return ErrInvalidName
+				}
+
+				// Check if the file already exists.
+				_, err = parent.GetSubdirsByName([]string{split[len(split)-1]})
+				if err == nil {
+					// Already exists.
+					parent.ReleaseLock()
+					return ErrAlreadyExists
+				}
+				_, err = parent.GetFilesByName([]string{split[len(split)-1]})
+				if err == nil {
+					// Already exists.
+					parent.ReleaseLock()
+					return ErrAlreadyExists
+				}
+
+				// Create the file object.
+				var newfile *fs.File
+				if useParentAccessSettings {
+					parentSettings := *parent.Settings
+					newfile, err = fs.NewFile(split[len(split)-1], &parentSettings)
+				} else {
+					newfile, err = fs.NewFile(split[len(split)-1], accessGroups[key][dir])
+				}
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+
+				// Add the new file object to the map.
+				newFiles[split[len(split)-1]] = newfile
+			}
+
+			// Add the files to the parent.
+			parent.SetFilesByName(newFiles)
+
+			// Create the new files in the host filesystem.
+			for i := range groups[key] {
+				file, err := os.Open(d.getHostPath(groups[key][i]))
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+				err = file.Close()
+				if err != nil {
+					parent.ReleaseLock()
+					return err
+				}
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	} else {
+		// Do not perform mutex optimization.
+		for i := range files {
+			// Check for an empty file.
+			if files[i] == "" {
+				return ErrEmptyPath
+			}
+
+			// Split the file.
+			split, err := fs.SplitPath(files[i])
+			if err != nil {
+				return err
+			}
+			// Grab the lock on the parent.
+			parent, err := d.GetDirectoryByPath(strings.Join(split[:len(split)-1], "/"))
+			if err != nil {
+				return err
+			}
+			parent.AcquireLock()
+
+			// Check that the name is valid.
+			if strings.ContainsAny(split[len(split)-1], IllegalNames) {
+				parent.ReleaseLock()
+				return ErrInvalidName
+			}
+
+			// Check if the file already exists.
+			_, err = parent.GetSubdirsByName([]string{split[len(split)-1]})
+			if err == nil {
+				// Already exists.
+				parent.ReleaseLock()
+				return ErrAlreadyExists
+			}
+			_, err = parent.GetFilesByName([]string{split[len(split)-1]})
+			if err == nil {
+				// Already exists.
+				parent.ReleaseLock()
+				return ErrAlreadyExists
+			}
+
+			// Create the file object.
+			var newfile *fs.File
+			if useParentAccessSettings {
+				parentSettings := *parent.Settings
+				newfile, err = fs.NewFile(split[len(split)-1], &parentSettings)
+			} else {
+				newfile, err = fs.NewFile(split[len(split)-1], settings[i])
+			}
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+
+			// Set the new file object in the parent.
+			parent.SetFilesByName(map[string]*fs.File{split[len(split)-1]: newfile})
+
+			// Create the new directory in the host filesystem.
+			file, err := os.Open(d.getHostPath(files[i]))
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+			err = file.Close()
+			if err != nil {
+				parent.ReleaseLock()
+				return err
+			}
+
+			// Release the lock on the parent.
+			parent.ReleaseLock()
+		}
+	}
+
+	// Return.
+	return nil
 }
