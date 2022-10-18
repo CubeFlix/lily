@@ -23,6 +23,13 @@ type ChunkHandler struct {
 	stream DataStream
 }
 
+// ChunkInfo struct.
+type ChunkInfo struct {
+	// Name of chunk stream and number of chunks.
+	Name      string
+	NumChunks int
+}
+
 // Create a new ChunkHandler from a DataStream.
 func NewChunkHandler(stream DataStream) *ChunkHandler {
 	return &ChunkHandler{
@@ -32,44 +39,53 @@ func NewChunkHandler(stream DataStream) *ChunkHandler {
 
 // Get the request chunk data, including the list of chunks and order. NOTE:
 // This function MUST be called before using the handler.
-func (c *ChunkHandler) GetChunkRequestInfo() ([]string, error) {
+func (c *ChunkHandler) GetChunkRequestInfo() ([]ChunkInfo, error) {
 	// Get the length of the list.
 	data := make([]byte, 4)
-	_, err := c.stream.Read(data)
+	_, err := c.stream.Read(&data)
 	if err != nil {
-		return []string{}, err
+		return []ChunkInfo{}, err
 	}
 	length := binary.LittleEndian.Uint32(data)
 
 	// Get each element.
-	names := []string{}
+	chunks := []ChunkInfo{}
 	for i := 0; i < int(length); i++ {
 		// Get the length of the name.
-		_, err := c.stream.Read(data)
+		_, err := c.stream.Read(&data)
 		if err != nil {
-			return []string{}, err
+			return []ChunkInfo{}, err
 		}
 		length := binary.LittleEndian.Uint32(data)
 
 		// Get the name.
 		data := make([]byte, length)
-		_, err = c.stream.Read(data)
+		_, err = c.stream.Read(&data)
 		if err != nil {
-			return []string{}, err
+			return []ChunkInfo{}, err
 		}
+		name := string(data)
 
-		names = append(names, string(data))
+		// Get the number of chunks.
+		data = make([]byte, 4)
+		_, err = c.stream.Read(&data)
+		if err != nil {
+			return []ChunkInfo{}, err
+		}
+		numChunks := binary.LittleEndian.Uint32(data)
+
+		chunks = append(chunks, ChunkInfo{name, int(numChunks)})
 	}
 
 	// Return the names.
-	return names, nil
+	return chunks, nil
 }
 
 // Get info about the next chunk. Get the name and length.
 func (c *ChunkHandler) GetChunkInfo() (string, int, error) {
 	// Get the length of the name.
 	data := make([]byte, 4)
-	_, err := c.stream.Read(data)
+	_, err := c.stream.Read(&data)
 	if err != nil {
 		return "", 0, err
 	}
@@ -77,7 +93,7 @@ func (c *ChunkHandler) GetChunkInfo() (string, int, error) {
 
 	// Get the name.
 	data = make([]byte, length)
-	_, err = c.stream.Read(data)
+	_, err = c.stream.Read(&data)
 	if err != nil {
 		return "", 0, err
 	}
@@ -85,7 +101,7 @@ func (c *ChunkHandler) GetChunkInfo() (string, int, error) {
 
 	// Get the length of the chunk.
 	data = make([]byte, 4)
-	_, err = c.stream.Read(data)
+	_, err = c.stream.Read(&data)
 	if err != nil {
 		return "", 0, err
 	}
@@ -96,9 +112,90 @@ func (c *ChunkHandler) GetChunkInfo() (string, int, error) {
 }
 
 // Load the next chunk of data. Data should be the size of the chunk.
-func (c *ChunkHandler) GetChunk(data []byte) error {
+func (c *ChunkHandler) GetChunk(data *[]byte) error {
 	// Load the chunk.
 	_, err := c.stream.Read(data)
+	if err != nil {
+		return err
+	}
+
+	// Return.
+	return nil
+}
+
+// Write the response chunk data. NOTE: This function MUST be called before
+// using the response handler.
+func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo) error {
+	// Write the length of the list.
+	data := make([]byte, 4)
+	binary.LittleEndian.PutUint32(data, uint32(len(chunks)))
+	_, err := c.stream.Write(&data)
+	if err != nil {
+		return err
+	}
+
+	// Get each element.
+	for i := range chunks {
+		// Write the length of the name.
+		binary.LittleEndian.PutUint32(data, uint32(len(chunks[i].Name)))
+		_, err := c.stream.Write(&data)
+		if err != nil {
+			return err
+		}
+
+		// Write the name.
+		data := []byte(chunks[i].Name)
+		_, err = c.stream.Write(&data)
+		if err != nil {
+			return err
+		}
+
+		// Write the number of chunks.
+		data = make([]byte, 4)
+		binary.LittleEndian.PutUint32(data, uint32(chunks[i].NumChunks))
+		_, err = c.stream.Write(&data)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Return.
+	return nil
+}
+
+// Write info about the next chunk. Write the name and length.
+func (c *ChunkHandler) WriteChunkInfo(name string, length int) error {
+	// Write the length of the name.
+	data := make([]byte, 4)
+	binary.LittleEndian.PutUint32(data, uint32(len(name)))
+	_, err := c.stream.Write(&data)
+	if err != nil {
+		return err
+	}
+
+	// Write the name.
+	data = []byte(name)
+	_, err = c.stream.Write(&data)
+	if err != nil {
+		return err
+	}
+
+	// Write the length of the chunk.
+	data = make([]byte, 4)
+	binary.LittleEndian.PutUint32(data, uint32(length))
+	_, err = c.stream.Write(&data)
+	if err != nil {
+		return err
+	}
+
+	// Return.
+	return nil
+}
+
+// Write a chunk.
+func (c *ChunkHandler) WriteChunk(data *[]byte) error {
+	// Load the chunk.
+	_, err := c.stream.Write(data)
 	if err != nil {
 		return err
 	}
