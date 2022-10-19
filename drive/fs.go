@@ -4,8 +4,11 @@
 package drive
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -1746,7 +1749,7 @@ func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
 				found = true
 			}
 		}
-		if found == true {
+		if found {
 			continue
 		}
 		// Did not find it.
@@ -1755,6 +1758,111 @@ func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
 			Name:   paths[i],
 			IsFile: false,
 		})
+	}
+
+	// Return.
+	return outputs, nil
+}
+
+// Recalculate hashes for files.
+func (d *Drive) ReHash(files []string, performMutexOptimization bool) error {
+	var err error
+
+	// Clean the files.
+	for i := range files {
+		files[i], err = fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	hasher := sha256.New()
+	for i := range files {
+		// Check for an empty path.
+		if files[i] == "" {
+			return ErrEmptyPath
+		}
+
+		// Grab the lock on the file.
+		file, err := d.GetFileByPath(files[i])
+		if err != nil {
+			return err
+		}
+		file.AcquireLock()
+
+		// Calculate the hash.
+		f, err := os.Open(d.getHostPath(files[i]))
+		if err != nil {
+			file.ReleaseLock()
+			return err
+		}
+		if _, err := io.Copy(hasher, f); err != nil {
+			file.ReleaseLock()
+			f.Close()
+			return err
+		}
+		hash := []byte{}
+		hash = hasher.Sum(hash)
+		// Release the lock on the file.
+		file.ReleaseLock()
+
+		file.SetHash(hash)
+		hasher.Reset()
+
+		f.Close()
+	}
+
+	// Return.
+	return nil
+}
+
+// Verify hashes for files.
+func (d *Drive) VerifyHashes(files []string) (map[string]bool, error) {
+	hasher := sha256.New()
+	outputs := map[string]bool{}
+	for i := range files {
+		// Check for an empty path.
+		clean, err := fs.CleanPath(files[i])
+		if err != nil {
+			return map[string]bool{}, err
+		}
+		if clean == "" {
+			return map[string]bool{}, ErrEmptyPath
+		}
+
+		// Grab the lock on the file.
+		file, err := d.GetFileByPath(clean)
+		if err != nil {
+			return map[string]bool{}, err
+		}
+		file.AcquireLock()
+
+		// Calculate the hash.
+		f, err := os.Open(d.getHostPath(clean))
+		if err != nil {
+			file.ReleaseLock()
+			return map[string]bool{}, err
+		}
+		if _, err := io.Copy(hasher, f); err != nil {
+			file.ReleaseLock()
+			f.Close()
+			return map[string]bool{}, err
+		}
+		hash := []byte{}
+		hash = hasher.Sum(hash)
+		hasher.Reset()
+
+		f.Close()
+
+		// Release the lock on the file.
+		file.ReleaseLock()
+
+		// Compare the hashes.
+		if bytes.Equal(hash, file.GetHash()) {
+			outputs[files[i]] = true
+		} else {
+			outputs[files[i]] = false
+		}
 	}
 
 	// Return.
