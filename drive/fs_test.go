@@ -811,3 +811,70 @@ func TestStat(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Testing hashing and verifying files.
+func TestHashVerify(t *testing.T) {
+	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	root, err := fs.NewDirectory("", true, &fs.Directory{}, a)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	tempdir := t.TempDir()
+	drive := NewDrive("foo", tempdir, true, a, root)
+
+	// Create some files.
+	err = drive.CreateFiles([]string{"a", "b"}, []*access.AccessSettings{}, true, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Write some data to the files.
+	err = os.WriteFile(drive.getHostPath("a"), []byte("hello"), 6666)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	err = os.WriteFile(drive.getHostPath("b"), []byte("world"), 6666)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Calculate the hashes.
+	err = drive.ReHash([]string{"a", "b"}, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Modify the files.
+	err = os.WriteFile(drive.getHostPath("a"), []byte("world"), 6666)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	err = os.WriteFile(drive.getHostPath("b"), []byte("hello"), 6666)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Calculate the hash only for "a".
+	err = drive.ReHash([]string{"a"}, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Verify the hashes.
+	verify, err := drive.VerifyHashes([]string{"./a", "b"})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(verify) != 2 {
+		t.Fail()
+	}
+	if verify["./a"] != true {
+		t.Fail()
+	}
+	if verify["b"] != false {
+		t.Fail()
+	}
+}
