@@ -20,7 +20,7 @@ import (
 // Session object.
 type Session struct {
 	// Lock.
-	lock *sync.RWMutex
+	lock sync.RWMutex
 	// Session ID and username.
 	id       uuid.UUID
 	username string
@@ -37,7 +37,7 @@ var ErrSessionExpired = errors.New("lily.session: Session expired")
 func NewSession(id uuid.UUID, username string, expireAfter time.Duration) *Session {
 	// Create the session object.
 	session := &Session{
-		lock:        &sync.RWMutex{},
+		lock:        sync.RWMutex{},
 		id:          id,
 		username:    username,
 		expireAfter: expireAfter,

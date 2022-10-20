@@ -51,7 +51,7 @@ func (u *UserList) GetList() []string {
 	u.lock.RLock()
 	defer u.lock.RUnlock()
 
-	// Check for the user.
+	// Return the names.
 	return u.names
 }
 
