@@ -14,18 +14,23 @@ import (
 // Package list provides session lists for Lily servers.
 
 var ErrSessionNotFound = errors.New("lily.session.list: Session not found")
+var ErrSessionGenLimitReached = errors.New("lily.session.list: Session generation limit reached, try again later")
 
 // Session list type.
 type SessionList struct {
 	lock     sync.RWMutex
+	genLock  sync.Mutex
+	genLimit int
 	sessions map[uuid.UUID]*session.Session
 	ids      []uuid.UUID
 }
 
 // Create the session list.
-func NewSessionList() *SessionList {
+func NewSessionList(genLimit int) *SessionList {
 	return &SessionList{
 		lock:     sync.RWMutex{},
+		genLock:  sync.Mutex{},
+		genLimit: genLimit,
 		sessions: map[uuid.UUID]*session.Session{},
 		ids:      []uuid.UUID{},
 	}
@@ -127,4 +132,23 @@ func (u *SessionList) RemoveSessionsByID(ids []uuid.UUID) error {
 
 	// Return.
 	return nil
+}
+
+// Generate a new session ID.
+func (u *SessionList) GenerateSessionID() (uuid.UUID, error) {
+	// Acquire the session generation lock.
+	u.genLock.Lock()
+	defer u.genLock.Unlock()
+
+	// Continue to generate IDs until we get one that doesn't already exist.
+	for i := 0; i < u.genLimit; i++ {
+		newID := uuid.New()
+		if !u.CheckList(newID) {
+			// This ID is unique.
+			return newID, nil
+		}
+	}
+
+	// Return.
+	return uuid.UUID{}, ErrSessionGenLimitReached
 }

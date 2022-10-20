@@ -14,7 +14,7 @@ import (
 // Test checking a session list.
 func TestCheckSessionList(t *testing.T) {
 	// Create a session list and a session.
-	list := NewSessionList()
+	list := NewSessionList(1)
 	uuid1 := uuid.New()
 	session1 := session.NewSession(uuid1, "foo", time.Duration(0))
 
@@ -33,7 +33,7 @@ func TestCheckSessionList(t *testing.T) {
 // Test getting, setting, and removing sessions.
 func TestUserList(t *testing.T) {
 	// Create a session list and a session.
-	list := NewSessionList()
+	list := NewSessionList(1)
 	uuid1 := uuid.New()
 	session1 := session.NewSession(uuid1, "foo", time.Duration(0))
 
@@ -62,5 +62,11 @@ func TestUserList(t *testing.T) {
 	ids := list.GetList()
 	if len(ids) != 0 {
 		t.Fail()
+	}
+
+	// Generate a session ID.
+	_, err = list.GenerateSessionID()
+	if err != nil {
+		t.Error(err.Error())
 	}
 }
