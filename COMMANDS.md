@@ -1,10 +1,10 @@
 # Commands
-Commands in Lily consist of the following fields:
+Commands in Lily consist of the following fields (see [the protocol](./PROTOCOL.md#command)):
 
 | Name        | Description     | Type   |
 | -           | -               | -      |
-| Command ID  | The command ID. | string |
 | Auth        | The authentication data. | security.auth.Auth |
+| Command ID  | The command ID. | string |
 | Arguments   | The command arguments. | Any |
 
 Lily commands accept two types of authentication: user and session. User authentication takes a username and password, while session authentication takes a username and session ID. Most commands allow both session and user authentication, however, some commands require only a certain type. For example, login commands require user authentication as they need a username and password.
@@ -17,7 +17,7 @@ Responses consist of the following fields:
 | Response String | A string containing the response message, if necessary. | string |
 | Data            | The response data. | Any |
 
-## Basic Commands
+## General Commands
 
 ### Ping
 > Ping the server. This command does not require authentication, and clients may provide an empty user authentication object.
@@ -42,6 +42,10 @@ Responses consist of the following fields:
 > - `name` (type `string`)
 > 
 >   The name of the server.
+> 
+> - `version` (type `string`)
+> 
+>   The server version.
 > 
 > - `drives` (type `[]string`)
 > 
@@ -70,15 +74,280 @@ Responses consist of the following fields:
 > 
 >   If the server allows clients to specify the expiration time, this argument will specify the expiration time. If the server does not allow clients to set the expiration time, this argument does nothing. If the server allows never-expiring sessions and the value for the session expiration time is 0, the session will never expire. Returns an error if the session expiration time is 0 and the server does not allow it.
 
+### Logout
+> Log out of the server. This command, if successful, will remove the associated session. This command requires session authentication.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+## Administrative Commands
+These following commands all require administrator privileges to execute.
+
+### Get All Users
+> Get a list of all users.
+
+**Parameters:** None
+
 **Chunk Arguments:** None
 
 **Returns:** 
 
-> - `sessionID` (type `uuid.UUID`)
+> - `users` (type `[]string`)
 > 
->   The new session ID, if the login was successful.
+>   The list of users.
 
 **Chunk Returns:** None
 
+### Get User Information
+> Get information about users, given a list of users. Returns the user's name, clearance level, and bcrypt password hash as a UserInfo object. If a given user does not exist, the command does not return an error. Rather, it reports that the user does not exist in the resultant user info structure.
 
+**Parameters:** None
 
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `info` (type `[]UserInfo`)
+> 
+>   The list of user information.
+
+**Chunk Returns:** None
+
+### Set User Clearance
+> Set users' clearance level, given a list of users. If a given user does not exist, it returns an error. If the lengths of the two parameters are not the same, it returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The list of users to modify.
+> - `clearances` (type `[]int`)
+> 
+>   The list of new clearance levels. 
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set User Password
+
+> Set users' password, given a list of users. If a given user does not exist, it returns an error. If the lengths of the two parameters are not the same, it returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The list of users to modify.
+> - `passwords` (type `[]string`)
+> 
+>   The list of new passwords. 
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Rename Users
+
+> Rename users, given a list of users. If a given user does not exist, it returns an error. If a user with new name already exists, it returns an error. If the lengths of the two parameters are not the same, it returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The list of users to rename.
+> - `newNames` (type `[]string`)
+> 
+>   The list of new names. 
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Create Users
+
+> Create users, given a list of users, passwords, and clearance levels. If a given user already exists, it returns an error. If the lengths of the three parameters are not the same, it returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The list of users to create.
+> - `passwords` (type `[]string`)
+> 
+>   The list of passwords for the new users.
+> - `clearances` (type `[]int`)
+> 
+>   The list of clearance levels for the new users. 
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Delete Users
+
+> Delete users, given a list of users. If a given user does not exist, it returns an error. 
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The list of users to delete.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Get All Sessions
+
+> Get a list of all sessions active on the server, returning their IDs.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `ids` (type `[]uuid.UUID`)
+> 
+>   The list of session IDs.
+
+**Chunk Returns:** None
+
+### Get All User Sessions
+
+> Get a list of all sessions for a specific user, returning their IDs.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `ids` (type `[]uuid.UUID`)
+> 
+>   The list of session IDs.
+
+**Chunk Returns:** None
+
+### Get Session Info
+
+> Get information about sessions, given a list of session IDs. Returns the session's ID, username, next expiration time, and default expiration time as a SessionInfo object. If a given session ID does not exist, it returns an error.
+
+**Parameters:** 
+
+> - `ids` (type `[]uuid.UUID`)
+> 
+>   The list of session IDs.
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `sessions` (type `[]SessionInfo`)
+> 
+>   The list of session information.
+
+**Chunk Returns:** None
+
+### Expire All Sessions
+
+> Expire all active sessions on the server.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Expire Sessions
+
+> Expire sessions, given a list of session IDs. If a given session ID does not exist, it returns an error.
+
+**Parameters:** 
+
+> - `ids` (type `[]uuid.UUID`)
+> 
+>   The list of session IDs.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### TODO: Settings
+
+## Session Commands
+
+### Is Expired
+
+> Check if the current session is expired. This command does not update the expiration. This command requires session authentication. If the authentication is invalid (meaning the session does not exist or is expired) it will not return an error.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `expired` (type `bool`)
+> 
+>   If the session is expired.
+
+**Chunk Returns:** None
+
+### Reauthenticate
+
+> Reauthenticate the session. This will update the expiration. This command requires session authentication. If the authentication is invalid, this will return an error.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Expiration Time
+
+> Set the expiration time for the session. If the server does not allow setting the expiration time, this command does not return an error, and instead does nothing.
+
+**Parameters:** 
+
+> - `sessionExpiration` (type `time.Duration`)
+> 
+>   The new expiration time.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+## Drive Commands
+
+### TODO: Drive settings
+
+### TODO: Drive access
+
+## Filesystem Commands
+
+### TODO: Filesystem commands
+
+### TODO: Filesystem access

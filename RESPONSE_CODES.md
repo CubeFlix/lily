@@ -4,7 +4,7 @@ Responses in Lily consist of a response code and a response string, an optional 
 ### **Code:** 0
 
 **Description:**
-> Operation completed successfully.
+> Operation completed successfully. Returns an empty response string.
 
 ### **Code:** 1
 
@@ -19,7 +19,7 @@ Responses in Lily consist of a response code and a response string, an optional 
 ### **Code:** 3
 
 **Description:**
-> Invalid authentication data.
+> Invalid authentication type.
 
 ### **Code:** 4
 
@@ -36,4 +36,32 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Server could not successfully generate a unique session ID. Please try again.
 
+### **Code:** 7
 
+**Description:**
+> Insufficient clearance.
+
+### **Code:** 8
+
+**Description:**
+> User does not exist.
+
+### **Code:** 9
+
+**Description:**
+> Invalid lengths of arguments. Generally occurs when the arguments for a command are multiple arrays that must all have the same length.
+
+### **Code:** 10
+
+**Description:**
+> Incompatible server and client versions.
+
+### **Code:** 11
+
+**Description:**
+> User already exists.
+
+### **Code:** 12
+
+**Description:**
+> Session does not exist.

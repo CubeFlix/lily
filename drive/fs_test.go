@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/network"
@@ -392,7 +393,7 @@ type TestStream struct {
 }
 
 // Read from the testing DataStream.
-func (t *TestStream) Read(b *[]byte) (int, error) {
+func (t *TestStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 	l := len(*b)
 	*b = t.data[:l]
 	t.data = t.data[l:]
@@ -401,7 +402,7 @@ func (t *TestStream) Read(b *[]byte) (int, error) {
 }
 
 // Write to the testing DataStream.
-func (t *TestStream) Write(b *[]byte) (int, error) {
+func (t *TestStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	l := len(*b)
 	t.data = append(t.data, *b...)
 
@@ -453,13 +454,13 @@ func TestReadFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Read.
-	err = drive.ReadFiles([]string{"./foo", "bar"}, []int64{0, 4}, []int64{-1, 8}, *c, 6)
+	err = drive.ReadFiles([]string{"./foo", "bar"}, []int64{0, 4}, []int64{-1, 8}, *c, 6, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	// Get the data back from the chunks.
-	chunks, err := c.GetChunkRequestInfo()
+	chunks, err := c.GetChunkRequestInfo(time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -475,21 +476,21 @@ func TestReadFile(t *testing.T) {
 
 	// Get the chunks.
 	data := make([]byte, 6)
-	name, length, err := c.GetChunkInfo()
+	name, length, err := c.GetChunkInfo(time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if name != "./foo" || length != 6 {
 		t.Fail()
 	}
-	err = c.GetChunk(&data)
+	err = c.GetChunk(&data, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if string(data) != "hello " {
 		t.Fail()
 	}
-	name, length, err = c.GetChunkInfo()
+	name, length, err = c.GetChunkInfo(time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -497,14 +498,14 @@ func TestReadFile(t *testing.T) {
 		t.Fail()
 	}
 	data = make([]byte, 5)
-	err = c.GetChunk(&data)
+	err = c.GetChunk(&data, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if string(data) != "world" {
 		t.Fail()
 	}
-	name, length, err = c.GetChunkInfo()
+	name, length, err = c.GetChunkInfo(time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -512,7 +513,7 @@ func TestReadFile(t *testing.T) {
 		t.Fail()
 	}
 	data = make([]byte, 4)
-	err = c.GetChunk(&data)
+	err = c.GetChunk(&data, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -567,19 +568,19 @@ func TestWriteFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Add some text to write.
-	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}})
-	c.WriteChunkInfo("./foo", 6)
+	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}}, time.Duration(0))
+	c.WriteChunkInfo("./foo", 6, time.Duration(0))
 	data := []byte("hello ")
-	c.WriteChunk(&data)
-	c.WriteChunkInfo("./foo", 5)
+	c.WriteChunk(&data, time.Duration(0))
+	c.WriteChunkInfo("./foo", 5, time.Duration(0))
 	data = []byte("world")
-	c.WriteChunk(&data)
-	c.WriteChunkInfo("bar", 5)
+	c.WriteChunk(&data, time.Duration(0))
+	c.WriteChunkInfo("bar", 5, time.Duration(0))
 	data = []byte("hello")
-	c.WriteChunk(&data)
+	c.WriteChunk(&data, time.Duration(0))
 
 	// Write.
-	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, *c)
+	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, *c, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}

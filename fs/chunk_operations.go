@@ -6,6 +6,7 @@ package fs
 import (
 	"errors"
 	"os"
+	"time"
 
 	"github.com/cubeflix/lily/network"
 )
@@ -14,7 +15,7 @@ var ErrInvalidChunk = errors.New("lily.fs: Invalid chunk")
 var ErrInsufficientMemory = errors.New("lily.fs: Insufficient memory for chunk")
 
 // Read a file into a chunked handler.
-func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int64, handler network.ChunkHandler) (outputErr error) {
+func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int64, handler network.ChunkHandler, timeout time.Duration) (outputErr error) {
 	if end == -1 {
 		// End at the end of the file.
 		stat, err := os.Stat(path)
@@ -68,11 +69,11 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 		current += int64(size)
 
 		// Write the chunk.
-		err = handler.WriteChunkInfo(name, size)
+		err = handler.WriteChunkInfo(name, size, timeout)
 		if err != nil {
 			return err
 		}
-		err = handler.WriteChunk(&d)
+		err = handler.WriteChunk(&d, timeout)
 		if err != nil {
 			return err
 		}
@@ -83,7 +84,7 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 }
 
 // Write to a file from a chunked handler.
-func WriteFileChunks(name, path string, numChunks int, start int64, handler network.ChunkHandler) (outputErr error) {
+func WriteFileChunks(name, path string, numChunks int, start int64, handler network.ChunkHandler, timeout time.Duration) (outputErr error) {
 	// Open the file.
 	file, err := os.OpenFile(path, os.O_WRONLY, 0644)
 	if err != nil {
@@ -106,7 +107,8 @@ func WriteFileChunks(name, path string, numChunks int, start int64, handler netw
 	current := start
 	for i := 0; i < numChunks; i++ {
 		// Get the chunk info.
-		cName, size, err := handler.GetChunkInfo()
+		cName, suint64, err := handler.GetChunkInfo(timeout)
+		size := int(suint64)
 		if err != nil {
 			return err
 		}
@@ -119,7 +121,7 @@ func WriteFileChunks(name, path string, numChunks int, start int64, handler netw
 		}
 
 		// Read the chunk data.
-		err = handler.GetChunk(&d)
+		err = handler.GetChunk(&d, timeout)
 		if err != nil {
 			return err
 		}

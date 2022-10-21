@@ -6,6 +6,7 @@ package network
 import (
 	"encoding/binary"
 	"errors"
+	"time"
 )
 
 // Chunks consist of large chunks of data that can be sent individually by the
@@ -16,6 +17,7 @@ import (
 // and order is announced before the chunk data begins sending.
 
 var ErrInvalidChunkName = errors.New("lily.network: Invalid chunk name")
+var ErrInvalidFooter = errors.New("lily.network: Footer data is invalid (possible data corruption")
 
 // ChunkHandler struct.
 type ChunkHandler struct {
@@ -39,10 +41,10 @@ func NewChunkHandler(stream DataStream) *ChunkHandler {
 
 // Get the request chunk data, including the list of chunks and order. NOTE:
 // This function MUST be called before using the handler.
-func (c *ChunkHandler) GetChunkRequestInfo() ([]ChunkInfo, error) {
+func (c *ChunkHandler) GetChunkRequestInfo(timeout time.Duration) ([]ChunkInfo, error) {
 	// Get the length of the list.
 	data := make([]byte, 4)
-	_, err := c.stream.Read(&data)
+	_, err := c.stream.Read(&data, timeout)
 	if err != nil {
 		return []ChunkInfo{}, err
 	}
@@ -52,7 +54,7 @@ func (c *ChunkHandler) GetChunkRequestInfo() ([]ChunkInfo, error) {
 	chunks := []ChunkInfo{}
 	for i := 0; i < int(length); i++ {
 		// Get the length of the name.
-		_, err := c.stream.Read(&data)
+		_, err := c.stream.Read(&data, timeout)
 		if err != nil {
 			return []ChunkInfo{}, err
 		}
@@ -60,7 +62,7 @@ func (c *ChunkHandler) GetChunkRequestInfo() ([]ChunkInfo, error) {
 
 		// Get the name.
 		data := make([]byte, length)
-		_, err = c.stream.Read(&data)
+		_, err = c.stream.Read(&data, timeout)
 		if err != nil {
 			return []ChunkInfo{}, err
 		}
@@ -68,7 +70,7 @@ func (c *ChunkHandler) GetChunkRequestInfo() ([]ChunkInfo, error) {
 
 		// Get the number of chunks.
 		data = make([]byte, 4)
-		_, err = c.stream.Read(&data)
+		_, err = c.stream.Read(&data, timeout)
 		if err != nil {
 			return []ChunkInfo{}, err
 		}
@@ -77,15 +79,25 @@ func (c *ChunkHandler) GetChunkRequestInfo() ([]ChunkInfo, error) {
 		chunks = append(chunks, ChunkInfo{name, int(numChunks)})
 	}
 
+	// Get the footer data.
+	data = make([]byte, 3)
+	_, err = c.stream.Read(&data, timeout)
+	if err != nil {
+		return []ChunkInfo{}, err
+	}
+	if string(data) != "END" {
+		return []ChunkInfo{}, ErrInvalidFooter
+	}
+
 	// Return the names.
 	return chunks, nil
 }
 
 // Get info about the next chunk. Get the name and length.
-func (c *ChunkHandler) GetChunkInfo() (string, int, error) {
+func (c *ChunkHandler) GetChunkInfo(timeout time.Duration) (string, uint64, error) {
 	// Get the length of the name.
 	data := make([]byte, 4)
-	_, err := c.stream.Read(&data)
+	_, err := c.stream.Read(&data, timeout)
 	if err != nil {
 		return "", 0, err
 	}
@@ -93,30 +105,40 @@ func (c *ChunkHandler) GetChunkInfo() (string, int, error) {
 
 	// Get the name.
 	data = make([]byte, length)
-	_, err = c.stream.Read(&data)
+	_, err = c.stream.Read(&data, timeout)
 	if err != nil {
 		return "", 0, err
 	}
 	name := string(data)
 
 	// Get the length of the chunk.
-	data = make([]byte, 4)
-	_, err = c.stream.Read(&data)
+	data = make([]byte, 8)
+	_, err = c.stream.Read(&data, timeout)
 	if err != nil {
 		return "", 0, err
 	}
-	length = binary.LittleEndian.Uint32(data)
+	chunkLength := binary.LittleEndian.Uint64(data)
 
 	// Return.
-	return name, int(length), nil
+	return name, chunkLength, nil
 }
 
 // Load the next chunk of data. Data should be the size of the chunk.
-func (c *ChunkHandler) GetChunk(data *[]byte) error {
+func (c *ChunkHandler) GetChunk(data *[]byte, timeout time.Duration) error {
 	// Load the chunk.
-	_, err := c.stream.Read(data)
+	_, err := c.stream.Read(data, timeout)
 	if err != nil {
 		return err
+	}
+
+	// Get the footer data.
+	footer := make([]byte, 3)
+	_, err = c.stream.Read(&footer, timeout)
+	if err != nil {
+		return err
+	}
+	if string(footer) != "END" {
+		return ErrInvalidFooter
 	}
 
 	// Return.
@@ -125,27 +147,27 @@ func (c *ChunkHandler) GetChunk(data *[]byte) error {
 
 // Write the response chunk data. NOTE: This function MUST be called before
 // using the response handler.
-func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo) error {
+func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo, timeout time.Duration) error {
 	// Write the length of the list.
 	data := make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, uint32(len(chunks)))
-	_, err := c.stream.Write(&data)
+	_, err := c.stream.Write(&data, timeout)
 	if err != nil {
 		return err
 	}
 
-	// Get each element.
+	// Write each element.
 	for i := range chunks {
 		// Write the length of the name.
 		binary.LittleEndian.PutUint32(data, uint32(len(chunks[i].Name)))
-		_, err := c.stream.Write(&data)
+		_, err := c.stream.Write(&data, timeout)
 		if err != nil {
 			return err
 		}
 
 		// Write the name.
 		data := []byte(chunks[i].Name)
-		_, err = c.stream.Write(&data)
+		_, err = c.stream.Write(&data, timeout)
 		if err != nil {
 			return err
 		}
@@ -153,10 +175,15 @@ func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo) error {
 		// Write the number of chunks.
 		data = make([]byte, 4)
 		binary.LittleEndian.PutUint32(data, uint32(chunks[i].NumChunks))
-		_, err = c.stream.Write(&data)
+		_, err = c.stream.Write(&data, timeout)
 		if err != nil {
 			return err
 		}
+	}
+	footer := []byte("END")
+	_, err = c.stream.Write(&footer, timeout)
+	if err != nil {
+		return err
 	}
 
 	// Return.
@@ -164,26 +191,26 @@ func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo) error {
 }
 
 // Write info about the next chunk. Write the name and length.
-func (c *ChunkHandler) WriteChunkInfo(name string, length int) error {
+func (c *ChunkHandler) WriteChunkInfo(name string, length int, timeout time.Duration) error {
 	// Write the length of the name.
 	data := make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, uint32(len(name)))
-	_, err := c.stream.Write(&data)
+	_, err := c.stream.Write(&data, timeout)
 	if err != nil {
 		return err
 	}
 
 	// Write the name.
 	data = []byte(name)
-	_, err = c.stream.Write(&data)
+	_, err = c.stream.Write(&data, timeout)
 	if err != nil {
 		return err
 	}
 
 	// Write the length of the chunk.
-	data = make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(length))
-	_, err = c.stream.Write(&data)
+	data = make([]byte, 8)
+	binary.LittleEndian.PutUint64(data, uint64(length))
+	_, err = c.stream.Write(&data, timeout)
 	if err != nil {
 		return err
 	}
@@ -193,9 +220,15 @@ func (c *ChunkHandler) WriteChunkInfo(name string, length int) error {
 }
 
 // Write a chunk.
-func (c *ChunkHandler) WriteChunk(data *[]byte) error {
+func (c *ChunkHandler) WriteChunk(data *[]byte, timeout time.Duration) error {
 	// Load the chunk.
-	_, err := c.stream.Write(data)
+	_, err := c.stream.Write(data, timeout)
+	if err != nil {
+		return err
+	}
+
+	footer := []byte("END")
+	_, err = c.stream.Write(&footer, timeout)
 	if err != nil {
 		return err
 	}

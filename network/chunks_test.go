@@ -6,6 +6,7 @@ package network
 import (
 	"bytes"
 	"testing"
+	"time"
 )
 
 // Testing DataStream.
@@ -15,7 +16,7 @@ type TestStream struct {
 }
 
 // Read from the testing DataStream.
-func (t *TestStream) Read(b *[]byte) (int, error) {
+func (t *TestStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 	l := len(*b)
 	*b = t.data[:l]
 	t.data = t.data[l:]
@@ -24,7 +25,7 @@ func (t *TestStream) Read(b *[]byte) (int, error) {
 }
 
 // Write to the testing DataStream.
-func (t *TestStream) Write(b *[]byte) (int, error) {
+func (t *TestStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	l := len(*b)
 	t.output = append(t.output, *b...)
 
@@ -38,10 +39,12 @@ func TestChunkedHandler(t *testing.T) {
 	testInput = append(testInput, []byte{3, 0, 0, 0}...)
 	testInput = append(testInput, []byte("foo")...)
 	testInput = append(testInput, []byte{1, 0, 0, 0}...)
+	testInput = append(testInput, []byte("END")...)
 	testInput = append(testInput, []byte{3, 0, 0, 0}...)
 	testInput = append(testInput, []byte("foo")...)
-	testInput = append(testInput, []byte{3, 0, 0, 0}...)
+	testInput = append(testInput, []byte{3, 0, 0, 0, 0, 0, 0, 0}...)
 	testInput = append(testInput, []byte("bar")...)
+	testInput = append(testInput, []byte("END")...)
 
 	// Create a DataStream.
 	ts := &TestStream{
@@ -54,7 +57,7 @@ func TestChunkedHandler(t *testing.T) {
 	c := NewChunkHandler(ds)
 
 	// Get the main data.
-	chunks, err := c.GetChunkRequestInfo()
+	chunks, err := c.GetChunkRequestInfo(time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -69,7 +72,7 @@ func TestChunkedHandler(t *testing.T) {
 	}
 
 	// Get the chunk data.
-	name, length, err := c.GetChunkInfo()
+	name, length, err := c.GetChunkInfo(time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -79,7 +82,7 @@ func TestChunkedHandler(t *testing.T) {
 
 	// Get the chunk.
 	data := make([]byte, 3)
-	err = c.GetChunk(&data)
+	err = c.GetChunk(&data, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -95,10 +98,12 @@ func TestWritingChunkedHandler(t *testing.T) {
 	testOutput = append(testOutput, []byte{3, 0, 0, 0}...)
 	testOutput = append(testOutput, []byte("foo")...)
 	testOutput = append(testOutput, []byte{1, 0, 0, 0}...)
+	testOutput = append(testOutput, []byte("END")...)
 	testOutput = append(testOutput, []byte{3, 0, 0, 0}...)
 	testOutput = append(testOutput, []byte("foo")...)
-	testOutput = append(testOutput, []byte{3, 0, 0, 0}...)
+	testOutput = append(testOutput, []byte{3, 0, 0, 0, 0, 0, 0, 0}...)
 	testOutput = append(testOutput, []byte("bar")...)
+	testOutput = append(testOutput, []byte("END")...)
 
 	// Create a DataStream.
 	ts := &TestStream{
@@ -111,20 +116,20 @@ func TestWritingChunkedHandler(t *testing.T) {
 	c := NewChunkHandler(ds)
 
 	// Write the main data.
-	err := c.WriteChunkResponseInfo([]ChunkInfo{{"foo", 1}})
+	err := c.WriteChunkResponseInfo([]ChunkInfo{{"foo", 1}}, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	// Write the chunk data.
-	err = c.WriteChunkInfo("foo", 3)
+	err = c.WriteChunkInfo("foo", 3, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	// Write the chunk.
 	data := []byte("bar")
-	err = c.WriteChunk(&data)
+	err = c.WriteChunk(&data, time.Duration(0))
 	if err != nil {
 		t.Error(err.Error())
 	}

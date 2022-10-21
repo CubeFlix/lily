@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/network"
@@ -1099,7 +1100,7 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 }
 
 // Read files.
-func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler network.ChunkHandler, chunkSize int64) error {
+func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler network.ChunkHandler, chunkSize int64, timeout time.Duration) error {
 	// Check that the length of starts and ends are correct.
 	if len(files) != len(start) || len(files) != len(end) {
 		return ErrInvalidStartEnd
@@ -1151,7 +1152,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 	}
 
 	// Write the chunks to the handler.
-	handler.WriteChunkResponseInfo(chunks)
+	handler.WriteChunkResponseInfo(chunks, timeout)
 
 	for i := range files {
 		// We don't have to check again.
@@ -1169,7 +1170,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 
 		// Read the file into the chunk handler.
 		numChunks := chunks[i].NumChunks
-		err = fs.ReadFileChunks(files[i], d.getHostPath(clean), numChunks, chunkSize, start[i], end[i], handler)
+		err = fs.ReadFileChunks(files[i], d.getHostPath(clean), numChunks, chunkSize, start[i], end[i], handler, timeout)
 		if err != nil {
 			file.ReleaseRLock()
 			return err
@@ -1184,7 +1185,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 }
 
 // Write files.
-func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkHandler) error {
+func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkHandler, timeout time.Duration) error {
 	var err error
 
 	// Check that the length of starts and ends are correct.
@@ -1193,7 +1194,7 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkH
 	}
 
 	// Read the chunks from the handler.
-	chunks, err := handler.GetChunkRequestInfo()
+	chunks, err := handler.GetChunkRequestInfo(timeout)
 	if err != nil {
 		return err
 	}
@@ -1236,7 +1237,7 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkH
 		}
 
 		// Write to the file from the chunk handler.
-		err = fs.WriteFileChunks(files[i], d.getHostPath(clean), int(chunks[i].NumChunks), start[i], handler)
+		err = fs.WriteFileChunks(files[i], d.getHostPath(clean), int(chunks[i].NumChunks), start[i], handler, timeout)
 		if err != nil {
 			file.ReleaseLock()
 			return err

@@ -5,6 +5,7 @@ package network
 
 import (
 	"crypto/tls"
+	"time"
 )
 
 // Package network provides functions and definitions to handle networking
@@ -19,8 +20,8 @@ import (
 
 // DataStream interface. Can represent a crypto/tls.Conn object.
 type DataStream interface {
-	Write(*[]byte) (int, error)
-	Read(*[]byte) (int, error)
+	Write(*[]byte, time.Duration) (int, error)
+	Read(*[]byte, time.Duration) (int, error)
 }
 
 // tls.Conn DataStream object.
@@ -29,10 +30,18 @@ type TLSConnStream struct {
 }
 
 // Wrappers for TLS.Conn functions.
-func (c *TLSConnStream) Read(b *[]byte) (int, error) {
+func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
+	err := c.conn.SetDeadline(time.Now().Add(timeout))
+	if err != nil {
+		return 0, err
+	}
 	return c.conn.Read(*b)
 }
 
-func (c *TLSConnStream) Write(b *[]byte) (int, error) {
+func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
+	err := c.conn.SetDeadline(time.Now().Add(timeout))
+	if err != nil {
+		return 0, err
+	}
 	return c.conn.Write(*b)
 }
