@@ -18,6 +18,8 @@ import (
 var ErrFileDoesNotExist = errors.New("lily.server.config: File does not exist or cannot be accessed")
 var ErrDriveFileAlreadyExists = errors.New("lily.server.config: Drive file already exists")
 var ErrDriveFileDoesNotExist = errors.New("lily.server.config: Drive file does not exist")
+var ErrNumWorkersInvalid = errors.New("lily.server.config: Invalid number of workers; must have at least one worker")
+var ErrTimeoutInvalid = errors.New("lily.server.config: Timeout interval invalid")
 
 // The server config object.
 type Config struct {
@@ -59,6 +61,38 @@ type Config struct {
 
 	// Timeout duration.
 	timeout time.Duration
+
+	// Logging settings.
+	verbose   bool
+	logToFile bool
+	logPath   string
+}
+
+// Create the config object.
+func NewConfig(file, host string, port int, driveFiles map[string]string, optionalDaemons []string,
+	optionalArgs [][]string, mainCronInterval, sessionCronInterval,
+	timeout time.Duration, verbose, logToFile bool, logPath string) (*Config, error) {
+	if timeout == time.Duration(0) {
+		return &Config{}, ErrTimeoutInvalid
+	}
+	// Create the config object.
+	return &Config{
+		lock:                sync.RWMutex{},
+		dirty:               false,
+		file:                file,
+		host:                host,
+		port:                port,
+		numDrives:           len(driveFiles),
+		driveFiles:          driveFiles,
+		optionalDaemons:     optionalDaemons,
+		optionalArgs:        optionalArgs,
+		mainCronInterval:    mainCronInterval,
+		sessionCronInterval: sessionCronInterval,
+		timeout:             timeout,
+		verbose:             verbose,
+		logToFile:           logToFile,
+		logPath:             logPath,
+	}, nil
 }
 
 // See if the config object is dirty.
@@ -182,11 +216,45 @@ func (c *Config) RemoveDriveFiles(files []string) error {
 	return nil
 }
 
-// Get the number of workers. Note that this does not update the server.
+// Get the number of workers.
 func (c *Config) GetNumWorkers() int {
 	// Acquire the read lock.
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
 	return c.numWorkers
+}
+
+// Set the number of workers. Note that this does not update the server.
+func (c *Config) SetNumWorkers(numWorkers int) error {
+	// Acquire the write lock.
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if numWorkers < 1 {
+		return ErrNumWorkersInvalid
+	}
+
+	c.numWorkers = numWorkers
+
+	// Set the dirty value.
+	c.SetDirty(true)
+
+	// Return.
+	return nil
+}
+
+// Get the list of optional daemons and list of arguments.
+func (c *Config) GetOptionalDaemons() ([]string, [][]string) {
+	// No need to get the lock, as these values won't change.
+	return c.optionalDaemons, c.optionalArgs
+}
+
+// Get the cron intervals.
+func (c *Config) GetCronIntervals() (time.Duration, time.Duration) {
+	// Acquire the read lock.
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.mainCronInterval, c.sessionCronInterval
 }

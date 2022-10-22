@@ -32,8 +32,10 @@ type Drive struct {
 	// so we don't have to write a bunch of getters and setters.
 	name     string
 	path     string
-	doHash   bool
 	Settings *access.AccessSettings
+
+	// Dirty value.
+	dirty bool
 
 	// Root filesystem object.
 	fs *fs.Directory
@@ -42,14 +44,14 @@ type Drive struct {
 var ErrPathNotFound = errors.New("lily.drive: Path not found")
 
 // Create a new drive object.
-func NewDrive(name, path string, doHash bool, settings *access.AccessSettings,
+func NewDrive(name, path string, settings *access.AccessSettings,
 	fs *fs.Directory) *Drive {
 	return &Drive{
 		Lock:     &sync.RWMutex{},
 		name:     name,
 		path:     path,
-		doHash:   doHash,
 		Settings: settings,
+		dirty:    false,
 		fs:       fs,
 	}
 }
@@ -74,6 +76,20 @@ func (d *Drive) ReleaseLock() {
 	d.Lock.Unlock()
 }
 
+// See if the config object is dirty.
+func (d *Drive) IsDirty() bool {
+	// Acquire the read lock.
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+
+	return d.dirty
+}
+
+// Set the dirty value. NOTE: This does not acquire the write lock.
+func (d *Drive) SetDirty(dirty bool) {
+	d.dirty = dirty
+}
+
 // Get name.
 func (d *Drive) GetName() string {
 	d.Lock.RLock()
@@ -88,6 +104,7 @@ func (d *Drive) SetName(name string) {
 	defer d.Lock.Unlock()
 
 	d.name = name
+	d.SetDirty(true)
 }
 
 // Get path.
@@ -104,22 +121,7 @@ func (d *Drive) SetPath(path string) {
 	defer d.Lock.Unlock()
 
 	d.path = path
-}
-
-// Get doHash.
-func (d *Drive) GetDoHash() bool {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
-
-	return d.doHash
-}
-
-// Set doHash.
-func (d *Drive) SetDoHash(doHash bool) {
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
-
-	d.doHash = doHash
+	d.SetDirty(true)
 }
 
 // Get FS root object. NOTE: Remember to get the read lock before accessing or
@@ -132,6 +134,7 @@ func (d *Drive) GetRoot() *fs.Directory {
 // modifying anything on the object.
 func (d *Drive) SetRoot(fs *fs.Directory) {
 	d.fs = fs
+	d.SetDirty(true)
 }
 
 // Get a directory object by path.
@@ -171,7 +174,7 @@ func (d *Drive) GetDirectoryByPath(path string) (*fs.Directory, error) {
 	return current, nil
 }
 
-// Set a directory object by path.
+// Set a directory object by path. This DOES NOT set the dirty bit.
 func (d *Drive) SetDirectoryByPath(path string, directory *fs.Directory) error {
 	// Parse the path string.
 	splitPath, err := fs.SplitPath(path)
@@ -266,7 +269,7 @@ func (d *Drive) GetFileByPath(path string) (*fs.File, error) {
 	return files[0], nil
 }
 
-// Set a file object by path.
+// Set a file object by path. This DOES NOT set the dirty bit.
 func (d *Drive) SetFileByPath(path string, file *fs.File) error {
 	// Parse the path string.
 	splitPath, err := fs.SplitPath(path)

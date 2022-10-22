@@ -16,7 +16,7 @@ func TestDriveLocks(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	d := NewDrive("foo", "path", true, a, nil)
+	d := NewDrive("foo", "path", a, nil)
 
 	// Test the locks.
 	d.AcquireRLock()
@@ -31,7 +31,7 @@ func TestDriveFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	d := NewDrive("foo", "path", true, a, nil)
+	d := NewDrive("foo", "path", a, nil)
 
 	// Test name.
 	if d.GetName() != "foo" {
@@ -48,15 +48,6 @@ func TestDriveFuncs(t *testing.T) {
 	}
 	d.SetPath("path/path")
 	if d.GetPath() != "path/path" {
-		t.Fail()
-	}
-
-	// Test do hash.
-	if d.GetDoHash() != true {
-		t.Fail()
-	}
-	d.SetDoHash(false)
-	if d.GetDoHash() != false {
 		t.Fail()
 	}
 
@@ -101,7 +92,7 @@ func TestDriveDirsFuncs(t *testing.T) {
 		t.Error(err.Error())
 	}
 	d3.SetSubdirsByName(map[string]*fs.Directory{"d": d4})
-	d := NewDrive("foo", "path", true, a, d1)
+	d := NewDrive("foo", "path", a, d1)
 
 	// Get a directory by path.
 	dir, err := d.GetDirectoryByPath("b/c/d")
@@ -155,7 +146,7 @@ func TestDriveFilesFuncs(t *testing.T) {
 		t.Error(err.Error())
 	}
 	d3.SetFilesByName(map[string]*fs.File{"d": f})
-	d := NewDrive("foo", "path", true, a, d1)
+	d := NewDrive("foo", "path", a, d1)
 
 	// Get a file by path.
 	file, err := d.GetFileByPath("b/c/d")

@@ -138,6 +138,9 @@ func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, use
 		// Set the edit information for the parent.
 		parent.SetLastEditTime(now)
 		parent.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -218,6 +221,9 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 	// Set the edit information for the root.
 	root.SetLastEditTime(now)
 	root.SetLastEditor(username)
+	d.AcquireLock()
+	d.SetDirty(true)
+	d.ReleaseLock()
 
 	// Grab the lock on the parent.
 	root.AcquireLock()
@@ -435,6 +441,9 @@ func (d *Drive) RenameDirs(dirs []string, newNames []string, username string) er
 		// Set the edit information for the parent.
 		parent.SetLastEditTime(now)
 		parent.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -583,6 +592,9 @@ func (d *Drive) MoveDirs(dirs, dests []string, username string) error {
 		parentDest.SetLastEditor(username)
 		parentDir.SetLastEditTime(now)
 		parentDir.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -649,6 +661,9 @@ func (d *Drive) DeleteDirs(dirs []string, username string) error {
 		// Set the edit information for the parent.
 		parent.SetLastEditTime(now)
 		parent.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -752,6 +767,9 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 		// Set the edit information for the parent.
 		parent.SetLastEditTime(now)
 		parent.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -928,6 +946,9 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkH
 		file.SetHash(hash)
 		file.SetLastEditTime(now)
 		file.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -1037,6 +1058,9 @@ func (d *Drive) RenameFiles(files []string, newNames []string, username string) 
 		// Set the edit information for the parent.
 		parent.SetLastEditTime(now)
 		parent.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -1182,6 +1206,14 @@ func (d *Drive) MoveFiles(files, dests []string, username string) error {
 		if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
 			parentDest.ReleaseLock()
 		}
+
+		parentDest.SetLastEditTime(now)
+		parentDest.SetLastEditor(username)
+		parentDir.SetLastEditTime(now)
+		parentDir.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -1248,6 +1280,9 @@ func (d *Drive) DeleteFiles(files []string, username string) error {
 		// Set the edit information for the parent.
 		parent.SetLastEditTime(now)
 		parent.SetLastEditor(username)
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
 	}
 
 	// Return.
@@ -1330,6 +1365,61 @@ func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
 
 	// Return.
 	return outputs, nil
+}
+
+// Recalculate hashes for files.
+func (d *Drive) ReHash(files []string) error {
+	var err error
+
+	// Clean the files.
+	for i := range files {
+		files[i], err = fs.CleanPath(files[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	hasher := sha256.New()
+	for i := range files {
+		// Check for an empty path.
+		if files[i] == "" {
+			return ErrEmptyPath
+		}
+
+		// Grab the lock on the file.
+		file, err := d.GetFileByPath(files[i])
+		if err != nil {
+			return err
+		}
+		file.AcquireLock()
+
+		// Calculate the hash.
+		f, err := os.Open(d.getHostPath(files[i]))
+		if err != nil {
+			file.ReleaseLock()
+			return err
+		}
+		if _, err := io.Copy(hasher, f); err != nil {
+			file.ReleaseLock()
+			f.Close()
+			return err
+		}
+		hash := []byte{}
+		hash = hasher.Sum(hash)
+		// Release the lock on the file.
+		file.ReleaseLock()
+
+		file.SetHash(hash)
+		hasher.Reset()
+		f.Close()
+
+		d.AcquireLock()
+		d.SetDirty(true)
+		d.ReleaseLock()
+	}
+
+	// Return.
+	return nil
 }
 
 // Verify hashes for files.

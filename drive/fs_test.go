@@ -25,7 +25,7 @@ func TestCreateDirectories(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -108,7 +108,7 @@ func TestCreateDirectoryTree(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several directories in a tree.
 	err = drive.CreateDirsTree("a", []string{"a", "b", "b/c", "c", "c/d", "c/d/e"}, &access.AccessSettings{}, []*access.AccessSettings{}, true, "foo")
@@ -199,7 +199,7 @@ func TestListDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -231,7 +231,7 @@ func TestRenameDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -299,7 +299,7 @@ func TestMoveDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -349,7 +349,7 @@ func TestDeleteDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -420,7 +420,7 @@ func TestReadFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Add the files.
 	file1, err := fs.NewFile("foo", a)
@@ -533,7 +533,7 @@ func TestWriteFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Add the files.
 	file1, err := fs.NewFile("foo", a)
@@ -613,7 +613,7 @@ func TestRenameFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several files.
 	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -681,7 +681,7 @@ func TestMoveFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several files.
 	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -731,7 +731,7 @@ func TestDeleteFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create several files.
 	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo")
@@ -780,7 +780,7 @@ func TestStat(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create a file.
 	err = drive.CreateFiles([]string{"a"}, []*access.AccessSettings{}, true, "foo")
@@ -824,7 +824,7 @@ func TestHashVerify(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, true, a, root)
+	drive := NewDrive("foo", tempdir, a, root)
 
 	// Create some files.
 	err = drive.CreateFiles([]string{"a", "b"}, []*access.AccessSettings{}, true, "foo")
@@ -854,14 +854,39 @@ func TestHashVerify(t *testing.T) {
 	c.WriteChunk(&data, time.Duration(0))
 	drive.WriteFiles([]string{"./a", "b"}, []int64{0, 0}, *c, time.Duration(0), "foo")
 
-	// Modify a file.
-	err = os.WriteFile(drive.getHostPath("b"), []byte("asfasf"), 6666)
+	// Verify the hashes.
+	verify, err := drive.VerifyHashes([]string{"./a", "b"})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(verify) != 2 {
+		t.Fail()
+	}
+	if verify["./a"] != true {
+		t.Fail()
+	}
+	if verify["b"] != true {
+		t.Fail()
+	}
+
+	// Modify the files.
+	err = os.WriteFile(drive.getHostPath("a"), []byte("world"), 6666)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	err = os.WriteFile(drive.getHostPath("b"), []byte("world"), 6666)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Calculate the hash only for "a".
+	err = drive.ReHash([]string{"a"})
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	// Verify the hashes.
-	verify, err := drive.VerifyHashes([]string{"./a", "b"})
+	verify, err = drive.VerifyHashes([]string{"./a", "b"})
 	if err != nil {
 		t.Error(err.Error())
 	}
