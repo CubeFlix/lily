@@ -8,6 +8,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // The Lily server contains a configuration object which stores the settings
@@ -20,6 +22,15 @@ var ErrDriveFileAlreadyExists = errors.New("lily.server.config: Drive file alrea
 var ErrDriveFileDoesNotExist = errors.New("lily.server.config: Drive file does not exist")
 var ErrNumWorkersInvalid = errors.New("lily.server.config: Invalid number of workers; must have at least one worker")
 var ErrTimeoutInvalid = errors.New("lily.server.config: Timeout interval invalid")
+var ErrInvalidLoggingLevel = errors.New("lily.server.config: Invalid logging level")
+
+// Logging levels.
+const (
+	LoggingLevelDebug   = "debug"
+	LoggingLevelInfo    = "info"
+	LoggingLevelWarning = "warning"
+	LoggingLevelFatal   = "fatal"
+)
 
 // The server config object.
 type Config struct {
@@ -65,15 +76,25 @@ type Config struct {
 	// Logging settings.
 	verbose   bool
 	logToFile bool
+	logJSON   bool
+	logLevel  string
 	logPath   string
+
+	// Rate limiting settings.
+	limit rate.Limit
 }
 
 // Create the config object.
-func NewConfig(file, host string, port int, driveFiles map[string]string, optionalDaemons []string,
-	optionalArgs [][]string, mainCronInterval, sessionCronInterval,
-	timeout time.Duration, verbose, logToFile bool, logPath string) (*Config, error) {
+func NewConfig(file, host string, port int, driveFiles map[string]string,
+	optionalDaemons []string, optionalArgs [][]string, mainCronInterval,
+	sessionCronInterval, timeout time.Duration, verbose, logToFile,
+	logJSON bool, logLevel, logPath string, limit rate.Limit) (*Config, error) {
 	if timeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
+	}
+	if logLevel != LoggingLevelDebug && logLevel != LoggingLevelInfo &&
+		logLevel != LoggingLevelWarning && logLevel != LoggingLevelFatal {
+		return &Config{}, ErrInvalidLoggingLevel
 	}
 	// Create the config object.
 	return &Config{
@@ -91,7 +112,10 @@ func NewConfig(file, host string, port int, driveFiles map[string]string, option
 		timeout:             timeout,
 		verbose:             verbose,
 		logToFile:           logToFile,
+		logJSON:             logJSON,
+		logLevel:            logLevel,
 		logPath:             logPath,
+		limit:               limit,
 	}, nil
 }
 
@@ -250,11 +274,65 @@ func (c *Config) GetOptionalDaemons() ([]string, [][]string) {
 	return c.optionalDaemons, c.optionalArgs
 }
 
-// Get the cron intervals.
+// Get the cron intervals. These values are thread-safe and thus do not need
+// locks.
 func (c *Config) GetCronIntervals() (time.Duration, time.Duration) {
-	// Acquire the read lock.
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	return c.mainCronInterval, c.sessionCronInterval
+}
+
+// Set the cron intervals.
+func (c *Config) SetCronIntervals(mainInterval, sessionInterval time.Duration) {
+	c.mainCronInterval = mainInterval
+	c.sessionCronInterval = sessionInterval
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Get the timeout interval. This value is thread-safe and thus does not need
+// locks.
+func (c *Config) GetTimeout() time.Duration {
+	return c.timeout
+}
+
+// Set the timeout interval.
+func (c *Config) SetTimeout(timeout time.Duration) {
+	c.timeout = timeout
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Get the logging values. These values are thread-safe and thus do not need
+// locks.
+func (c *Config) GetLogging() (bool, bool, bool, string, string) {
+	return c.verbose, c.logToFile, c.logJSON, c.logLevel, c.logPath
+}
+
+// Set the logging values. These values are thread-safe and thus do not need
+// locks. Note that this does not update the server.
+func (c *Config) SetLogging(verbose, logToFile, logJSON bool, logLevel, logPath string) {
+	c.verbose = verbose
+	c.logToFile = logToFile
+	c.logJSON = logJSON
+	c.logLevel = logLevel
+	c.logPath = logPath
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Get the rate limit. These values are thread-safe and thus do not need
+// locks.
+func (c *Config) GetRateLimit() rate.Limit {
+	return c.limit
+}
+
+// Set the rate limit. These values are thread-safe and thus do not need
+// locks. Note that this does not update the server.
+func (c *Config) SetRateLimit(limit rate.Limit) {
+	c.limit = limit
+
+	// Set the dirty value.
+	c.SetDirty(true)
 }

@@ -6,6 +6,7 @@ Commands in Lily consist of the following fields (see [the protocol](./PROTOCOL.
 | Auth        | The authentication data. | security.auth.Auth |
 | Command ID  | The command ID. | string |
 | Arguments   | The command arguments. | Any |
+| Chunks          | The chunk data. | Chunks |
 
 Lily commands accept two types of authentication: user and session. User authentication takes a username and password, while session authentication takes a username and session ID. Most commands allow both session and user authentication, however, some commands require only a certain type. For example, login commands require user authentication as they need a username and password.
 
@@ -13,6 +14,7 @@ Responses consist of the following fields:
 
 | Name            | Description     | Type   |
 | -               | -               | -      |
+| Chunks          | The chunk data. | Chunks |
 | Response Code   | The response code. | int |
 | Response String | A string containing the response message, if necessary. | string |
 | Data            | The response data. | Any |
@@ -62,6 +64,10 @@ Responses consist of the following fields:
 > - `allowNonExpiringSessions` (type `bool`)
 > 
 >   If the server allows clients to specify a never-expiring session.
+> 
+> - `timeout` (type `time.Duration`)
+> 
+>   The timeout duration for receiving requests.
 
 **Chunk Returns:** None
 
@@ -289,6 +295,67 @@ These following commands all require administrator privileges to execute.
 **Chunk Arguments:** None
 
 **Returns:** None
+
+**Chunk Returns:** None
+
+### Get All Settings
+
+> Get all the Lily server settings.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `serverFile` (type `string`)
+> 
+>   The path to the server file.
+> - `host` (type `string`)
+> 
+>   The host string.
+> - `port` (type `int`)
+> 
+>   The port.
+> - `drives` (type `[]string`)
+> 
+>   A list of drives.
+> - `driveFiles` (type `map[string]string`)
+> 
+>   A map of drive names and drive files.
+> - `numWorkers` (type `int`)
+> 
+>   The number of server workers.
+> - `optionalDaemons` (type `[]string`)
+> 
+>   A list of optional daemon executables to run at startup.
+> - `optionalArgs` (type `[][]string`)
+> 
+>   A list of lists of arguments for each optional daemon. 
+> - `mainCronInterval` (type `time.Duration`)
+> 
+>   The main cron interval duration.
+> - `sessionCronInterval` (type `time.Duration`)
+> 
+>   The session expiration cron interval duration.
+> - `timeout` (type `time.Duration`)
+> 
+>   The timeout duration.
+> - `verbose` (type `bool`)
+> 
+>   If the server is verbose.
+> - `logToFile` (type `bool`)
+> 
+>   If the server should log to a file.
+> - `logJSON` (type `bool`)
+> 
+>   If the server should log JSON output.
+> - `logLevel` (type `string`)
+> 
+>   The threshold logging level to log.
+> - `logFile` (type `string`)
+> 
+>   The path to the log file. If the server does not log to a file, this is empty.
 
 **Chunk Returns:** None
 
