@@ -1,4 +1,5 @@
 # Protocol
+Note that all strings with arbitrary length are encoded as a 32-bit unsigned int containing the length of the string, followed by the string itself. All numbers in Lily use little-endian. Arrays with arbitrary length will also encode the length of the array as 32-bit unsigned int, followed by the array data.
 ## Requests
 Lily requests contain three parts: authentication information, request information, and chunk data. Each request consists of the following fields:
 
@@ -8,9 +9,19 @@ Lily requests contain three parts: authentication information, request informati
 | Auth        | The authentication data. | [Authentication](#authentication) |
 | Command     | The command data.        | [Command](#command) |
 | Chunks      | The chunk data.          | [Chunks](#chunks)   |
-| Footer      | The request footer       | [Footer](#footer)   |
+| Footer      | The request footer.       | [Footer](#footer)   |
 
-Note that all strings with arbitrary length are encoded as a 32-bit unsigned int containing the length of the string, followed by the string itself. All numbers in Lily use little-endian. Arrays with arbitrary length will also encode the length of the array as 32-bit unsigned int, followed by the array data.
+## Responses
+Lily responses contain three parts: chunk data, response code, and response information. Each response consists of the following fields:
+
+| Name        | Description     | Type   |
+| -           | -               | -      |
+| Header  | The response header information. | [Header](#header) |
+| Chunks      | The chunk data.          | [Chunks](#chunks)   |
+| Response Code     | The response code.        | `int` |
+| Response String | The response string. | `string` |
+| Response Data | The response data output values. | Any |
+| Footer | The response footer. | [Footer](#footer) |
 
 ## Header
 The header information is the same for both requests and responses. It consists of a single UTF-8 encoded string: `LILY` and the Lily protocol version, which is encoded as a string of arbitrary length. If the protocol version for the client and server do not match, the Lily server will respond with an error. The Lily server header is to ensure that the data being received is encoded properly.
