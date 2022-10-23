@@ -40,15 +40,15 @@ type AccessSettings struct {
 }
 
 // Invalid access/modify clearances.
-var InvalidAccessModifyClearances = errors.New("lily.security.access: Invalid " +
+var ErrInvalidAccessModifyClearances = errors.New("lily.security.access: Invalid " +
 	"access/modify clearances. Modify " +
 	"clearance should be higher than " +
-	"access clearance.")
+	"access clearance")
 
 // Create a new empty access settings object.
 func NewAccessSettings(access, modify Clearance) (*AccessSettings, error) {
 	if !modify.IsSufficient(access) {
-		return &AccessSettings{}, InvalidAccessModifyClearances
+		return &AccessSettings{}, ErrInvalidAccessModifyClearances
 	}
 
 	return &AccessSettings{
@@ -79,7 +79,7 @@ func (a *AccessSettings) GetClearances() (Clearance, Clearance) {
 // Set the clearance levels.
 func (a *AccessSettings) SetClearances(access, modify Clearance) error {
 	if !modify.IsSufficient(access) {
-		return InvalidAccessModifyClearances
+		return ErrInvalidAccessModifyClearances
 	}
 
 	a.accessClearance, a.modifyClearance = access, modify

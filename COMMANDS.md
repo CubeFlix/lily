@@ -607,6 +607,9 @@ These following commands all require administrator privileges to execute.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `newName` (type `string`)
 > 
 >   The new drive name.
@@ -623,6 +626,9 @@ These following commands all require administrator privileges to execute.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `access` (type `int`)
 > 
 >   The new access clearance.
@@ -638,10 +644,13 @@ These following commands all require administrator privileges to execute.
 
 ### Add to Drive Access Whitelist
 
-> Add users to a drive's access whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+> Add users to a drive's access whitelist. Requires drive modify clearance. If a given username already exists, it will be skipped.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to add.
@@ -654,10 +663,13 @@ These following commands all require administrator privileges to execute.
 
 ### Remove from Drive Access Whitelist
 
-> Remove users from a drive's access whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+> Remove users from a drive's access whitelist. Requires drive modify clearance. If a given username does not exist, this returns an error.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to remove.
@@ -670,10 +682,13 @@ These following commands all require administrator privileges to execute.
 
 ### Add to Drive Access Blacklist
 
-> Add users to a drive's access blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+> Add users to a drive's access blacklist. Requires drive modify clearance. If a given username already exists, it will be skipped.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to add.
@@ -686,10 +701,13 @@ These following commands all require administrator privileges to execute.
 
 ### Remove from Drive Access Blacklist
 
-> Remove users from a drive's access blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+> Remove users from a drive's access blacklist. Requires drive modify clearance. If a given username does not exist, this returns an error.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to remove.
@@ -702,10 +720,13 @@ These following commands all require administrator privileges to execute.
 
 ### Add to Drive Modify Whitelist
 
-> Add users to a drive's modify whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+> Add users to a drive's modify whitelist. Requires drive modify clearance. If a given username already exists, it will be skipped.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to add.
@@ -718,10 +739,13 @@ These following commands all require administrator privileges to execute.
 
 ### Remove from Drive Modify Whitelist
 
-> Remove users from a drive's modify whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+> Remove users from a drive's modify whitelist. Requires drive modify clearance. If a given username does not exist, this returns an error.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to remove.
@@ -734,10 +758,13 @@ These following commands all require administrator privileges to execute.
 
 ### Add to Drive Modify Blacklist
 
-> Add users to a drive's modify blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+> Add users to a drive's modify blacklist. Requires drive modify clearance. If a given username already exists, it will be skipped.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to add.
@@ -750,10 +777,13 @@ These following commands all require administrator privileges to execute.
 
 ### Remove from Drive Modify Blacklist
 
-> Remove users from a drive's modify blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+> Remove users from a drive's modify blacklist. Requires drive modify clearance. If a given username does not exist, this returns an error.
 
 **Parameters:** 
 
+> - `name` (type `string`)
+> 
+>   The name of the drive.
 > - `users` (type `[]string`)
 > 
 >   The usernames to remove.
@@ -768,4 +798,241 @@ These following commands all require administrator privileges to execute.
 
 ### TODO: Filesystem commands
 
-### TODO: Filesystem access
+### Get Path Settings
+
+> Get a path's settings. Requires access clearance. If the path does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `accessClearance` (type `int`)
+> 
+>   Access clearance level.
+> - `modifyClearance` (type `int`)
+> 
+>   Modify clearance level.
+> - `accessWhitelist` (type `[]string`)
+> 
+>   Access whitelist.
+> - `modifyWhitelist` (type `[]string`)
+> 
+>   Modify whitelist.
+> - `accessBlacklist` (type `[]string`)
+> 
+>   Access blacklist.
+> - `modifyBlacklist` (type `[]string`)
+> 
+>   Modify blacklist.
+
+**Chunk Returns:** None
+
+### Set Path Clearances
+
+> Set the access and modify clearances for a path. Requires modify clearance. If the clearances are invalid, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `access` (type `int`)
+> 
+>   The new access clearance.
+> - `modify` (type `int`)
+> 
+>   The new modify clearance.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Path Access Whitelist
+
+> Add users to a path's access whitelist. Requires modify clearance. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Path Access Whitelist
+
+> Remove users from a path's access whitelist. Requires modify clearance. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Path Access Blacklist
+
+> Add users to a path's access blacklist. Requires modify clearance. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Path Access Blacklist
+
+> Remove users from a path's access blacklist. Requires modify clearance. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Path Modify Whitelist
+
+> Add users to a path's modify whitelist. Requires modify clearance. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Path Modify Whitelist
+
+> Remove users from a path's modify whitelist. Requires modify clearance. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Path Modify Blacklist
+
+> Add users to a path's modify blacklist. Requires modify clearance. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Path Modify Blacklist
+
+> Remove users from a path's modify blacklist. Requires modify clearance. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
