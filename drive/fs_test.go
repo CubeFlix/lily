@@ -218,6 +218,9 @@ func TestListDir(t *testing.T) {
 	if ldir[0].Name != "a" || ldir[1].Name != "b" || ldir[2].Name != "c" {
 		t.Fail()
 	}
+	if ldir[0].LastEditor != "foo" || ldir[1].LastEditor != "foo" || ldir[2].LastEditor != "foo" {
+		t.Fail()
+	}
 }
 
 // Test renaming some directories.

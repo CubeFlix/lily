@@ -49,8 +49,12 @@ type ListDirObj struct {
 	// Name.
 	Name string
 
-	// Is file, otherwise is directory.
+	// If the items is a file or directory.
 	File bool
+
+	// Last edit time and last editor.
+	LastEditTime time.Time
+	LastEditor   string
 }
 
 var ErrItemNotFound = errors.New("lily.fs.Directory: Item not found")
@@ -216,11 +220,33 @@ func (d *Directory) ListDir() []ListDirObj {
 	keys := make([]ListDirObj, len(d.subdirs)+len(d.files))
 	i := 0
 	for k := range d.subdirs {
-		keys[i] = ListDirObj{k, false}
+		// Get the directory object.
+		dirobj := d.subdirs[k]
+		dirobj.AcquireRLock()
+		lastEditTime := dirobj.lastEdit
+		lastEditor := dirobj.lastEditor
+		dirobj.ReleaseRLock()
+		keys[i] = ListDirObj{
+			Name:         k,
+			File:         false,
+			LastEditTime: lastEditTime,
+			LastEditor:   lastEditor,
+		}
 		i++
 	}
 	for k := range d.files {
-		keys[i] = ListDirObj{k, true}
+		// Get the file object.
+		fileobj := d.files[k]
+		fileobj.AcquireRLock()
+		lastEditTime := fileobj.lastEdit
+		lastEditor := fileobj.lastEditor
+		fileobj.ReleaseRLock()
+		keys[i] = ListDirObj{
+			Name:         k,
+			File:         true,
+			LastEditTime: lastEditTime,
+			LastEditor:   lastEditor,
+		}
 		i++
 	}
 

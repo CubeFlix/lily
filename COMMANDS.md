@@ -359,7 +359,164 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
-### TODO: Settings
+### Set Server File
+
+> Set the Lily server file path. The file will be written on the next cron cycle or on shutdown. If the path is invalid, this will throw an error.
+
+**Parameters:** 
+> - `path` (type `string`)
+> 
+>   The path to the new server file.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Host and Port
+
+> Set the Lily server host and port. This WILL NOT update the active server, but will update after the server is restarted.
+
+**Parameters:** 
+> - `host` (type `string`)
+> 
+>   The new host.
+> - `port` (type `int`)
+> 
+>   The new port.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add Drives
+
+> Add drives to the Lily server. Accepts a map of drive names and drive files. If the drives are invalid, this returns an error.
+
+**Parameters:** 
+> - `files` (type `map[string]string`)
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove Drives
+
+> Remove drives on the Lily server. Accepts a list of drive names. If the drive names are invalid, this returns an error. This DOES NOT remove the drive or drive file from the host filesystem, instead, it removes the drives from the server.
+
+**Parameters:** 
+> - `drives` (type `[]string`)
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Num Workers
+
+> Set the number of workers. This updates the server.
+
+**Parameters:** 
+> - `numWorkers` (type `int`)
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Cron Intervals
+
+> Set the cron intervals (main and session).
+
+**Parameters:** 
+> - `mainInterval` (type `time.Duration`)
+> 
+>   The main interval.
+> - `sessionInterval` (type `time.Duration`)
+> 
+>   The session interval.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Timeout Interval
+
+> Set the timeout interval.
+
+**Parameters:** 
+> - `timeout` (type `time.Duration`)
+> 
+>   The timeout interval. If the interval time is invalid, this returns an error.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Logging Settings
+
+> Set the logging settings. This WILL NOT update the active server, but will update after the server is restarted.
+
+**Parameters:** 
+> - `verbose` (type `bool`)
+> 
+>   If the server should log.
+> - `logToFile` (type `bool`)
+> 
+>   If the server should log to a file.
+> - `logJSON` (type `bool`)
+> 
+>   If the server should log JSON.
+> - `logLevel` (type `string`)
+> 
+>   The threshold logging level. Should be `debug`, `info`, `warning`, or `fatal`.
+> - `logPath` (type `string`)
+> 
+>   The path for the file to log to. If the server does not log to a file, this should be an empty string.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Set Rate Limit
+
+> Set the rate limit. This WILL NOT update the active server, but will update after the server is restarted. If the rate limit value is invalid, this returns an error.
+
+**Parameters:** 
+> - `limit` (type `float64`)
+> 
+>   The new rate limit. The limit is represented as the maximum number of events per second.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Shutdown
+
+> Shutdown the Lily server. Returns after all cron jobs have finished and the server has been saved.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
 
 ## Session Commands
 
@@ -409,7 +566,39 @@ These following commands all require administrator privileges to execute.
 
 ## Drive Commands
 
-### TODO: Drive settings
+### Get Drive Settings
+
+> Get a drive's settings. Requires drive access clearance. If the drive does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `name` (type `string`)
+> 
+>   The name of the drive.
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - TODO: access settings
+
+**Chunk Returns:** None
+
+### Set Drive Name
+
+> Rename the drive. Requires drive modify clearance. If the new name is taken or invalid, this returns an error.
+
+**Parameters:** 
+
+> - `newName` (type `string`)
+> 
+>   The new drive name.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
 
 ### TODO: Drive access
 
