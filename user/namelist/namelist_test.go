@@ -7,16 +7,12 @@ import (
 	"testing"
 )
 
-
 // Test checking a username list.
 func TestCheckUsernameList(t *testing.T) {
 	list := NewUsernameList()
 
 	// Add some users.
-	err := list.AddUsers([]string{"foo", "bar", "lily"})
-	if err != nil {
-		t.Error(err.Error())
-	}
+	list.AddUsers([]string{"foo", "bar", "lily"})
 
 	// Check if some usernames are in the list.
 	if !list.CheckList("foo") {
@@ -32,19 +28,13 @@ func TestAddRemoveUsernameList(t *testing.T) {
 	list := NewUsernameList()
 
 	// Add some users.
-	err := list.AddUsers([]string{"foo", "bar", "lily"})
-	if err != nil {
-		t.Error(err.Error())
-	}
+	list.AddUsers([]string{"foo", "bar", "lily"})
 
 	// Attempt to add an already existing user.
-	err = list.AddUsers([]string{"foo"})
-	if err == nil {
-		t.Fail()
-	}
+	list.AddUsers([]string{"foo"})
 
 	// Remove some users.
-	err = list.RemoveUsers([]string{"bar", "lily"})
+	err := list.RemoveUsers([]string{"bar", "lily"})
 	if err != nil {
 		t.Error(err.Error())
 	}

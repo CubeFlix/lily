@@ -420,7 +420,7 @@ These following commands all require administrator privileges to execute.
 
 ### Set Num Workers
 
-> Set the number of workers. This updates the server.
+> Set the number of workers. This updates the server. If the number of workers is invalid, this returns an error.
 
 **Parameters:** 
 > - `numWorkers` (type `int`)
@@ -451,12 +451,12 @@ These following commands all require administrator privileges to execute.
 
 ### Set Timeout Interval
 
-> Set the timeout interval.
+> Set the timeout interval. If the interval time is invalid, this returns an error.
 
 **Parameters:** 
 > - `timeout` (type `time.Duration`)
 > 
->   The timeout interval. If the interval time is invalid, this returns an error.
+>   The timeout interval. 
 
 **Chunk Arguments:** None
 
@@ -466,7 +466,7 @@ These following commands all require administrator privileges to execute.
 
 ### Set Logging Settings
 
-> Set the logging settings. This WILL NOT update the active server, but will update after the server is restarted.
+> Set the logging settings. This WILL NOT update the active server, but will update after the server is restarted. If the log file path or log level are invalid, this returns an error.
 
 **Parameters:** 
 > - `verbose` (type `bool`)
@@ -580,7 +580,24 @@ These following commands all require administrator privileges to execute.
 
 **Returns:** 
 
-> - TODO: access settings
+> - `accessClearance` (type `int`)
+> 
+>   Access clearance level.
+> - `modifyClearance` (type `int`)
+> 
+>   Modify clearance level.
+> - `accessWhitelist` (type `[]string`)
+> 
+>   Access whitelist.
+> - `modifyWhitelist` (type `[]string`)
+> 
+>   Modify whitelist.
+> - `accessBlacklist` (type `[]string`)
+> 
+>   Access blacklist.
+> - `modifyBlacklist` (type `[]string`)
+> 
+>   Modify blacklist.
 
 **Chunk Returns:** None
 
@@ -600,7 +617,152 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
-### TODO: Drive access
+### Set Drive Clearances
+
+> Set the access and modify clearances for a drive. Requires drive modify clearance. If the clearances are invalid, this returns an error.
+
+**Parameters:** 
+
+> - `access` (type `int`)
+> 
+>   The new access clearance.
+> - `modify` (type `int`)
+> 
+>   The new modify clearance.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Drive Access Whitelist
+
+> Add users to a drive's access whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Drive Access Whitelist
+
+> Remove users from a drive's access whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Drive Access Blacklist
+
+> Add users to a drive's access blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Drive Access Blacklist
+
+> Remove users from a drive's access blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Drive Modify Whitelist
+
+> Add users to a drive's modify whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Drive Modify Whitelist
+
+> Remove users from a drive's modify whitelist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Add to Drive Modify Blacklist
+
+> Add users to a drive's modify blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username already exists, it will be skipped.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to add.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Remove from Drive Modify Blacklist
+
+> Remove users from a drive's modify blacklist. Requires drive modify clearance. If the clearances are invalid, this returns an error. If a given username does not exist, this returns an error.
+
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The usernames to remove.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
 
 ## Filesystem Commands
 

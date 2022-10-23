@@ -65,3 +65,53 @@ Responses in Lily consist of a response code and a response string, an optional 
 
 **Description:**
 > Session does not exist.
+
+### **Code:** 13
+
+**Description:**
+> Drive does not exist.
+
+### **Code:** 14
+
+**Description:**
+> Drive already exists.
+
+### **Code:** 15
+
+**Description:**
+> Invalid number of workers.
+
+### **Code:** 16
+
+**Description:**
+> Invalid timeout interval.
+
+### **Code:** 17
+
+**Description:**
+> Invalid log file path.
+
+### **Code:** 18
+
+**Description:**
+> Invalid log level.
+
+### **Code:** 19
+
+**Description:**
+> Invalid rate limit.
+
+### **Code:** 20
+
+**Description:**
+> Invalid server file path.
+
+### **Code:** 21
+
+**Description:**
+> Invalid host and port.
+
+### **Code:** 22
+
+**Description:** 
+> Invalid drive file path.

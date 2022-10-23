@@ -6,10 +6,9 @@
 package namelist
 
 import (
-	"sync"
 	"errors"
+	"sync"
 )
-
 
 // Username list object.
 type UsernameList struct {
@@ -19,13 +18,11 @@ type UsernameList struct {
 	list []string
 }
 
-
 // Username already exists.
 var UsernameAlreadyExistsError = errors.New("lily.user: Username already exists.")
 
 // Username not found.
 var UsernameNotFoundError = errors.New("lily.user: Username not found.")
-
 
 // Create a new username list.
 func NewUsernameList() *UsernameList {
@@ -59,7 +56,7 @@ func (l *UsernameList) GetList() []string {
 }
 
 // Add user(s) to the list.
-func (l *UsernameList) AddUsers(users []string) error {
+func (l *UsernameList) AddUsers(users []string) {
 	// Acquire the write lock.
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -67,17 +64,19 @@ func (l *UsernameList) AddUsers(users []string) error {
 	// Loop over the users and add each one.
 	for i := 0; i < len(users); i++ {
 		// Check if the user already exists.
+		exists := false
 		for j := 0; j < len(l.list); j++ {
 			if l.list[j] == users[i] {
-				return UsernameAlreadyExistsError
+				exists = true
 			}
+		}
+		if exists {
+			continue
 		}
 
 		// Add the user to the list.
 		l.list = append(l.list, users[i])
 	}
-
-	return nil
 }
 
 // Remove user(s) from the list.
@@ -91,18 +90,18 @@ func (l *UsernameList) RemoveUsers(users []string) error {
 		foundUser := false
 
 		// Find the index of the user.
-        for j := 0; j < len(l.list); j++ {
+		for j := 0; j < len(l.list); j++ {
 			if l.list[j] == users[i] {
-                // Replace the index of the username with the index of the last element.
-				l.list[j] = l.list[len(l.list) - 1]
+				// Replace the index of the username with the index of the last element.
+				l.list[j] = l.list[len(l.list)-1]
 
 				// Remove the last element.
-				l.list = l.list[:len(l.list) - 1]
+				l.list = l.list[:len(l.list)-1]
 
 				// Mark that the user was found and deleted.
 				foundUser = true
-            }
-        }
+			}
+		}
 
 		// If the user wasn't found, return an error.
 		if !foundUser {
