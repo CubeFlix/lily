@@ -6,6 +6,9 @@ package network
 import (
 	"bufio"
 	"crypto/tls"
+	"errors"
+	"io"
+	"os"
 	"time"
 )
 
@@ -18,6 +21,10 @@ import (
 // data, and then chunks, which are not counted in the length. Lily responses
 // work similarly to requests by also stating the response length, main response
 // info, and then their own chunks, which must be parsed by the client.
+
+var ErrTimedOut = errors.New("lily.network: Timed out")
+var ErrEOF = errors.New("lily.network: EOF reached")
+var ErrNoData = errors.New("lily.network: Not enough data read/written")
 
 // DataStream interface. Can represent a crypto/tls.Conn object.
 type DataStream interface {
@@ -49,7 +56,20 @@ func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.reader.Read(*b)
+	n, err := c.reader.Read(*b)
+	if n < len(*b) {
+		// Not enough data read.
+		return n, ErrNoData
+	}
+	if err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			return n, ErrTimedOut
+		} else if err == io.EOF {
+			return n, ErrEOF
+		}
+		return n, err
+	}
+	return n, nil
 }
 
 func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
@@ -57,7 +77,18 @@ func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.writer.Write(*b)
+	n, err := c.writer.Write(*b)
+	if n < len(*b) {
+		// Not enough data read.
+		return n, ErrNoData
+	}
+	if err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			return n, ErrTimedOut
+		}
+		return n, err
+	}
+	return n, nil
 }
 
 func (c *TLSConnStream) Flush() {

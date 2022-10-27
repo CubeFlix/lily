@@ -4,6 +4,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"errors"
 	"os"
 	"sync"
@@ -82,13 +83,17 @@ type Config struct {
 
 	// Rate limiting settings.
 	limit rate.Limit
+
+	// TLS X509 certificate object.
+	tlsCert tls.Certificate
 }
 
 // Create the config object.
 func NewConfig(file, host string, port int, driveFiles map[string]string,
 	optionalDaemons []string, optionalArgs [][]string, mainCronInterval,
 	sessionCronInterval, timeout time.Duration, verbose, logToFile,
-	logJSON bool, logLevel, logPath string, limit rate.Limit) (*Config, error) {
+	logJSON bool, logLevel, logPath string, limit rate.Limit,
+	tlsCert tls.Certificate) (*Config, error) {
 	if timeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
 	}
@@ -116,6 +121,7 @@ func NewConfig(file, host string, port int, driveFiles map[string]string,
 		logLevel:            logLevel,
 		logPath:             logPath,
 		limit:               limit,
+		tlsCert:             tlsCert,
 	}, nil
 }
 
