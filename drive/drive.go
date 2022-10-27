@@ -25,7 +25,7 @@ import (
 // active drive on the server.
 type Drive struct {
 	// Main drive lock. Exposing the mutex so we can expose the settings.
-	Lock *sync.RWMutex
+	Lock sync.RWMutex
 
 	// Drive settings. Security access determines if a user can access the
 	// drive and if the user can modify the name. Exposing the settings object
@@ -47,7 +47,7 @@ var ErrPathNotFound = errors.New("lily.drive: Path not found")
 func NewDrive(name, path string, settings *access.AccessSettings,
 	fs *fs.Directory) *Drive {
 	return &Drive{
-		Lock:     &sync.RWMutex{},
+		Lock:     sync.RWMutex{},
 		name:     name,
 		path:     path,
 		Settings: settings,

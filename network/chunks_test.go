@@ -32,6 +32,8 @@ func (t *TestStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	return l, nil
 }
 
+func (t *TestStream) Flush() {}
+
 // Test using a chunked handler.
 func TestChunkedHandler(t *testing.T) {
 	testInput := make([]byte, 0)

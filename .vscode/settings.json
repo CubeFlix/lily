@@ -2,5 +2,8 @@
     "cSpell.words": [
         "Subdirs"
     ],
-    "workbench.colorTheme": "Visual Studio Dark - C++"
+    "workbench.colorTheme": "Material Theme Ocean",
+    "go.testFlags": [
+        // "-race"
+    ]
 }

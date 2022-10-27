@@ -186,6 +186,8 @@ func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo, timeout time.D
 		return err
 	}
 
+	c.stream.Flush()
+
 	// Return.
 	return nil
 }
@@ -215,6 +217,8 @@ func (c *ChunkHandler) WriteChunkInfo(name string, length int, timeout time.Dura
 		return err
 	}
 
+	c.stream.Flush()
+
 	// Return.
 	return nil
 }
@@ -232,6 +236,8 @@ func (c *ChunkHandler) WriteChunk(data *[]byte, timeout time.Duration) error {
 	if err != nil {
 		return err
 	}
+
+	c.stream.Flush()
 
 	// Return.
 	return nil

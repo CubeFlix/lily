@@ -17,7 +17,7 @@ import (
 // File system directory object.
 type Directory struct {
 	// Directory lock.
-	Lock *sync.RWMutex
+	Lock sync.RWMutex
 
 	// Directory path (local path within parent).
 	path string
@@ -68,7 +68,7 @@ func NewDirectory(path string, isRoot bool, parent *Directory,
 	}
 
 	return &Directory{
-		Lock:     &sync.RWMutex{},
+		Lock:     sync.RWMutex{},
 		path:     path,
 		isRoot:   isRoot,
 		parent:   parent,

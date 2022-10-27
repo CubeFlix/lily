@@ -15,7 +15,7 @@ import (
 // File system file object.
 type File struct {
 	// File lock.
-	Lock *sync.RWMutex
+	Lock sync.RWMutex
 
 	// File path (local path within directory).
 	path string
@@ -47,7 +47,7 @@ func NewFile(path string, settings *access.AccessSettings) (*File, error) {
 	}
 
 	return &File{
-		Lock:     &sync.RWMutex{},
+		Lock:     sync.RWMutex{},
 		path:     path,
 		Settings: settings,
 	}, nil

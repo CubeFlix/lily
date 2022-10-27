@@ -4,6 +4,7 @@
 package network
 
 import (
+	"bufio"
 	"crypto/tls"
 	"time"
 )
@@ -22,11 +23,24 @@ import (
 type DataStream interface {
 	Write(*[]byte, time.Duration) (int, error)
 	Read(*[]byte, time.Duration) (int, error)
+	Flush()
 }
 
 // tls.Conn DataStream object.
 type TLSConnStream struct {
-	conn tls.Conn
+	conn *tls.Conn
+
+	reader *bufio.Reader
+	writer *bufio.Writer
+}
+
+// Create a new buffered TLS connection stream.
+func NewTLSStream(conn *tls.Conn) *TLSConnStream {
+	return &TLSConnStream{
+		conn:   conn,
+		reader: bufio.NewReader(conn),
+		writer: bufio.NewWriter(conn),
+	}
 }
 
 // Wrappers for TLS.Conn functions.
@@ -35,7 +49,7 @@ func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.conn.Read(*b)
+	return c.reader.Read(*b)
 }
 
 func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
@@ -43,5 +57,9 @@ func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return c.conn.Write(*b)
+	return c.writer.Write(*b)
+}
+
+func (c *TLSConnStream) Flush() {
+	c.writer.Flush()
 }

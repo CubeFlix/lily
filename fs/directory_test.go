@@ -35,7 +35,7 @@ func TestDirectoryFuncs(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	f, err := NewDirectory("dir", true, &Directory{Lock: &sync.RWMutex{}}, a)
+	f, err := NewDirectory("dir", true, &Directory{Lock: sync.RWMutex{}}, a)
 	if err != nil {
 		t.Error(err.Error())
 	}

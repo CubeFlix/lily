@@ -412,6 +412,8 @@ func (t *TestStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	return l, nil
 }
 
+func (t *TestStream) Flush() {}
+
 // Test reading some files.
 func TestReadFile(t *testing.T) {
 	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
