@@ -9,12 +9,30 @@
 package server
 
 import (
+	"sync"
+
 	"github.com/cubeflix/lily/drive"
 	"github.com/cubeflix/lily/server/config"
+	slist "github.com/cubeflix/lily/session/list"
+	ulist "github.com/cubeflix/lily/user/list"
 )
 
-// The Lily server object.
+// The Lily server object. We only need a mutex for the drives map.
 type Server struct {
-	drives []*drive.Drive
-	config config.Config
+	lock     sync.RWMutex
+	drives   map[string]*drive.Drive
+	Sessions *slist.SessionList
+	Users    *ulist.UserList
+	Config   *config.Config
 }
+
+// Create a new server object.
+func NewServer(sessions *slist.SessionList, users *ulist.UserList) *Server {
+	return &Server{
+		lock:     sync.RWMutex{},
+		Sessions: sessions,
+		Users:    users,
+	}
+}
+
+// TODO

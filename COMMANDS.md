@@ -340,7 +340,10 @@ These following commands all require administrator privileges to execute.
 >   The session expiration cron interval duration.
 > - `timeout` (type `time.Duration`)
 > 
->   The timeout duration.
+>   The command timeout duration.
+> - `networkTimeout` (type `time.Duration`)
+> 
+>   The network timeout duration.
 > - `verbose` (type `bool`)
 > 
 >   If the server is verbose.

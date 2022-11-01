@@ -71,8 +71,9 @@ type Config struct {
 	// to be updated more frequently.
 	sessionCronInterval time.Duration
 
-	// Timeout duration.
-	timeout time.Duration
+	// Timeout duration and network timeout duration.
+	timeout    time.Duration
+	netTimeout time.Duration
 
 	// Logging settings.
 	verbose   bool
@@ -84,17 +85,17 @@ type Config struct {
 	// Rate limiting settings.
 	limit rate.Limit
 
-	// TLS X509 certificate object.
-	tlsCert tls.Certificate
+	// TLS X509 certificate objects.
+	tlsCerts []tls.Certificate
 }
 
 // Create the config object.
 func NewConfig(file, host string, port int, driveFiles map[string]string,
 	optionalDaemons []string, optionalArgs [][]string, mainCronInterval,
-	sessionCronInterval, timeout time.Duration, verbose, logToFile,
-	logJSON bool, logLevel, logPath string, limit rate.Limit,
-	tlsCert tls.Certificate) (*Config, error) {
-	if timeout == time.Duration(0) {
+	sessionCronInterval, timeout time.Duration, netTimeout time.Duration,
+	verbose, logToFile, logJSON bool, logLevel, logPath string,
+	limit rate.Limit, tlsCerts []tls.Certificate) (*Config, error) {
+	if timeout == time.Duration(0) || netTimeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
 	}
 	if logLevel != LoggingLevelDebug && logLevel != LoggingLevelInfo &&
@@ -115,13 +116,14 @@ func NewConfig(file, host string, port int, driveFiles map[string]string,
 		mainCronInterval:    mainCronInterval,
 		sessionCronInterval: sessionCronInterval,
 		timeout:             timeout,
+		netTimeout:          netTimeout,
 		verbose:             verbose,
 		logToFile:           logToFile,
 		logJSON:             logJSON,
 		logLevel:            logLevel,
 		logPath:             logPath,
 		limit:               limit,
-		tlsCert:             tlsCert,
+		tlsCerts:            tlsCerts,
 	}, nil
 }
 
@@ -295,15 +297,16 @@ func (c *Config) SetCronIntervals(mainInterval, sessionInterval time.Duration) {
 	c.SetDirty(true)
 }
 
-// Get the timeout interval. This value is thread-safe and thus does not need
+// Get the timeout intervals. This value is thread-safe and thus does not need
 // locks.
-func (c *Config) GetTimeout() time.Duration {
-	return c.timeout
+func (c *Config) GetTimeout() (time.Duration, time.Duration) {
+	return c.timeout, c.netTimeout
 }
 
-// Set the timeout interval.
-func (c *Config) SetTimeout(timeout time.Duration) {
+// Set the timeout intervals.
+func (c *Config) SetTimeout(timeout, netTimeout time.Duration) {
 	c.timeout = timeout
+	c.netTimeout = netTimeout
 
 	// Set the dirty value.
 	c.SetDirty(true)

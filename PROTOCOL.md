@@ -29,7 +29,7 @@ The header information is the same for both requests and responses. It consists 
 | Name        | Description     | Type   |
 | -           | -               | -      |
 | Header  | The request header. | `"LILY"` |
-| Version     | The Lily protocol version. | `string` |
+| Version     | The Lily protocol version. | `string` (length 1) |
 
 ## Footer
 The footer information is the same for all request fields. It consists of a single UTF-8 encoded string: `END`. Footers are used to ensure that the command is encoded properly and that the information received is not corrupted.
