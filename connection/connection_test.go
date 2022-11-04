@@ -238,9 +238,6 @@ func TestConnectionResponse(t *testing.T) {
 	data := make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, uint32(len(encoded)))
 	testOutput = append(testOutput, data...)
-	// Write the data.
-	testOutput = append(testOutput, encoded...)
-	testOutput = append(testOutput, []byte("END")...)
 	// Create a DataStream.
 	ts := &TestStream{
 		[]byte{},
@@ -259,7 +256,7 @@ func TestConnectionResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if !bytes.Equal(ts.output, testOutput) {
+	if !bytes.Equal(ts.output[:len(testOutput)], testOutput) {
 		t.Fail()
 	}
 }

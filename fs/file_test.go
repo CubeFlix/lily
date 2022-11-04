@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-
 // Test acquiring read and write locks.
 func TestFileLocks(t *testing.T) {
 	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
@@ -75,15 +74,6 @@ func TestFileFuncs(t *testing.T) {
 	}
 	f.SetHash([]byte("abc"))
 	if string(f.GetHash()) != "abc" {
-		t.Fail()
-	}
-
-	// Test is encrypted.
-	if f.GetIsEncrypted() != false {
-		t.Fail()
-	}
-	f.SetIsEncrypted(true)
-	if f.GetIsEncrypted() != true {
 		t.Fail()
 	}
 }

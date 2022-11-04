@@ -33,9 +33,6 @@ type File struct {
 
 	// Optional hash data.
 	hash []byte
-
-	// Is file encrypted.
-	encrypted bool
 }
 
 var ErrInvalidFilePath = errors.New("lily.fs.File: Invalid file path")
@@ -145,22 +142,4 @@ func (f *File) SetHash(hash []byte) {
 	defer f.Lock.Unlock()
 
 	f.hash = hash
-}
-
-// Get is encrypted.
-func (f *File) GetIsEncrypted() bool {
-	// Acquire the read lock.
-	f.Lock.RLock()
-	defer f.Lock.RUnlock()
-
-	return f.encrypted
-}
-
-// Set is encrypted.
-func (f *File) SetIsEncrypted(encrypted bool) {
-	// Acquire the write lock.
-	f.Lock.Lock()
-	defer f.Lock.Unlock()
-
-	f.encrypted = encrypted
 }

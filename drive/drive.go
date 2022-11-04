@@ -14,7 +14,10 @@
 package drive
 
 import (
+	"io"
+
 	"github.com/cubeflix/lily/fs"
+	"github.com/cubeflix/lily/marshal"
 	"github.com/cubeflix/lily/security/access"
 
 	"errors"
@@ -313,4 +316,62 @@ func (d *Drive) SetFileByPath(path string, file *fs.File) error {
 
 	// Return.
 	return nil
+}
+
+// Marshal the data to an io.Writer.
+func (d *Drive) Marshal(w io.Writer) error {
+	// Write the name.
+	err := marshal.MarshalString(d.GetName(), w)
+	if err != nil {
+		return err
+	}
+
+	// Write the path.
+	err = marshal.MarshalString(d.GetPath(), w)
+	if err != nil {
+		return err
+	}
+
+	// Write the settings. The lock only needs to be acquired when writing the
+	// drive-specific information.
+	d.AcquireRLock()
+	err = marshal.MarshalAccess(d.Settings, w)
+	if err != nil {
+		d.ReleaseRLock()
+		return err
+	}
+	d.ReleaseRLock()
+
+	// Write the filesystem.
+	return marshal.MarshalDirectory(d.fs, w)
+}
+
+// Unmarshal a drive object.
+func Unmarshal(r io.Reader) (*Drive, error) {
+	// Get the name.
+	name, err := marshal.UnmarshalString(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the path.
+	path, err := marshal.UnmarshalString(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the settings.
+	aobj, err := marshal.UnmarshalAccess(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the filesystem.
+	dir, err := marshal.UnmarshalDirectory(r, true, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the drive object.
+	return NewDrive(name, path, aobj, dir), nil
 }
