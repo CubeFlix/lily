@@ -79,6 +79,7 @@ func (s *Server) SetDrive(name string, d *drive.Drive) {
 // Serve.
 func (s *Server) Serve() error {
 	// Create the channels and rate limiter.
+	fmt.Println("(lily.Server.Serve:debug) - started")
 	s.jobs = make(chan net.Conn)
 	s.limitReached = make(chan net.Conn)
 	s.stop = make(chan struct{}, s.config.GetNumWorkers()+1)
@@ -92,15 +93,6 @@ func (s *Server) Serve() error {
 	}
 	s.limiter = limiter
 
-	// Start the workers.
-	for i := 0; i < s.config.GetNumWorkers(); i++ {
-		go s.Worker()
-	}
-
-	// Start a worker to respond to connections that have reached the rate
-	// limit.
-	go s.LimitResponseWorker()
-
 	// Create the listener.
 	host, port := s.config.GetHostAndPort()
 	s.listener, err = tls.Listen("tcp", fmt.Sprintf("%s:%d", host, port), s.config.GetTLSConfig())
@@ -108,6 +100,16 @@ func (s *Server) Serve() error {
 		return err
 	}
 	s.running = true
+
+	// Start the workers. Workers are started after everything else is ready
+	// but before the listener begins.
+	for i := 0; i < s.config.GetNumWorkers(); i++ {
+		go s.Worker()
+	}
+
+	// Start a worker to respond to connections that have reached the rate
+	// limit.
+	go s.LimitResponseWorker()
 
 	// Start listening.
 	go func() {
@@ -186,7 +188,7 @@ func (s *Server) Worker() {
 				// TODO: Future logging
 				continue
 			}
-			fmt.Println("(worker:debug): connection ", tlsConn)
+			fmt.Println("(lily.Server.Worker:debug) - connection")
 			connection.HandleConnection(*tlsConn, s.config.GetTimeout(), s)
 		}
 	}

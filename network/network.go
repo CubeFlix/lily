@@ -59,10 +59,6 @@ func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 		return 0, err
 	}
 	n, err := c.reader.Read(*b)
-	if n < len(*b) {
-		// Not enough data read.
-		return n, ErrNoData
-	}
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
 			return n, ErrTimedOut
@@ -70,6 +66,10 @@ func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 			return n, ErrEOF
 		}
 		return n, err
+	}
+	if n != len(*b) {
+		// Not enough data read.
+		return n, ErrNoData
 	}
 	return n, nil
 }
@@ -80,15 +80,15 @@ func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 		return 0, err
 	}
 	n, err := c.writer.Write(*b)
-	if n < len(*b) {
-		// Not enough data read.
-		return n, ErrNoData
-	}
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
 			return n, ErrTimedOut
 		}
 		return n, err
+	}
+	if n != len(*b) {
+		// Not enough data read.
+		return n, ErrNoData
 	}
 	return n, nil
 }

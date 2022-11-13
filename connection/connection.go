@@ -292,7 +292,18 @@ func ConnectionError(s network.DataStream, timeout time.Duration, code int, str 
 	}
 
 	// Write the data.
-	encoded, err := bson.Marshal(map[string]interface{}{"error": connErr.Error()})
+	var encoded []byte
+	if connErr != nil {
+		encoded, err = bson.Marshal(map[string]interface{}{"error": connErr.Error()})
+		if err != nil {
+			return
+		}
+	} else {
+		encoded, err = bson.Marshal(map[string]interface{}{})
+		if err != nil {
+			return
+		}
+	}
 	if err != nil {
 		return
 	}
@@ -322,16 +333,17 @@ func ConnectionError(s network.DataStream, timeout time.Duration, code int, str 
 
 // Handle a TLS connection.
 func HandleConnection(conn tls.Conn, timeout time.Duration, s Server) {
-	// defer conn.Close()
+	defer conn.Close()
 
 	stream := network.DataStream(network.NewTLSStream(&conn))
 	// Accept the header.
 	header := make([]byte, 5)
-	fmt.Println(string(header))
 	if _, err := stream.Read(&header, timeout); err != nil {
+		fmt.Println("(lily.HandleConnection:error) -", err)
 		ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
 		return
 	}
+	fmt.Println("(lily.HandleConnection:debug) - header", string(header))
 
 	// Check the protocol version.
 	if string(header[4]) != network.PROTOCOL_VERSION {
