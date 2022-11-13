@@ -15,22 +15,20 @@ import (
 	"sync"
 )
 
-
 // User type structure.
 type User struct {
 	// Using a mutex to sync the struct.
-	lock      *sync.RWMutex
+	lock *sync.RWMutex
 
 	// Username.
-	username  string
+	username string
 
 	// Password hash.
-	password  auth.PasswordHash
+	password auth.PasswordHash
 
 	// Security clearance.
 	clearance access.Clearance
 }
-
 
 // Create a new user object.
 func NewUser(username, password string, clearance access.Clearance) (*User, error) {
@@ -64,6 +62,24 @@ func (u *User) SetUsername(username string) {
 	defer u.lock.Unlock()
 
 	u.username = username
+}
+
+// Get the password hash.
+func (u *User) GetPasswordHash() auth.PasswordHash {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	return u.password
+}
+
+// Set the password hash.
+func (u *User) SetPasswordHash(hash auth.PasswordHash) {
+	// Acquire the write lock.
+	u.lock.Lock()
+	defer u.lock.Unlock()
+
+	u.password = hash
 }
 
 // Compare the password hash with a password.

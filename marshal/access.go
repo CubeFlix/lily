@@ -51,8 +51,11 @@ func UnmarshalAccess(r io.Reader) (*access.AccessSettings, error) {
 	if err != nil {
 		return &access.AccessSettings{}, err
 	}
-	ac, mc := int(data[0]), int(data[1])
-	sobj, err := access.NewAccessSettings(access.Clearance(ac), access.Clearance(mc))
+	ac, mc := access.Clearance(data[0]), access.Clearance(data[1])
+	if ac.Validate() != nil || mc.Validate() != nil {
+		return &access.AccessSettings{}, access.ErrInvalidClearanceError
+	}
+	sobj, err := access.NewAccessSettings(ac, mc)
 	if err != nil {
 		return &access.AccessSettings{}, err
 	}

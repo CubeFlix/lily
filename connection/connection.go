@@ -7,19 +7,30 @@
 package connection
 
 import (
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cubeflix/lily/commands"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/auth"
-	"github.com/cubeflix/lily/server"
+	"github.com/cubeflix/lily/server/config"
 	"github.com/cubeflix/lily/user"
 	"github.com/google/uuid"
 
+	sessionlist "github.com/cubeflix/lily/session/list"
+	userlist "github.com/cubeflix/lily/user/list"
+
 	"gopkg.in/mgo.v2/bson"
 )
+
+type Server interface {
+	Users() *userlist.UserList
+	Sessions() *sessionlist.SessionList
+	Config() *config.Config
+}
 
 var ErrInvalidProtocol = errors.New("lily.connection: Invalid protocol")
 var ErrInvalidSessionUsername = errors.New("lily.connection: Invalid session username")
@@ -61,7 +72,7 @@ func respString(s string, conn network.DataStream, timeout time.Duration) error 
 
 // The basic server-side connection context.
 type Connection struct {
-	Command commands.Command
+	Command *commands.Command
 	conn    network.DataStream
 }
 
@@ -72,7 +83,7 @@ func NewConnection(conn network.DataStream) *Connection {
 }
 
 // Receive a request from the connection.
-func (c *Connection) ReceiveRequest(timeout time.Duration, s *server.Server) error {
+func (c *Connection) ReceiveRequest(timeout time.Duration, s Server) error {
 	// Receive the authentication data.
 	auth, err := c.ReceiveAuth(timeout, s)
 	if err != nil {
@@ -115,14 +126,14 @@ func (c *Connection) ReceiveRequest(timeout time.Duration, s *server.Server) err
 	}
 
 	// Create the command.
-	c.Command = *commands.NewCommand(s, name, &auth, *params, network.NewChunkHandler(c.conn))
+	c.Command = commands.NewCommand(s, name, &auth, *params, network.NewChunkHandler(c.conn))
 
 	// Return.
 	return nil
 }
 
 // Receive the authentication data from the connection.
-func (c *Connection) ReceiveAuth(timeout time.Duration, s *server.Server) (auth.Auth, error) {
+func (c *Connection) ReceiveAuth(timeout time.Duration, s Server) (auth.Auth, error) {
 	// Receive the authentication type.
 	authType := make([]byte, 1)
 	_, err := c.conn.Read(&authType, timeout)
@@ -154,7 +165,7 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s *server.Server) (auth.
 		}
 
 		// Get the user object from the server.
-		uobj, err := s.Users.GetUsersByName([]string{username})
+		uobj, err := s.Users().GetUsersByName([]string{username})
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +204,7 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s *server.Server) (auth.
 		}
 
 		// Get the session object and verify it.
-		sobj, err := s.Sessions.GetSessionsByID([]uuid.UUID{uuidObj})
+		sobj, err := s.Sessions().GetSessionsByID([]uuid.UUID{uuidObj})
 		if err != nil {
 			return nil, err
 		}
@@ -201,6 +212,9 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s *server.Server) (auth.
 			return nil, ErrInvalidSessionUsername
 		}
 		return sobj[0], nil
+	} else if string(authType) == "N" {
+		// Null authentication.
+		return &auth.NullAuth{}, nil
 	} else {
 		return nil, ErrInvalidProtocol
 	}
@@ -252,4 +266,112 @@ func (c *Connection) Respond(timeout time.Duration) error {
 
 	// Return.
 	return nil
+}
+
+// Respond with a connection error.
+func ConnectionError(s network.DataStream, timeout time.Duration, code int, str string, connErr error) {
+	// Respond with empty chunk data.
+	ch := network.NewChunkHandler(s)
+	if ch.WriteChunkResponseInfo(nil, timeout, true) != nil {
+		return
+	}
+	data := []byte("END")
+	if _, err := s.Write(&data, timeout); err != nil {
+		return
+	}
+
+	// Respond with the data.
+	data = make([]byte, 4)
+	binary.LittleEndian.PutUint32(data, uint32(code))
+	_, err := s.Write(&data, timeout)
+	if err != nil {
+		return
+	}
+	if respString(str, s, timeout) != nil {
+		return
+	}
+
+	// Write the data.
+	encoded, err := bson.Marshal(map[string]interface{}{"error": connErr.Error()})
+	if err != nil {
+		return
+	}
+	// Write the data length.
+	data = make([]byte, 4)
+	binary.LittleEndian.PutUint32(data, uint32(len(encoded)))
+	_, err = s.Write(&data, timeout)
+	if err != nil {
+		return
+	}
+	// Write the data.
+	_, err = s.Write(&encoded, timeout)
+	if err != nil {
+		return
+	}
+
+	// Respond with the footer.
+	data = []byte("END")
+	_, err = s.Write(&data, timeout)
+	if err != nil {
+		return
+	}
+
+	// Flush the buffer.
+	s.Flush()
+}
+
+// Handle a TLS connection.
+func HandleConnection(conn tls.Conn, timeout time.Duration, s Server) {
+	// defer conn.Close()
+
+	stream := network.DataStream(network.NewTLSStream(&conn))
+	// Accept the header.
+	header := make([]byte, 5)
+	fmt.Println(string(header))
+	if _, err := stream.Read(&header, timeout); err != nil {
+		ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+		return
+	}
+
+	// Check the protocol version.
+	if string(header[4]) != network.PROTOCOL_VERSION {
+		ConnectionError(stream, timeout, 5, "Invalid protocol version.", nil)
+		return
+	}
+
+	// Get the request.
+	cobj := NewConnection(stream)
+	if err := cobj.ReceiveRequest(timeout, s); err != nil {
+		if err == ErrInvalidProtocol {
+			ConnectionError(stream, timeout, 3, "Invalid request.", err)
+		} else if err == ErrInvalidSessionUsername {
+			ConnectionError(stream, timeout, 6, "Invalid or expired authentication.", err)
+		} else {
+			ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+		}
+		return
+	}
+
+	// Execute the command.
+	commands.ExecuteCommand(cobj.Command)
+
+	// If we haven't responded with the header and chunk data yet, do that now.
+	if !cobj.Command.Chunks.DidWriteChunkData() {
+		ch := network.NewChunkHandler(stream)
+		if err := ch.WriteChunkResponseInfo(nil, timeout, true); err != nil {
+			ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+			return
+		}
+		data := []byte("END")
+		if _, err := stream.Write(&data, timeout); err != nil {
+			ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+			return
+		}
+	}
+
+	// Reply.
+	if err := cobj.Respond(timeout); err != nil {
+		// If there's a problem with responding, we shouldn't even bother.
+		// TODO: Future logging
+	}
 }

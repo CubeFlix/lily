@@ -9,8 +9,6 @@ import (
 	"os"
 	"sync"
 	"time"
-
-	"golang.org/x/time/rate"
 )
 
 // The Lily server contains a configuration object which stores the settings
@@ -71,8 +69,7 @@ type Config struct {
 	// to be updated more frequently.
 	sessionCronInterval time.Duration
 
-	// Timeout duration and network timeout duration.
-	timeout    time.Duration
+	// Network timeout duration.
 	netTimeout time.Duration
 
 	// Logging settings.
@@ -83,24 +80,31 @@ type Config struct {
 	logPath   string
 
 	// Rate limiting settings.
-	limit rate.Limit
+	limit          time.Duration
+	maxLimitEvents int
 
 	// TLS X509 certificate objects.
 	tlsCerts []tls.Certificate
+
+	// TLS config.
+	tlsConfig *tls.Config
 }
 
 // Create the config object.
-func NewConfig(file, host string, port int, driveFiles map[string]string,
+func NewConfig(file, host string, port int, driveFiles map[string]string, numWorkers int,
 	optionalDaemons []string, optionalArgs [][]string, mainCronInterval,
-	sessionCronInterval, timeout time.Duration, netTimeout time.Duration,
-	verbose, logToFile, logJSON bool, logLevel, logPath string,
-	limit rate.Limit, tlsCerts []tls.Certificate) (*Config, error) {
-	if timeout == time.Duration(0) || netTimeout == time.Duration(0) {
+	sessionCronInterval, netTimeout time.Duration, verbose, logToFile,
+	logJSON bool, logLevel, logPath string, limit time.Duration,
+	maxLimitEvents int, tlsCerts []tls.Certificate, tlsConfig *tls.Config) (*Config, error) {
+	if netTimeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
 	}
 	if logLevel != LoggingLevelDebug && logLevel != LoggingLevelInfo &&
 		logLevel != LoggingLevelWarning && logLevel != LoggingLevelFatal {
 		return &Config{}, ErrInvalidLoggingLevel
+	}
+	if numWorkers < 1 {
+		return &Config{}, ErrNumWorkersInvalid
 	}
 	// Create the config object.
 	return &Config{
@@ -111,11 +115,11 @@ func NewConfig(file, host string, port int, driveFiles map[string]string,
 		port:                port,
 		numDrives:           len(driveFiles),
 		driveFiles:          driveFiles,
+		numWorkers:          numWorkers,
 		optionalDaemons:     optionalDaemons,
 		optionalArgs:        optionalArgs,
 		mainCronInterval:    mainCronInterval,
 		sessionCronInterval: sessionCronInterval,
-		timeout:             timeout,
 		netTimeout:          netTimeout,
 		verbose:             verbose,
 		logToFile:           logToFile,
@@ -123,7 +127,9 @@ func NewConfig(file, host string, port int, driveFiles map[string]string,
 		logLevel:            logLevel,
 		logPath:             logPath,
 		limit:               limit,
+		maxLimitEvents:      maxLimitEvents,
 		tlsCerts:            tlsCerts,
+		tlsConfig:           tlsConfig,
 	}, nil
 }
 
@@ -297,15 +303,14 @@ func (c *Config) SetCronIntervals(mainInterval, sessionInterval time.Duration) {
 	c.SetDirty(true)
 }
 
-// Get the timeout intervals. This value is thread-safe and thus does not need
+// Get the timeout interval. This value is thread-safe and thus does not need
 // locks.
-func (c *Config) GetTimeout() (time.Duration, time.Duration) {
-	return c.timeout, c.netTimeout
+func (c *Config) GetTimeout() time.Duration {
+	return c.netTimeout
 }
 
 // Set the timeout intervals.
-func (c *Config) SetTimeout(timeout, netTimeout time.Duration) {
-	c.timeout = timeout
+func (c *Config) SetTimeout(netTimeout time.Duration) {
 	c.netTimeout = netTimeout
 
 	// Set the dirty value.
@@ -333,14 +338,28 @@ func (c *Config) SetLogging(verbose, logToFile, logJSON bool, logLevel, logPath 
 
 // Get the rate limit. These values are thread-safe and thus do not need
 // locks.
-func (c *Config) GetRateLimit() rate.Limit {
-	return c.limit
+func (c *Config) GetRateLimit() (time.Duration, int) {
+	return c.limit, c.maxLimitEvents
 }
 
 // Set the rate limit. These values are thread-safe and thus do not need
 // locks. Note that this does not update the server.
-func (c *Config) SetRateLimit(limit rate.Limit) {
+func (c *Config) SetRateLimit(limit time.Duration, maxLimitEvent int) {
 	c.limit = limit
+	c.maxLimitEvents = maxLimitEvent
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Get TLS config.
+func (c *Config) GetTLSConfig() *tls.Config {
+	return c.tlsConfig
+}
+
+// Set TLS config.
+func (c *Config) SetTLSConfig(config *tls.Config) {
+	c.tlsConfig = config
 
 	// Set the dirty value.
 	c.SetDirty(true)

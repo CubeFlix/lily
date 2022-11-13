@@ -22,6 +22,8 @@ import (
 // work similarly to requests by also stating the response length, main response
 // info, and then their own chunks, which must be parsed by the client.
 
+const PROTOCOL_VERSION = "0"
+
 var ErrTimedOut = errors.New("lily.network: Timed out")
 var ErrEOF = errors.New("lily.network: EOF reached")
 var ErrNoData = errors.New("lily.network: Not enough data read/written")

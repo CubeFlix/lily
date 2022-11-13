@@ -23,6 +23,9 @@ var ErrInvalidFooter = errors.New("lily.network: Footer data is invalid (possibl
 type ChunkHandler struct {
 	// Store the DataStream object to read data from.
 	stream DataStream
+
+	// If we wrote the chunk data already.
+	wroteChunkData bool
 }
 
 // ChunkInfo struct.
@@ -35,8 +38,14 @@ type ChunkInfo struct {
 // Create a new ChunkHandler from a DataStream.
 func NewChunkHandler(stream DataStream) *ChunkHandler {
 	return &ChunkHandler{
-		stream: stream,
+		stream:         stream,
+		wroteChunkData: false,
 	}
+}
+
+// Check if we already wrote chunk data back.
+func (c *ChunkHandler) DidWriteChunkData() bool {
+	return c.wroteChunkData
 }
 
 // Get the request chunk data, including the list of chunks and order. NOTE:
@@ -147,7 +156,18 @@ func (c *ChunkHandler) GetChunk(data *[]byte, timeout time.Duration) error {
 
 // Write the response chunk data. NOTE: This function MUST be called before
 // using the response handler.
-func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo, timeout time.Duration) error {
+func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo, timeout time.Duration, writeHeader bool) error {
+	c.wroteChunkData = true
+
+	// Write the Lily header.
+	if writeHeader {
+		header := []byte("LILY" + PROTOCOL_VERSION)
+		_, err := c.stream.Write(&header, timeout)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Write the length of the list.
 	data := make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, uint32(len(chunks)))

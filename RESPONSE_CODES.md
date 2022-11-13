@@ -14,104 +14,119 @@ Responses in Lily consist of a response code and a response string, an optional 
 ### **Code:** 2
 
 **Description:**
-> Invalid request.
+> Unhandled command error.
 
 ### **Code:** 3
 
 **Description:**
-> Invalid authentication type.
+> Invalid request.
 
 ### **Code:** 4
 
-**Description:**
-> Invalid or expired authentication.
+**Description:** 
+> Connection timed out or connection error.
 
 ### **Code:** 5
 
-**Description:**
-> Invalid expiration time. Server does not allow non-expiring sessions.
+**Description:** 
+> Invalid protocol version.
 
 ### **Code:** 6
 
 **Description:**
-> Server could not successfully generate a unique session ID. Please try again.
+> Invalid or expired authentication.
 
 ### **Code:** 7
 
 **Description:**
-> Insufficient clearance.
+> Rate limit reached. Please try again later.
+
+### **Code:** 6
+
+**Description:**
+> Invalid expiration time. Server does not allow non-expiring sessions.
+
+### **Code:** 7
+
+**Description:**
+> Server could not successfully generate a unique session ID. Please try again.
 
 ### **Code:** 8
 
 **Description:**
-> User does not exist.
+> Insufficient clearance.
 
 ### **Code:** 9
 
 **Description:**
-> Invalid lengths of arguments. Generally occurs when the arguments for a command are multiple arrays that must all have the same length.
+> User does not exist.
 
 ### **Code:** 10
 
 **Description:**
-> Incompatible server and client versions.
+> Invalid lengths of arguments. Generally occurs when the arguments for a command are multiple arrays that must all have the same length.
 
 ### **Code:** 11
 
 **Description:**
-> User already exists.
+> Incompatible server and client versions.
 
 ### **Code:** 12
 
 **Description:**
-> Session does not exist.
+> User already exists.
 
 ### **Code:** 13
 
 **Description:**
-> Drive does not exist.
+> Session does not exist.
 
 ### **Code:** 14
 
 **Description:**
-> Drive already exists.
+> Drive does not exist.
 
 ### **Code:** 15
 
 **Description:**
-> Invalid number of workers.
+> Drive already exists.
 
 ### **Code:** 16
 
 **Description:**
-> Invalid timeout interval.
+> Invalid number of workers.
 
 ### **Code:** 17
 
 **Description:**
-> Invalid log file path.
+> Invalid timeout interval.
 
 ### **Code:** 18
 
 **Description:**
-> Invalid log level.
+> Invalid log file path.
 
 ### **Code:** 19
 
 **Description:**
-> Invalid rate limit.
+> Invalid log level.
 
 ### **Code:** 20
 
 **Description:**
-> Invalid server file path.
+> Invalid rate limit.
 
 ### **Code:** 21
 
 **Description:**
-> Invalid host and port.
+> Invalid server file path.
 
 ### **Code:** 22
+
+**Description:**
+> Invalid host and port.
+
+### **Code:** 23
 
 **Description:** 
 > Invalid drive file path.

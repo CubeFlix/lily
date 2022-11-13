@@ -68,6 +68,12 @@ Responses consist of the following fields:
 > - `timeout` (type `time.Duration`)
 > 
 >   The timeout duration for receiving requests.
+> - `limit` (type `time.Duration`)
+>   
+>   The rate limit interval.
+> - `maxLimitEvents` (type `int`)
+>   
+>   The maximum number of events per limit interval.
 
 **Chunk Returns:** None
 
@@ -338,9 +344,6 @@ These following commands all require administrator privileges to execute.
 > - `sessionCronInterval` (type `time.Duration`)
 > 
 >   The session expiration cron interval duration.
-> - `timeout` (type `time.Duration`)
-> 
->   The command timeout duration.
 > - `networkTimeout` (type `time.Duration`)
 > 
 >   The network timeout duration.
@@ -359,21 +362,12 @@ These following commands all require administrator privileges to execute.
 > - `logFile` (type `string`)
 > 
 >   The path to the log file. If the server does not log to a file, this is empty.
-
-**Chunk Returns:** None
-
-### Set Server File
-
-> Set the Lily server file path. The file will be written on the next cron cycle or on shutdown. If the path is invalid, this will throw an error.
-
-**Parameters:** 
-> - `path` (type `string`)
-> 
->   The path to the new server file.
-
-**Chunk Arguments:** None
-
-**Returns:** None
+> - `limit` (type `time.Duration`)
+>   
+>   The rate limit interval.
+> - `maxLimitEvents` (type `int`)
+>   
+>   The maximum number of events per limit interval.
 
 **Chunk Returns:** None
 

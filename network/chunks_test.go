@@ -96,6 +96,7 @@ func TestChunkedHandler(t *testing.T) {
 // Test writing with a chunked handler.
 func TestWritingChunkedHandler(t *testing.T) {
 	testOutput := make([]byte, 0)
+	testOutput = append(testOutput, []byte("LILY"+PROTOCOL_VERSION)...)
 	testOutput = append(testOutput, []byte{1, 0, 0, 0}...)
 	testOutput = append(testOutput, []byte{3, 0, 0, 0}...)
 	testOutput = append(testOutput, []byte("foo")...)
@@ -118,7 +119,7 @@ func TestWritingChunkedHandler(t *testing.T) {
 	c := NewChunkHandler(ds)
 
 	// Write the main data.
-	err := c.WriteChunkResponseInfo([]ChunkInfo{{"foo", 1}}, time.Duration(0))
+	err := c.WriteChunkResponseInfo([]ChunkInfo{{"foo", 1}}, time.Duration(0), true)
 	if err != nil {
 		t.Error(err.Error())
 	}

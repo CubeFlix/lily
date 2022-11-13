@@ -8,12 +8,20 @@ package commands
 import (
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/auth"
-	"github.com/cubeflix/lily/server"
+	"github.com/cubeflix/lily/server/config"
+	sessionlist "github.com/cubeflix/lily/session/list"
+	userlist "github.com/cubeflix/lily/user/list"
 )
+
+type Server interface {
+	Users() *userlist.UserList
+	Sessions() *sessionlist.SessionList
+	Config() *config.Config
+}
 
 // The basic command object.
 type Command struct {
-	Server *server.Server
+	Server Server
 
 	Name   string
 	Auth   *auth.Auth
@@ -26,7 +34,7 @@ type Command struct {
 }
 
 // Create a new command object.
-func NewCommand(s *server.Server, name string, auth *auth.Auth, params map[string]interface{}, chunks *network.ChunkHandler) *Command {
+func NewCommand(s Server, name string, auth *auth.Auth, params map[string]interface{}, chunks *network.ChunkHandler) *Command {
 	return &Command{
 		Server: s,
 		Name:   name,

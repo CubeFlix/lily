@@ -4,6 +4,8 @@ go 1.17
 
 require github.com/google/uuid v1.3.0
 
+require github.com/sethvargo/go-limiter v0.7.2 // indirect
+
 require (
 	github.com/kelindar/binary v1.0.17
 	github.com/spf13/afero v1.9.2 // indirect

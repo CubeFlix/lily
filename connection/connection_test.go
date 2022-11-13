@@ -1,7 +1,7 @@
 // connection/connection_test.go
 // Testing for connection/connection.go.
 
-package connection
+package connection_test
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cubeflix/lily/commands"
+	"github.com/cubeflix/lily/connection"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/server"
@@ -59,7 +61,7 @@ func TestConnectionUserAuth(t *testing.T) {
 	userlist.SetUsersByName(map[string]*user.User{"foo": uobj})
 
 	// Create the server object.
-	sobj := server.NewServer(slist.NewSessionList(0), userlist)
+	sobj := server.NewServer(slist.NewSessionList(0), userlist, nil)
 
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
@@ -78,7 +80,7 @@ func TestConnectionUserAuth(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := NewConnection(ds)
+	conn := connection.NewConnection(ds)
 
 	// Get the auth object.
 	auth, err := conn.ReceiveAuth(time.Duration(0), sobj)
@@ -110,7 +112,7 @@ func TestConnectionSessionAuth(t *testing.T) {
 	sessionlist.SetSessionsByID(map[uuid.UUID]*session.Session{suuid: sobj})
 
 	// Create the server object.
-	serverobj := server.NewServer(sessionlist, ulist.NewUserList())
+	serverobj := server.NewServer(sessionlist, ulist.NewUserList(), nil)
 
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
@@ -132,7 +134,7 @@ func TestConnectionSessionAuth(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := NewConnection(ds)
+	conn := connection.NewConnection(ds)
 
 	// Get the auth object.
 	auth, err := conn.ReceiveAuth(time.Duration(0), serverobj)
@@ -162,7 +164,7 @@ func TestConnectionRequest(t *testing.T) {
 	sessionlist.SetSessionsByID(map[uuid.UUID]*session.Session{suuid: sobj})
 
 	// Create the server object.
-	serverobj := server.NewServer(sessionlist, ulist.NewUserList())
+	serverobj := server.NewServer(sessionlist, ulist.NewUserList(), nil)
 
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
@@ -196,7 +198,7 @@ func TestConnectionRequest(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := NewConnection(ds)
+	conn := connection.NewConnection(ds)
 
 	// Get the command object.
 	err = conn.ReceiveRequest(time.Duration(0), serverobj)
@@ -225,7 +227,7 @@ func TestConnectionRequest(t *testing.T) {
 
 // Test a connection with a response.
 func TestConnectionResponse(t *testing.T) {
-	// Create the authentication request data.
+	// Create the response data.
 	testOutput := make([]byte, 0)
 	testOutput = append(testOutput, []byte{69, 0, 0, 0}...)
 	testOutput = append(testOutput, []byte{5, 0, 0, 0}...)
@@ -246,7 +248,8 @@ func TestConnectionResponse(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := NewConnection(ds)
+	conn := connection.NewConnection(ds)
+	conn.Command = &commands.Command{}
 	conn.Command.RespCode = 69
 	conn.Command.RespData = map[string]interface{}{"a": 1, "b": "bar", "c": []int{1, 2, 3}}
 	conn.Command.RespString = "error"

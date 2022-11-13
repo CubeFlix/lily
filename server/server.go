@@ -9,30 +9,226 @@
 package server
 
 import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"net"
 	"sync"
 
+	"github.com/cubeflix/lily/connection"
 	"github.com/cubeflix/lily/drive"
+	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/server/config"
 	slist "github.com/cubeflix/lily/session/list"
 	ulist "github.com/cubeflix/lily/user/list"
+	golimit "github.com/sethvargo/go-limiter"
+	"github.com/sethvargo/go-limiter/memorystore"
 )
 
 // The Lily server object. We only need a mutex for the drives map.
 type Server struct {
 	lock     sync.RWMutex
 	drives   map[string]*drive.Drive
-	Sessions *slist.SessionList
-	Users    *ulist.UserList
-	Config   *config.Config
+	sessions *slist.SessionList
+	users    *ulist.UserList
+	config   *config.Config
+
+	// Runtime values. limitReached is a channel of connections that need to
+	// be told they reached the rate limit. stop is a channel for sending a
+	// stop signal and will need to be propagated with one item for each
+	// worker and one extra for the limit worker.
+	jobs         chan net.Conn
+	limitReached chan net.Conn
+	limiter      golimit.Store
+	running      bool
+	stop         chan struct{}
+	listener     net.Listener
 }
 
 // Create a new server object.
-func NewServer(sessions *slist.SessionList, users *ulist.UserList) *Server {
+func NewServer(sessions *slist.SessionList, users *ulist.UserList, config *config.Config) *Server {
 	return &Server{
 		lock:     sync.RWMutex{},
-		Sessions: sessions,
-		Users:    users,
+		sessions: sessions,
+		users:    users,
+		config:   config,
 	}
 }
 
-//TODO
+// Check if the server is running.
+func (s *Server) Running() bool {
+	return s.running
+}
+
+// Get a drive.
+func (s *Server) GetDrive(name string) *drive.Drive {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.drives[name]
+}
+
+// Set a drive.
+func (s *Server) SetDrive(name string, d *drive.Drive) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.drives[name] = d
+}
+
+// Serve.
+func (s *Server) Serve() error {
+	// Create the channels and rate limiter.
+	s.jobs = make(chan net.Conn)
+	s.limitReached = make(chan net.Conn)
+	s.stop = make(chan struct{}, s.config.GetNumWorkers()+1)
+	interval, numTokens := s.config.GetRateLimit()
+	limiter, err := memorystore.New(&memorystore.Config{
+		Tokens:   uint64(numTokens),
+		Interval: interval,
+	})
+	if err != nil {
+		return err
+	}
+	s.limiter = limiter
+
+	// Start the workers.
+	for i := 0; i < s.config.GetNumWorkers(); i++ {
+		go s.Worker()
+	}
+
+	// Start a worker to respond to connections that have reached the rate
+	// limit.
+	go s.LimitResponseWorker()
+
+	// Create the listener.
+	host, port := s.config.GetHostAndPort()
+	s.listener, err = tls.Listen("tcp", fmt.Sprintf("%s:%d", host, port), s.config.GetTLSConfig())
+	if err != nil {
+		return err
+	}
+	s.running = true
+
+	// Start listening.
+	go func() {
+		for s.running {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				if !s.running {
+					// If we are not running (i.e. shutting down), then ignore this
+					// and exit.
+					return
+				} else {
+					// Actual error, log and ignore.
+					// TODO: Future logging
+					continue
+				}
+			}
+
+			// Check the rate limit.
+			addr, ok := conn.RemoteAddr().(*net.TCPAddr)
+			if !ok {
+				// Weird error, log and ignore.
+				// TODO: Future logging
+				conn.Close()
+				continue
+			}
+			_, _, _, valid, err := s.limiter.Take(context.Background(), addr.IP.String())
+			if err != nil {
+				// Weird error, log and ignore.
+				// TODO: Future logging
+				conn.Close()
+				continue
+			}
+			if !valid {
+				// Rate limit reached.
+				s.limitReached <- conn
+				continue
+			}
+
+			// Handle the connection.
+			s.jobs <- conn
+		}
+	}()
+
+	// Return.
+	return nil
+}
+
+// Stop the main server routine.
+func (s *Server) StopServerRoutine() {
+	s.running = false
+	s.listener.Close()
+}
+
+// Stop the workers.
+func (s *Server) StopWorkers() {
+	// Send all the stop signals.
+	for i := 0; i < (s.config.GetNumWorkers() + 1); i++ {
+		s.stop <- struct{}{}
+	}
+}
+
+// Worker routine.
+func (s *Server) Worker() {
+	// Continually handle new connections.
+	for s.running {
+		select {
+		case <-s.stop:
+			// Stop signal. NOTE: Never put any code here since we can't be
+			// sure we'll ever get the stop signal, we may just exit the loop.
+			return
+		case conn := <-s.jobs:
+			// Got a new connection.
+			tlsConn, ok := conn.(*tls.Conn)
+			if !ok {
+				// Weird error, log and ignore.
+				// TODO: Future logging
+				continue
+			}
+			fmt.Println("(worker:debug): connection ", tlsConn)
+			connection.HandleConnection(*tlsConn, s.config.GetTimeout(), s)
+		}
+	}
+}
+
+// Limit response worker routine.
+func (s *Server) LimitResponseWorker() {
+	// Continually handle new connections.
+	for s.running {
+		select {
+		case <-s.stop:
+			// Stop signal. NOTE: Never put any code here since we can't be
+			// sure we'll ever get the stop signal, we may just exit the loop.
+			return
+		case conn := <-s.jobs:
+			// Got a new connection.
+			tlsConn, ok := conn.(*tls.Conn)
+			if !ok {
+				// Weird error, log and ignore.
+				// TODO: Future logging
+				conn.Close()
+				continue
+			}
+
+			stream := network.DataStream(network.NewTLSStream(tlsConn))
+			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil)
+			conn.Close()
+		}
+	}
+}
+
+// Get sessions.
+func (s *Server) Sessions() *slist.SessionList {
+	return s.sessions
+}
+
+// Get users.
+func (s *Server) Users() *ulist.UserList {
+	return s.users
+}
+
+// Get config.
+func (s *Server) Config() *config.Config {
+	return s.config
+}

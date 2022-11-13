@@ -829,7 +829,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 	}
 
 	// Write the chunks to the handler.
-	handler.WriteChunkResponseInfo(chunks, timeout)
+	handler.WriteChunkResponseInfo(chunks, timeout, true)
 
 	for i := range files {
 		// We don't have to check again.

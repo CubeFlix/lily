@@ -55,6 +55,16 @@ func (u *UserList) GetList() []string {
 	return u.names
 }
 
+// Get the map.
+func (u *UserList) GetMap() map[string]*user.User {
+	// Acquire the read lock.
+	u.lock.RLock()
+	defer u.lock.RUnlock()
+
+	// Return the map.
+	return u.users
+}
+
 // Get users by name.
 func (u *UserList) GetUsersByName(users []string) ([]*user.User, error) {
 	// Acquire the read lock.

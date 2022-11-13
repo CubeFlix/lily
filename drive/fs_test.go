@@ -464,6 +464,9 @@ func TestReadFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 
+	header := make([]byte, 5)
+	ds.Read(&header, time.Duration(0))
+
 	// Get the data back from the chunks.
 	chunks, err := c.GetChunkRequestInfo(time.Duration(0))
 	if err != nil {
@@ -573,7 +576,7 @@ func TestWriteFile(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Add some text to write.
-	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}}, time.Duration(0))
+	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./foo", NumChunks: 2}, {Name: "bar", NumChunks: 1}}, time.Duration(0), false)
 	c.WriteChunkInfo("./foo", 6, time.Duration(0))
 	data := []byte("hello ")
 	c.WriteChunk(&data, time.Duration(0))
@@ -847,7 +850,7 @@ func TestHashVerify(t *testing.T) {
 	c := network.NewChunkHandler(ds)
 
 	// Add some text to write.
-	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./a", NumChunks: 2}, {Name: "b", NumChunks: 1}}, time.Duration(0))
+	c.WriteChunkResponseInfo([]network.ChunkInfo{{Name: "./a", NumChunks: 2}, {Name: "b", NumChunks: 1}}, time.Duration(0), false)
 	c.WriteChunkInfo("./a", 6, time.Duration(0))
 	data := []byte("hello ")
 	c.WriteChunk(&data, time.Duration(0))
