@@ -332,14 +332,13 @@ func ConnectionError(s network.DataStream, timeout time.Duration, code int, str 
 }
 
 // Handle a TLS connection.
-func HandleConnection(conn tls.Conn, timeout time.Duration, s Server) {
+func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	defer conn.Close()
 
-	stream := network.DataStream(network.NewTLSStream(&conn))
+	stream := network.DataStream(network.NewTLSStream(conn))
 	// Accept the header.
 	header := make([]byte, 5)
 	if _, err := stream.Read(&header, timeout); err != nil {
-		fmt.Println("(lily.HandleConnection:error) -", err)
 		ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
 		return
 	}

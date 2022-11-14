@@ -189,7 +189,7 @@ func (s *Server) Worker() {
 				continue
 			}
 			fmt.Println("(lily.Server.Worker:debug) - connection")
-			connection.HandleConnection(*tlsConn, s.config.GetTimeout(), s)
+			connection.HandleConnection(tlsConn, s.config.GetTimeout(), s)
 		}
 	}
 }

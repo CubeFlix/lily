@@ -1,5 +1,5 @@
 # Protocol
-Note that all strings with arbitrary length are encoded as a 32-bit unsigned int containing the length of the string, followed by the string itself. All numbers in Lily use little-endian. Arrays with arbitrary length will also encode the length of the array as 32-bit unsigned int, followed by the array data.
+Lily servers and clients communicate via a custom protocol which utilizes BSON for object serialization. This protocol relies on TCP. Note that all strings with arbitrary length are encoded as a 32-bit unsigned int containing the length of the string, followed by the string itself. All numbers in Lily use little-endian. Arrays with arbitrary length will also encode the length of the array as 32-bit unsigned int, followed by the array data.
 ## Requests
 Lily requests contain three parts: authentication information, request information, and chunk data. Each request consists of the following fields:
 
@@ -20,7 +20,7 @@ Lily responses contain three parts: chunk data, response code, and response info
 | Chunks      | The chunk data.          | [Chunks](#chunks)   |
 | Response Code     | The response code.        | `int` |
 | Response String | The response string. | `string` |
-| Response Data | The response data output values. | Any |
+| Response Data | The response data output values. | BSON |
 | Footer | The response footer. | [Footer](#footer) |
 
 ## Header
@@ -60,7 +60,7 @@ The command data consists of the name of the command, followed by the command ar
 | Name        | Description     | Type   |
 | -           | -               | -      |
 | Name  | The command name. | `string` |
-| Args  | The command arguments. | Any |
+| Args  | The command arguments. | BSON |
 | Footer | The command footer. | [Footer](#footer) |
 
 ## Chunks

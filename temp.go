@@ -23,9 +23,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tlsconfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+	tlsconfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS10,
+	}
 	// create a server
-	c, err := config.NewConfig("", "", 8000, nil, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Second, 10, nil, tlsconfig)
+	c, err := config.NewConfig("", "127.0.0.1", 8000, nil, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Second, 10000, nil, tlsconfig)
 	if err != nil {
 		panic(err)
 	}

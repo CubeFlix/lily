@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"errors"
-	"io"
+	"fmt"
 	"os"
 	"time"
 )
@@ -25,8 +25,6 @@ import (
 const PROTOCOL_VERSION = "0"
 
 var ErrTimedOut = errors.New("lily.network: Timed out")
-var ErrEOF = errors.New("lily.network: EOF reached")
-var ErrNoData = errors.New("lily.network: Not enough data read/written")
 
 // DataStream interface. Can represent a crypto/tls.Conn object.
 type DataStream interface {
@@ -58,20 +56,22 @@ func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err := c.reader.Read(*b)
-	if err != nil {
-		if errors.Is(err, os.ErrDeadlineExceeded) {
-			return n, ErrTimedOut
-		} else if err == io.EOF {
-			return n, ErrEOF
+	read := 0
+	for {
+		n, err := c.reader.Read((*b)[read:])
+		read += n
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				fmt.Println("error deadline exceeded")
+				return read, ErrTimedOut
+			}
+			return read, err
 		}
-		return n, err
+		if n == 0 || read == len(*b) {
+			break
+		}
 	}
-	if n != len(*b) {
-		// Not enough data read.
-		return n, ErrNoData
-	}
-	return n, nil
+	return read, nil
 }
 
 func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
@@ -79,18 +79,21 @@ func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err := c.writer.Write(*b)
-	if err != nil {
-		if errors.Is(err, os.ErrDeadlineExceeded) {
-			return n, ErrTimedOut
+	read := 0
+	for {
+		n, err := c.writer.Write((*b)[read:])
+		read += n
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				return read, ErrTimedOut
+			}
+			return read, err
 		}
-		return n, err
+		if n == 0 || read == len(*b) {
+			break
+		}
 	}
-	if n != len(*b) {
-		// Not enough data read.
-		return n, ErrNoData
-	}
-	return n, nil
+	return read, nil
 }
 
 func (c *TLSConnStream) Flush() {
