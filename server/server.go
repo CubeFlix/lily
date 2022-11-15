@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/cubeflix/lily/connection"
 	"github.com/cubeflix/lily/drive"
@@ -27,7 +28,7 @@ import (
 
 // The Lily server object. We only need a mutex for the drives map.
 type Server struct {
-	lock     sync.RWMutex
+	Lock     sync.RWMutex
 	drives   map[string]*drive.Drive
 	sessions *slist.SessionList
 	users    *ulist.UserList
@@ -48,32 +49,73 @@ type Server struct {
 // Create a new server object.
 func NewServer(sessions *slist.SessionList, users *ulist.UserList, config *config.Config) *Server {
 	return &Server{
-		lock:     sync.RWMutex{},
+		Lock:     sync.RWMutex{},
 		sessions: sessions,
 		users:    users,
 		config:   config,
 	}
 }
 
-// Check if the server is running.
-func (s *Server) Running() bool {
-	return s.running
+// Lock drives.
+func (s *Server) LockDrives() {
+	s.Lock.Lock()
+}
+
+// Unlock drives.
+func (s *Server) UnlockDrives() {
+	s.Lock.Unlock()
+}
+
+// Lock drives for reading.
+func (s *Server) LockReadDrives() {
+	s.Lock.RLock()
+}
+
+// Unlock drives for reading.
+func (s *Server) UnlockReadDrives() {
+	s.Lock.RUnlock()
+}
+
+// Get the drives.
+func (s *Server) GetDrives() map[string]*drive.Drive {
+	return s.drives
+}
+
+// Get the drive names.
+func (s *Server) GetDriveNames() []string {
+	names := make([]string, len(s.drives))
+	i := 0
+	for name := range s.drives {
+		names[i] = name
+		i += 1
+	}
+	return names
+}
+
+// Set the drives.
+func (s *Server) SetDrives(drives map[string]*drive.Drive) {
+	s.drives = drives
 }
 
 // Get a drive.
 func (s *Server) GetDrive(name string) *drive.Drive {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.Lock.RLock()
+	defer s.Lock.RUnlock()
 
 	return s.drives[name]
 }
 
 // Set a drive.
 func (s *Server) SetDrive(name string, d *drive.Drive) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.Lock.Lock()
+	defer s.Lock.Unlock()
 
 	s.drives[name] = d
+}
+
+// Check if the server is running.
+func (s *Server) Running() bool {
+	return s.running
 }
 
 // Serve.
@@ -144,7 +186,6 @@ func (s *Server) Serve() error {
 			}
 			if !valid {
 				// Rate limit reached.
-				fmt.Println("as")
 				s.limitReached <- conn
 				continue
 			}
@@ -215,6 +256,21 @@ func (s *Server) LimitResponseWorker() {
 			}
 
 			stream := network.DataStream(network.NewTLSStream(tlsConn))
+
+			// Load all the request/chunk data. We'll use the raw TCP socket
+			// since we want to have full control over the data read.
+			buf := make([]byte, 1024)
+			for {
+				tlsConn.SetReadDeadline(time.Now().Add(s.config.GetTimeout()))
+				n, err := tlsConn.Read(buf)
+				if err != nil {
+					break
+				}
+				if n < 1024 {
+					break
+				}
+			}
+
 			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil)
 			conn.Close()
 		}

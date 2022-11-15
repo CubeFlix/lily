@@ -65,6 +65,11 @@ func (s *Session) ShouldExpire() bool {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
+	if s.expireAfter == 0 {
+		// Should not expire.
+		return false
+	}
+
 	if s.expireAt.Before(time.Now()) {
 		return true
 	} else {

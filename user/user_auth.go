@@ -31,3 +31,8 @@ func (u *UserAuth) Authenticate() error {
 	}
 	return nil
 }
+
+// Get the user information.
+func (u *UserAuth) GetInfo() (string, string, *User) {
+	return u.username, u.password, u.user
+}

@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"os"
 	"time"
 )
@@ -62,7 +61,6 @@ func (c *TLSConnStream) Read(b *[]byte, timeout time.Duration) (int, error) {
 		read += n
 		if err != nil {
 			if errors.Is(err, os.ErrDeadlineExceeded) {
-				fmt.Println("error deadline exceeded")
 				return read, ErrTimedOut
 			}
 			return read, err

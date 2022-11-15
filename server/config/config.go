@@ -43,6 +43,9 @@ type Config struct {
 	// The server file.
 	file string
 
+	// The server name.
+	name string
+
 	// The host and port.
 	host string
 	port int
@@ -83,6 +86,11 @@ type Config struct {
 	logLevel  string
 	logPath   string
 
+	// Session expiration settings.
+	defaultSessionExpiration     time.Duration
+	allowChangeSessionExpiration bool
+	allowNonExpiringSessions     bool
+
 	// Rate limiting settings.
 	limit          time.Duration
 	maxLimitEvents int
@@ -95,11 +103,13 @@ type Config struct {
 }
 
 // Create the config object.
-func NewConfig(file, host string, port int, driveFiles map[string]string, numWorkers, backlog int,
-	optionalDaemons []string, optionalArgs [][]string, mainCronInterval,
-	sessionCronInterval, netTimeout time.Duration, verbose, logToFile,
-	logJSON bool, logLevel, logPath string, limit time.Duration,
-	maxLimitEvents int, tlsCerts []tls.Certificate, tlsConfig *tls.Config) (*Config, error) {
+func NewConfig(file, name, host string, port int, driveFiles map[string]string,
+	numWorkers, backlog int, optionalDaemons []string, optionalArgs [][]string,
+	mainCronInterval, sessionCronInterval, netTimeout time.Duration, verbose,
+	logToFile, logJSON bool, logLevel, logPath string,
+	defaultSessionExpiration time.Duration, allowChangeSessionExpiration,
+	allowNonExpiringSessions bool, limit time.Duration, maxLimitEvents int,
+	tlsCerts []tls.Certificate, tlsConfig *tls.Config) (*Config, error) {
 	if netTimeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
 	}
@@ -115,29 +125,33 @@ func NewConfig(file, host string, port int, driveFiles map[string]string, numWor
 	}
 	// Create the config object.
 	return &Config{
-		lock:                sync.RWMutex{},
-		dirty:               false,
-		file:                file,
-		host:                host,
-		port:                port,
-		numDrives:           len(driveFiles),
-		driveFiles:          driveFiles,
-		numWorkers:          numWorkers,
-		backlog:             backlog,
-		optionalDaemons:     optionalDaemons,
-		optionalArgs:        optionalArgs,
-		mainCronInterval:    mainCronInterval,
-		sessionCronInterval: sessionCronInterval,
-		netTimeout:          netTimeout,
-		verbose:             verbose,
-		logToFile:           logToFile,
-		logJSON:             logJSON,
-		logLevel:            logLevel,
-		logPath:             logPath,
-		limit:               limit,
-		maxLimitEvents:      maxLimitEvents,
-		tlsCerts:            tlsCerts,
-		tlsConfig:           tlsConfig,
+		lock:                         sync.RWMutex{},
+		dirty:                        false,
+		file:                         file,
+		name:                         name,
+		host:                         host,
+		port:                         port,
+		numDrives:                    len(driveFiles),
+		driveFiles:                   driveFiles,
+		numWorkers:                   numWorkers,
+		backlog:                      backlog,
+		optionalDaemons:              optionalDaemons,
+		optionalArgs:                 optionalArgs,
+		mainCronInterval:             mainCronInterval,
+		sessionCronInterval:          sessionCronInterval,
+		netTimeout:                   netTimeout,
+		verbose:                      verbose,
+		logToFile:                    logToFile,
+		logJSON:                      logJSON,
+		logLevel:                     logLevel,
+		logPath:                      logPath,
+		defaultSessionExpiration:     defaultSessionExpiration,
+		allowChangeSessionExpiration: allowChangeSessionExpiration,
+		allowNonExpiringSessions:     allowNonExpiringSessions,
+		limit:                        limit,
+		maxLimitEvents:               maxLimitEvents,
+		tlsCerts:                     tlsCerts,
+		tlsConfig:                    tlsConfig,
 	}, nil
 }
 
@@ -177,6 +191,31 @@ func (c *Config) SetServerFile(file string) error {
 
 	// Set the file.
 	c.file = file
+
+	// Set the dirty value.
+	c.SetDirty(true)
+
+	// Return.
+	return nil
+}
+
+// Get the server name.
+func (c *Config) GetName() string {
+	// Acquire the read lock.
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.name
+}
+
+// Set the server name.
+func (c *Config) SetName(name string) error {
+	// Acquire the write lock.
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	// Set the file.
+	c.name = name
 
 	// Set the dirty value.
 	c.SetDirty(true)
@@ -367,6 +406,22 @@ func (c *Config) SetLogging(verbose, logToFile, logJSON bool, logLevel, logPath 
 	c.logJSON = logJSON
 	c.logLevel = logLevel
 	c.logPath = logPath
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Get the session expiration settings.
+func (c *Config) GetSessionExpirationSettings() (time.Duration, bool, bool) {
+	return c.defaultSessionExpiration, c.allowChangeSessionExpiration, c.allowNonExpiringSessions
+}
+
+// Set the session expiration settings.
+func (c *Config) SetSessionExpirationSettings(defaultSessionExpiration time.Duration,
+	allowChangeSessionExpiration, allowNonExpiringSessions bool) {
+	c.defaultSessionExpiration = defaultSessionExpiration
+	c.allowChangeSessionExpiration = allowChangeSessionExpiration
+	c.allowNonExpiringSessions = allowNonExpiringSessions
 
 	// Set the dirty value.
 	c.SetDirty(true)

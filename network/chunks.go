@@ -26,6 +26,9 @@ type ChunkHandler struct {
 
 	// If we wrote the chunk data already.
 	wroteChunkData bool
+
+	// If we received the chunk data already.
+	receivedChunkData bool
 }
 
 // ChunkInfo struct.
@@ -38,8 +41,9 @@ type ChunkInfo struct {
 // Create a new ChunkHandler from a DataStream.
 func NewChunkHandler(stream DataStream) *ChunkHandler {
 	return &ChunkHandler{
-		stream:         stream,
-		wroteChunkData: false,
+		stream:            stream,
+		wroteChunkData:    false,
+		receivedChunkData: false,
 	}
 }
 
@@ -48,9 +52,16 @@ func (c *ChunkHandler) DidWriteChunkData() bool {
 	return c.wroteChunkData
 }
 
+// Check if we already received the chunk data.
+func (c *ChunkHandler) DidReceiveChunkData() bool {
+	return c.receivedChunkData
+}
+
 // Get the request chunk data, including the list of chunks and order. NOTE:
 // This function MUST be called before using the handler.
 func (c *ChunkHandler) GetChunkRequestInfo(timeout time.Duration) ([]ChunkInfo, error) {
+	c.receivedChunkData = true
+
 	// Get the length of the list.
 	data := make([]byte, 2)
 	_, err := c.stream.Read(&data, timeout)

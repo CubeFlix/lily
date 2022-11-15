@@ -46,15 +46,15 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Out of memory. Please try again later.
 
-### **Code:** 6
-
-**Description:**
-> Invalid expiration time. Server does not allow non-expiring sessions.
-
-### **Code:** 7
+### **Code:** 9
 
 **Description:**
 > Server could not successfully generate a unique session ID. Please try again.
+
+### **Code:** 10
+
+**Description:**
+> Invalid expiration time. Server does not allow non-expiring sessions.
 
 ### **Code:** 8
 

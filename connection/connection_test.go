@@ -80,7 +80,7 @@ func TestConnectionUserAuth(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := connection.NewConnection(ds)
+	conn := connection.NewConnection(ds, connection.NewFixedStream(testInput))
 
 	// Get the auth object.
 	auth, err := conn.ReceiveAuth(time.Duration(0), sobj)
@@ -134,7 +134,7 @@ func TestConnectionSessionAuth(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := connection.NewConnection(ds)
+	conn := connection.NewConnection(ds, connection.NewFixedStream(testInput))
 
 	// Get the auth object.
 	auth, err := conn.ReceiveAuth(time.Duration(0), serverobj)
@@ -184,8 +184,8 @@ func TestConnectionRequest(t *testing.T) {
 		t.Error(err.Error())
 	}
 	// Write the data length.
-	data = make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(len(encoded)))
+	data = make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(len(encoded)))
 	testInput = append(testInput, data...)
 	// Write the data.
 	testInput = append(testInput, encoded...)
@@ -198,7 +198,7 @@ func TestConnectionRequest(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := connection.NewConnection(ds)
+	conn := connection.NewConnection(ds, connection.NewFixedStream(testInput))
 
 	// Get the command object.
 	err = conn.ReceiveRequest(time.Duration(0), serverobj)
@@ -227,19 +227,25 @@ func TestConnectionRequest(t *testing.T) {
 
 // Test a connection with a response.
 func TestConnectionResponse(t *testing.T) {
-	// Create the response data.
-	testOutput := make([]byte, 0)
-	testOutput = append(testOutput, []byte{69, 0, 0, 0}...)
-	testOutput = append(testOutput, []byte{5, 0}...)
-	testOutput = append(testOutput, []byte("error")...)
 	encoded, err := bson.Marshal(map[string]interface{}{"a": 1, "b": "bar", "c": []int{1, 2, 3}})
 	if err != nil {
 		t.Error(err.Error())
 	}
-	// Write the data length.
-	data := make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(len(encoded)))
+	// Create the response data.
+	testOutput := make([]byte, 0)
+	length := 16 + len(encoded)
+	data := make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(length))
 	testOutput = append(testOutput, data...)
+	testOutput = append(testOutput, []byte{69, 0, 0, 0}...)
+	testOutput = append(testOutput, []byte{5, 0}...)
+	testOutput = append(testOutput, []byte("error")...)
+	// Write the data length.
+	data = make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(len(encoded)))
+	testOutput = append(testOutput, data...)
+	testOutput = append(testOutput, encoded...)
+	testOutput = append(testOutput, []byte("END")...)
 	// Create a DataStream.
 	ts := &TestStream{
 		[]byte{},
@@ -248,7 +254,7 @@ func TestConnectionResponse(t *testing.T) {
 	ds := network.DataStream(ts)
 
 	// Create the connection.
-	conn := connection.NewConnection(ds)
+	conn := connection.NewConnection(ds, connection.NewFixedStream([]byte{}))
 	conn.Command = &commands.Command{}
 	conn.Command.RespCode = 69
 	conn.Command.RespData = map[string]interface{}{"a": 1, "b": "bar", "c": []int{1, 2, 3}}

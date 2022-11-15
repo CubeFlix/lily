@@ -24,7 +24,7 @@ Lily responses contain three parts: chunk data, response code, and response info
 | Footer | The response footer. | [Footer](#footer) |
 
 ## Header
-The header information is the same for both requests and responses. It consists of a single UTF-8 encoded string: `LILY` and the Lily protocol version, which is encoded as a string of arbitrary length. If the protocol version for the client and server do not match, the Lily server will respond with an error. The Lily server header is to ensure that the data being received is encoded properly.
+The header information contains the length of the request data for requests. This field is omitted for responses, and is instead transferred directly after the chunk data. It consists of a single UTF-8 encoded string: `LILY` and the Lily protocol version, which is encoded as a string of arbitrary length. If the protocol version for the client and server do not match, the Lily server will respond with an error. The Lily server header is to ensure that the data being received is encoded properly.
 
 | Name        | Description     | Type   |
 | -           | -               | -      |

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cubeflix/lily/commands"
+	"github.com/cubeflix/lily/drive"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/auth"
 	"github.com/cubeflix/lily/server/config"
@@ -31,11 +32,27 @@ type Server interface {
 	Users() *userlist.UserList
 	Sessions() *sessionlist.SessionList
 	Config() *config.Config
+	LockDrives()
+	UnlockDrives()
+	LockReadDrives()
+	UnlockReadDrives()
+	GetDrives() map[string]*drive.Drive
+	GetDriveNames() []string
+	SetDrives(map[string]*drive.Drive)
+	GetDrive(string) *drive.Drive
+	SetDrive(string, *drive.Drive)
 }
 
 // Fixed DataStream.
 type FixedStream struct {
 	data []byte
+}
+
+// Create a fixed stream.
+func NewFixedStream(data []byte) *FixedStream {
+	return &FixedStream{
+		data: data,
+	}
 }
 
 // Read from the DataStream.
@@ -125,12 +142,12 @@ func (c *Connection) ReceiveRequest(timeout time.Duration, s Server) error {
 
 	// Get the data.
 	// Receive the data length.
-	data := make([]byte, 4)
+	data := make([]byte, 2)
 	_, err = c.requestData.Read(&data, timeout)
 	if err != nil {
 		return err
 	}
-	length := binary.LittleEndian.Uint32(data)
+	length := binary.LittleEndian.Uint16(data)
 	data = make([]byte, length)
 	_, err = c.requestData.Read(&data, timeout)
 	if err != nil {
@@ -240,6 +257,16 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s Server) (auth.Auth, er
 		}
 		return sobj[0], nil
 	} else if string(authType) == "N" {
+		// Receive the footer.
+		footer := make([]byte, 3)
+		_, err = c.requestData.Read(&footer, timeout)
+		if err != nil {
+			return nil, err
+		}
+		if string(footer) != "END" {
+			return nil, network.ErrInvalidFooter
+		}
+
 		// Null authentication.
 		return &auth.NullAuth{}, nil
 	} else {
@@ -249,10 +276,25 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s Server) (auth.Auth, er
 
 // Respond to the connection.
 func (c *Connection) Respond(timeout time.Duration) error {
+	// Marshal the BSON so we can calculate the length of the data.
+	encoded, err := bson.Marshal(c.Command.RespData)
+	if err != nil {
+		return err
+	}
+
+	// Respond with the length of the data.
+	data_length := 11 + len(encoded) + len(c.Command.RespString)
+	data := make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(data_length))
+	_, err = c.conn.Write(&data, timeout)
+	if err != nil {
+		return err
+	}
+
 	// Respond with the response code.
-	data := make([]byte, 4)
+	data = make([]byte, 4)
 	binary.LittleEndian.PutUint32(data, uint32(c.Command.RespCode))
-	_, err := c.conn.Write(&data, timeout)
+	_, err = c.conn.Write(&data, timeout)
 	if err != nil {
 		return err
 	}
@@ -263,14 +305,9 @@ func (c *Connection) Respond(timeout time.Duration) error {
 		return err
 	}
 
-	// Write the data.
-	encoded, err := bson.Marshal(c.Command.RespData)
-	if err != nil {
-		return err
-	}
 	// Write the data length.
-	data = make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(len(encoded)))
+	data = make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(len(encoded)))
 	_, err = c.conn.Write(&data, timeout)
 	if err != nil {
 		return err
@@ -307,19 +344,9 @@ func ConnectionError(s network.DataStream, timeout time.Duration, code int, str 
 		return
 	}
 
-	// Respond with the data.
-	data = make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(code))
-	_, err := s.Write(&data, timeout)
-	if err != nil {
-		return
-	}
-	if respString(str, s, timeout) != nil {
-		return
-	}
-
-	// Write the data.
+	// Marshal the BSON so we can calculate the final length.
 	var encoded []byte
+	var err error
 	if connErr != nil {
 		encoded, err = bson.Marshal(map[string]interface{}{"error": connErr.Error()})
 		if err != nil {
@@ -334,9 +361,30 @@ func ConnectionError(s network.DataStream, timeout time.Duration, code int, str 
 	if err != nil {
 		return
 	}
-	// Write the data length.
+
+	// Respond with the length of the data.
+	data_length := 13 + len(encoded) + len(str)
+	data = make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(data_length))
+	_, err = s.Write(&data, timeout)
+	if err != nil {
+		return
+	}
+
+	// Respond with the data.
 	data = make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(len(encoded)))
+	binary.LittleEndian.PutUint32(data, uint32(code))
+	_, err = s.Write(&data, timeout)
+	if err != nil {
+		return
+	}
+	if respString(str, s, timeout) != nil {
+		return
+	}
+
+	// Write the data length.
+	data = make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(len(encoded)))
 	_, err = s.Write(&data, timeout)
 	if err != nil {
 		return
@@ -404,18 +452,42 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	// Execute the command.
 	commands.ExecuteCommand(cobj.Command)
 
+	// If we haven't received the chunk data yet, do that now.
+	if !cobj.Command.Chunks.DidReceiveChunkData() {
+		ch := network.NewChunkHandler(tlsStream)
+		ci, err := ch.GetChunkRequestInfo(timeout)
+		if err != nil {
+			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
+			return
+		}
+		for range ci {
+			// Receive each chunk.
+			_, chunkLen, err := ch.GetChunkInfo(timeout)
+			if err != nil {
+				ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
+				return
+			}
+			buf := make([]byte, chunkLen)
+			err = ch.GetChunk(&buf, timeout)
+			if err != nil {
+				ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
+				return
+			}
+		}
+	}
+
 	// If we haven't responded with the header and chunk data yet, do that now.
 	if !cobj.Command.Chunks.DidWriteChunkData() {
-		ch := network.NewChunkHandler(stream)
+		ch := network.NewChunkHandler(tlsStream)
 		if err := ch.WriteChunkResponseInfo(nil, timeout, true); err != nil {
-			ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 			return
 		}
-		data := []byte("END")
-		if _, err := stream.Write(&data, timeout); err != nil {
-			ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
-			return
-		}
+	}
+	data := []byte("END")
+	if _, err := tlsStream.Write(&data, timeout); err != nil {
+		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
+		return
 	}
 
 	// Reply.

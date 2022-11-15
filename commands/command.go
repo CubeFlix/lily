@@ -6,6 +6,7 @@
 package commands
 
 import (
+	"github.com/cubeflix/lily/drive"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/auth"
 	"github.com/cubeflix/lily/server/config"
@@ -17,6 +18,15 @@ type Server interface {
 	Users() *userlist.UserList
 	Sessions() *sessionlist.SessionList
 	Config() *config.Config
+	LockDrives()
+	UnlockDrives()
+	LockReadDrives()
+	UnlockReadDrives()
+	GetDrives() map[string]*drive.Drive
+	GetDriveNames() []string
+	SetDrives(map[string]*drive.Drive)
+	GetDrive(string) *drive.Drive
+	SetDrive(string, *drive.Drive)
 }
 
 // The basic command object.

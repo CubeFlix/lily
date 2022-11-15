@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cubeflix/lily/drive"
+	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/server"
 	"github.com/cubeflix/lily/server/config"
@@ -38,12 +40,17 @@ func main() {
 	userlist := ulist.NewUserList()
 	userlist.SetUsersByName(map[string]*user.User{"admin": uobj})
 
+	// create the drives list
+	dobj := drive.NewDrive("drive", "", &access.AccessSettings{}, &fs.Directory{})
+	drivelist := map[string]*drive.Drive{"drive": dobj}
+
 	// create a server
-	c, err := config.NewConfig("", "127.0.0.1", 8001, nil, 5, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Second, 1000, nil, tlsconfig)
+	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Hour, true, true, time.Minute, 3, nil, tlsconfig)
 	if err != nil {
 		panic(err)
 	}
 	s := server.NewServer(slist.NewSessionList(10), userlist, c)
+	s.SetDrives(drivelist)
 	err = s.Serve()
 	if err != nil {
 		panic(err)

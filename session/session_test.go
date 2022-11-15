@@ -14,7 +14,7 @@ import (
 func TestSessionExpire(t *testing.T) {
 	// Create a session.
 	id := uuid.New()
-	s := NewSession(id, "foo", time.Duration(0))
+	s := NewSession(id, "foo", time.Microsecond)
 
 	// We should now expire.
 	s.UpdateExpiration()
