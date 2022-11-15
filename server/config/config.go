@@ -20,6 +20,7 @@ var ErrFileDoesNotExist = errors.New("lily.server.config: File does not exist or
 var ErrDriveFileAlreadyExists = errors.New("lily.server.config: Drive file already exists")
 var ErrDriveFileDoesNotExist = errors.New("lily.server.config: Drive file does not exist")
 var ErrNumWorkersInvalid = errors.New("lily.server.config: Invalid number of workers; must have at least one worker")
+var ErrNumBacklogInvalid = errors.New("lily.server.config: Invalid backlog length; must have at least one")
 var ErrTimeoutInvalid = errors.New("lily.server.config: Timeout interval invalid")
 var ErrInvalidLoggingLevel = errors.New("lily.server.config: Invalid logging level")
 
@@ -54,6 +55,9 @@ type Config struct {
 
 	// The number of workers.
 	numWorkers int
+
+	// The maximum backlog amount.
+	backlog int
 
 	// A list of optional daemons to run at startup, alongside the main Lily
 	// server.
@@ -91,7 +95,7 @@ type Config struct {
 }
 
 // Create the config object.
-func NewConfig(file, host string, port int, driveFiles map[string]string, numWorkers int,
+func NewConfig(file, host string, port int, driveFiles map[string]string, numWorkers, backlog int,
 	optionalDaemons []string, optionalArgs [][]string, mainCronInterval,
 	sessionCronInterval, netTimeout time.Duration, verbose, logToFile,
 	logJSON bool, logLevel, logPath string, limit time.Duration,
@@ -106,6 +110,9 @@ func NewConfig(file, host string, port int, driveFiles map[string]string, numWor
 	if numWorkers < 1 {
 		return &Config{}, ErrNumWorkersInvalid
 	}
+	if backlog < 1 {
+		return &Config{}, ErrNumBacklogInvalid
+	}
 	// Create the config object.
 	return &Config{
 		lock:                sync.RWMutex{},
@@ -116,6 +123,7 @@ func NewConfig(file, host string, port int, driveFiles map[string]string, numWor
 		numDrives:           len(driveFiles),
 		driveFiles:          driveFiles,
 		numWorkers:          numWorkers,
+		backlog:             backlog,
 		optionalDaemons:     optionalDaemons,
 		optionalArgs:        optionalArgs,
 		mainCronInterval:    mainCronInterval,
@@ -274,6 +282,34 @@ func (c *Config) SetNumWorkers(numWorkers int) error {
 	}
 
 	c.numWorkers = numWorkers
+
+	// Set the dirty value.
+	c.SetDirty(true)
+
+	// Return.
+	return nil
+}
+
+// Get the backlog.
+func (c *Config) GetBacklog() int {
+	// Acquire the read lock.
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.backlog
+}
+
+// Set the backlog amount. Note that this does not update the server.
+func (c *Config) SetBacklog(backlog int) error {
+	// Acquire the write lock.
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if backlog < 1 {
+		return ErrNumBacklogInvalid
+	}
+
+	c.backlog = backlog
 
 	// Set the dirty value.
 	c.SetDirty(true)

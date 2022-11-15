@@ -66,9 +66,9 @@ func TestConnectionUserAuth(t *testing.T) {
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
 	testInput = append(testInput, []byte("U")...)
-	testInput = append(testInput, []byte{3, 0, 0, 0}...)
+	testInput = append(testInput, []byte{3, 0}...)
 	testInput = append(testInput, []byte("foo")...)
-	testInput = append(testInput, []byte{3, 0, 0, 0}...)
+	testInput = append(testInput, []byte{3, 0}...)
 	testInput = append(testInput, []byte("bar")...)
 	testInput = append(testInput, []byte("END")...)
 
@@ -117,7 +117,7 @@ func TestConnectionSessionAuth(t *testing.T) {
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
 	testInput = append(testInput, []byte("S")...)
-	testInput = append(testInput, []byte{3, 0, 0, 0}...)
+	testInput = append(testInput, []byte{3, 0}...)
 	testInput = append(testInput, []byte("foo")...)
 	data, err := suuid.MarshalBinary()
 	if err != nil {
@@ -169,7 +169,7 @@ func TestConnectionRequest(t *testing.T) {
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
 	testInput = append(testInput, []byte("S")...)
-	testInput = append(testInput, []byte{3, 0, 0, 0}...)
+	testInput = append(testInput, []byte{3, 0}...)
 	testInput = append(testInput, []byte("foo")...)
 	data, err := suuid.MarshalBinary()
 	if err != nil {
@@ -177,7 +177,7 @@ func TestConnectionRequest(t *testing.T) {
 	}
 	testInput = append(testInput, data...)
 	testInput = append(testInput, []byte("END")...)
-	testInput = append(testInput, []byte{11, 0, 0, 0}...)
+	testInput = append(testInput, []byte{11, 0}...)
 	testInput = append(testInput, []byte("CommandName")...)
 	encoded, err := bson.Marshal(map[string]interface{}{"a": 1, "b": "bar", "c": []int{1, 2, 3}})
 	if err != nil {
@@ -230,7 +230,7 @@ func TestConnectionResponse(t *testing.T) {
 	// Create the response data.
 	testOutput := make([]byte, 0)
 	testOutput = append(testOutput, []byte{69, 0, 0, 0}...)
-	testOutput = append(testOutput, []byte{5, 0, 0, 0}...)
+	testOutput = append(testOutput, []byte{5, 0}...)
 	testOutput = append(testOutput, []byte("error")...)
 	encoded, err := bson.Marshal(map[string]interface{}{"a": 1, "b": "bar", "c": []int{1, 2, 3}})
 	if err != nil {

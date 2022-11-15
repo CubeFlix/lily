@@ -41,6 +41,11 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Rate limit reached. Please try again later.
 
+### **Code:** 8
+
+**Description:**
+> Out of memory. Please try again later.
+
 ### **Code:** 6
 
 **Description:**

@@ -80,8 +80,8 @@ func (s *Server) SetDrive(name string, d *drive.Drive) {
 func (s *Server) Serve() error {
 	// Create the channels and rate limiter.
 	fmt.Println("(lily.Server.Serve:debug) - started")
-	s.jobs = make(chan net.Conn)
-	s.limitReached = make(chan net.Conn)
+	s.jobs = make(chan net.Conn, s.config.GetBacklog())
+	s.limitReached = make(chan net.Conn, s.config.GetBacklog())
 	s.stop = make(chan struct{}, s.config.GetNumWorkers()+1)
 	interval, numTokens := s.config.GetRateLimit()
 	limiter, err := memorystore.New(&memorystore.Config{
@@ -144,6 +144,7 @@ func (s *Server) Serve() error {
 			}
 			if !valid {
 				// Rate limit reached.
+				fmt.Println("as")
 				s.limitReached <- conn
 				continue
 			}
@@ -203,7 +204,7 @@ func (s *Server) LimitResponseWorker() {
 			// Stop signal. NOTE: Never put any code here since we can't be
 			// sure we'll ever get the stop signal, we may just exit the loop.
 			return
-		case conn := <-s.jobs:
+		case conn := <-s.limitReached:
 			// Got a new connection.
 			tlsConn, ok := conn.(*tls.Conn)
 			if !ok {

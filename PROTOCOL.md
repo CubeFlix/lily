@@ -1,5 +1,5 @@
 # Protocol
-Lily servers and clients communicate via a custom protocol which utilizes BSON for object serialization. This protocol relies on TCP. Note that all strings with arbitrary length are encoded as a 32-bit unsigned int containing the length of the string, followed by the string itself. All numbers in Lily use little-endian. Arrays with arbitrary length will also encode the length of the array as 32-bit unsigned int, followed by the array data.
+Lily servers and clients communicate via a custom protocol which utilizes BSON for object serialization. This protocol relies on TCP. Note that all strings with arbitrary length are encoded as a 16-bit unsigned int containing the length of the string, followed by the string itself. All numbers in Lily use little-endian. Arrays with arbitrary length will also encode the length of the array as 16-bit unsigned int, followed by the array data.
 ## Requests
 Lily requests contain three parts: authentication information, request information, and chunk data. Each request consists of the following fields:
 
@@ -29,6 +29,7 @@ The header information is the same for both requests and responses. It consists 
 | Name        | Description     | Type   |
 | -           | -               | -      |
 | Header  | The request header. | `"LILY"` |
+| Length | The length of the request data. | `int16` |
 | Version     | The Lily protocol version. | `string` (length 1) |
 
 ## Footer

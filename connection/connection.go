@@ -10,7 +10,6 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/cubeflix/lily/commands"
@@ -26,11 +25,37 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+var ErrFixedStreamEmpty = errors.New("lily.connection.FixedStream: Stream empty")
+
 type Server interface {
 	Users() *userlist.UserList
 	Sessions() *sessionlist.SessionList
 	Config() *config.Config
 }
+
+// Fixed DataStream.
+type FixedStream struct {
+	data []byte
+}
+
+// Read from the DataStream.
+func (t *FixedStream) Read(b *[]byte, timeout time.Duration) (int, error) {
+	if len(t.data) < len(*b) {
+		return 0, ErrFixedStreamEmpty
+	}
+	l := len(*b)
+	*b = t.data[:l]
+	t.data = t.data[l:]
+
+	return l, nil
+}
+
+// Write to the testing DataStream.
+func (t *FixedStream) Write(b *[]byte, timeout time.Duration) (int, error) {
+	panic("this should never happen")
+}
+
+func (t *FixedStream) Flush() {}
 
 var ErrInvalidProtocol = errors.New("lily.connection: Invalid protocol")
 var ErrInvalidSessionUsername = errors.New("lily.connection: Invalid session username")
@@ -38,12 +63,12 @@ var ErrInvalidSessionUsername = errors.New("lily.connection: Invalid session use
 // Receive a Lily-encoded string.
 func recvString(conn network.DataStream, timeout time.Duration) (string, error) {
 	// Receive the string length.
-	data := make([]byte, 4)
+	data := make([]byte, 2)
 	_, err := conn.Read(&data, timeout)
 	if err != nil {
 		return "", err
 	}
-	length := binary.LittleEndian.Uint32(data)
+	length := binary.LittleEndian.Uint16(data)
 
 	// Get the string.
 	data = make([]byte, length)
@@ -57,8 +82,8 @@ func recvString(conn network.DataStream, timeout time.Duration) (string, error) 
 // Write a Lily-encoded string.
 func respString(s string, conn network.DataStream, timeout time.Duration) error {
 	// Receive the string length.
-	data := make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, uint32(len(s)))
+	data := make([]byte, 2)
+	binary.LittleEndian.PutUint16(data, uint16(len(s)))
 	_, err := conn.Write(&data, timeout)
 	if err != nil {
 		return err
@@ -72,13 +97,15 @@ func respString(s string, conn network.DataStream, timeout time.Duration) error 
 
 // The basic server-side connection context.
 type Connection struct {
-	Command *commands.Command
-	conn    network.DataStream
+	Command     *commands.Command
+	conn        network.DataStream
+	requestData network.DataStream // The request data is held in a fixed stream.
 }
 
-func NewConnection(conn network.DataStream) *Connection {
+func NewConnection(conn network.DataStream, fixedStream network.DataStream) *Connection {
 	return &Connection{
-		conn: conn,
+		conn:        conn,
+		requestData: fixedStream,
 	}
 }
 
@@ -91,7 +118,7 @@ func (c *Connection) ReceiveRequest(timeout time.Duration, s Server) error {
 	}
 
 	// Receive the command name.
-	name, err := recvString(c.conn, timeout)
+	name, err := recvString(c.requestData, timeout)
 	if err != nil {
 		return err
 	}
@@ -99,13 +126,13 @@ func (c *Connection) ReceiveRequest(timeout time.Duration, s Server) error {
 	// Get the data.
 	// Receive the data length.
 	data := make([]byte, 4)
-	_, err = c.conn.Read(&data, timeout)
+	_, err = c.requestData.Read(&data, timeout)
 	if err != nil {
 		return err
 	}
 	length := binary.LittleEndian.Uint32(data)
 	data = make([]byte, length)
-	_, err = c.conn.Read(&data, timeout)
+	_, err = c.requestData.Read(&data, timeout)
 	if err != nil {
 		return err
 	}
@@ -117,7 +144,7 @@ func (c *Connection) ReceiveRequest(timeout time.Duration, s Server) error {
 
 	// Receive the footer.
 	footer := make([]byte, 3)
-	_, err = c.conn.Read(&footer, timeout)
+	_, err = c.requestData.Read(&footer, timeout)
 	if err != nil {
 		return err
 	}
@@ -136,27 +163,27 @@ func (c *Connection) ReceiveRequest(timeout time.Duration, s Server) error {
 func (c *Connection) ReceiveAuth(timeout time.Duration, s Server) (auth.Auth, error) {
 	// Receive the authentication type.
 	authType := make([]byte, 1)
-	_, err := c.conn.Read(&authType, timeout)
+	_, err := c.requestData.Read(&authType, timeout)
 	if err != nil {
 		return nil, err
 	}
 	if string(authType) == "U" {
 		// User authentication.
 		// Receive the username.
-		username, err := recvString(c.conn, timeout)
+		username, err := recvString(c.requestData, timeout)
 		if err != nil {
 			return nil, err
 		}
 
 		// Receive the password.
-		password, err := recvString(c.conn, timeout)
+		password, err := recvString(c.requestData, timeout)
 		if err != nil {
 			return nil, err
 		}
 
 		// Receive the footer.
 		footer := make([]byte, 3)
-		_, err = c.conn.Read(&footer, timeout)
+		_, err = c.requestData.Read(&footer, timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -175,14 +202,14 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s Server) (auth.Auth, er
 	} else if string(authType) == "S" {
 		// Session authentication.
 		// Receive the username.
-		username, err := recvString(c.conn, timeout)
+		username, err := recvString(c.requestData, timeout)
 		if err != nil {
 			return nil, err
 		}
 
 		// Receive the session ID.
 		sessionID := make([]byte, 16)
-		_, err = c.conn.Read(&sessionID, timeout)
+		_, err = c.requestData.Read(&sessionID, timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +222,7 @@ func (c *Connection) ReceiveAuth(timeout time.Duration, s Server) (auth.Auth, er
 
 		// Receive the footer.
 		footer := make([]byte, 3)
-		_, err = c.conn.Read(&footer, timeout)
+		_, err = c.requestData.Read(&footer, timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -335,30 +362,41 @@ func ConnectionError(s network.DataStream, timeout time.Duration, code int, str 
 func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	defer conn.Close()
 
-	stream := network.DataStream(network.NewTLSStream(conn))
+	tlsStream := network.DataStream(network.NewTLSStream(conn))
 	// Accept the header.
-	header := make([]byte, 5)
-	if _, err := stream.Read(&header, timeout); err != nil {
-		ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+	header := make([]byte, 7)
+	if _, err := tlsStream.Read(&header, timeout); err != nil {
+		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		return
 	}
-	fmt.Println("(lily.HandleConnection:debug) - header", string(header))
+
+	// Get the length of the request.
+	request_length := binary.LittleEndian.Uint16(header[4:6])
+	request_data := make([]byte, request_length)
+	if _, err := tlsStream.Read(&request_data, timeout); err != nil {
+		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
+		return
+	}
+
+	// Create the new request data stream.
+	fixedStream := FixedStream{data: request_data}
+	stream := network.DataStream(&fixedStream)
 
 	// Check the protocol version.
-	if string(header[4]) != network.PROTOCOL_VERSION {
-		ConnectionError(stream, timeout, 5, "Invalid protocol version.", nil)
+	if string(header[6]) != network.PROTOCOL_VERSION {
+		ConnectionError(tlsStream, timeout, 5, "Invalid protocol version.", nil)
 		return
 	}
 
 	// Get the request.
-	cobj := NewConnection(stream)
+	cobj := NewConnection(tlsStream, stream)
 	if err := cobj.ReceiveRequest(timeout, s); err != nil {
 		if err == ErrInvalidProtocol {
-			ConnectionError(stream, timeout, 3, "Invalid request.", err)
-		} else if err == ErrInvalidSessionUsername {
-			ConnectionError(stream, timeout, 6, "Invalid or expired authentication.", err)
+			ConnectionError(tlsStream, timeout, 3, "Invalid request.", err)
+		} else if err == ErrInvalidSessionUsername || err == userlist.ErrUserNotFound {
+			ConnectionError(tlsStream, timeout, 6, "Invalid or expired authentication.", err)
 		} else {
-			ConnectionError(stream, timeout, 4, "Connection timed out or connection error.", err)
+			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		}
 		return
 	}
