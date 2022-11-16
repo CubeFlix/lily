@@ -271,7 +271,7 @@ func (s *Server) LimitResponseWorker() {
 				}
 			}
 
-			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil)
+			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil, false)
 			conn.Close()
 		}
 	}

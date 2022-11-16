@@ -165,6 +165,22 @@ func (c *ChunkHandler) GetChunk(data *[]byte, timeout time.Duration) error {
 	return nil
 }
 
+// Get the footer.
+func (c *ChunkHandler) GetFooter(timeout time.Duration) error {
+	// Get the footer data.
+	footer := make([]byte, 3)
+	_, err := c.stream.Read(&footer, timeout)
+	if err != nil {
+		return err
+	}
+	if string(footer) != "END" {
+		return ErrInvalidFooter
+	}
+
+	// Return.
+	return nil
+}
+
 // Write the response chunk data. NOTE: This function MUST be called before
 // using the response handler.
 func (c *ChunkHandler) WriteChunkResponseInfo(chunks []ChunkInfo, timeout time.Duration, writeHeader bool) error {
@@ -264,6 +280,21 @@ func (c *ChunkHandler) WriteChunk(data *[]byte, timeout time.Duration) error {
 
 	footer := []byte("END")
 	_, err = c.stream.Write(&footer, timeout)
+	if err != nil {
+		return err
+	}
+
+	c.stream.Flush()
+
+	// Return.
+	return nil
+}
+
+// Write the footer.
+func (c *ChunkHandler) WriteFooter(timeout time.Duration) error {
+	// Write the footer.
+	footer := []byte("END")
+	_, err := c.stream.Write(&footer, timeout)
 	if err != nil {
 		return err
 	}

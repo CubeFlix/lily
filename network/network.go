@@ -87,7 +87,7 @@ func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 			}
 			return read, err
 		}
-		if n == 0 || read == len(*b) {
+		if read == len(*b) {
 			break
 		}
 	}

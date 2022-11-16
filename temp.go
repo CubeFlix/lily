@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cubeflix/lily/client"
 	"github.com/cubeflix/lily/drive"
 	"github.com/cubeflix/lily/fs"
+	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/server"
 	"github.com/cubeflix/lily/server/config"
@@ -21,7 +23,7 @@ import (
 	ulist "github.com/cubeflix/lily/user/list"
 )
 
-func main() {
+func serverFunc() {
 	// create the tls config
 	cert, err := tls.LoadX509KeyPair("c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	if err != nil {
@@ -69,4 +71,55 @@ func main() {
 	s.StopServerRoutine()
 	s.StopWorkers()
 	fmt.Println("(main:info) - stopped")
+}
+
+func clientFunc() {
+	request := client.NewRequest(client.NewUserAuth("admim", "admin"), "login", map[string]interface{}{})
+	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
+	conn, err := cobj.MakeConnection(true)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(request.MarshalBinary())
+	if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
+		panic(err)
+	}
+
+	// Receive the response.
+	stream := network.DataStream(network.NewTLSStream(conn))
+	if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
+		panic(err)
+	}
+	if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
+		panic(err)
+	}
+	response, err := cobj.ReceiveResponse(stream, time.Second*5)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(response)
+	// conn.Write([]byte{76, 73, 76, 89, 35, 0, 48, 85, 5, 0, 97, 100, 109, 105, 110, 5, 0, 97, 100, 109, 105, 110, 69, 78, 68, 5, 0, 76, 79, 71, 73, 78, 5, 0, 5, 0, 0, 0, 0, 69, 78, 68, 0, 0, 69, 78, 68})
+	// data := make([]byte, 0)
+	// buf := make([]byte, 1024)
+	// for {
+	// 	n, err := conn.Read(buf)
+	// 	fmt.Println(n, err)
+	// 	data = append(data, buf[:n]...)
+	// 	if err != nil {
+	// 		break
+	// 	}
+	// 	if n == 0 {
+	// 		break
+	// 	}
+	// }
+	// fmt.Println(data)
+
+}
+
+func main() {
+	if os.Args[1] == "server" {
+		serverFunc()
+	} else if os.Args[1] == "client" {
+		clientFunc()
+	}
 }
