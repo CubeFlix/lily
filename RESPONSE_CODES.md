@@ -56,6 +56,11 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Invalid expiration time. Server does not allow non-expiring sessions.
 
+### **Code:** 11
+
+**Description:**
+> Per-user session limit reached.
+
 ### **Code:** 8
 
 **Description:**

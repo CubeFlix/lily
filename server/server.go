@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/cubeflix/lily/connection"
 	"github.com/cubeflix/lily/drive"
@@ -256,23 +255,7 @@ func (s *Server) LimitResponseWorker() {
 			}
 
 			stream := network.DataStream(network.NewTLSStream(tlsConn))
-
-			// Load all the request/chunk data. We'll use the raw TCP socket
-			// since we want to have full control over the data read.
-			buf := make([]byte, 1024)
-			for {
-				tlsConn.SetReadDeadline(time.Now().Add(s.config.GetTimeout()))
-				n, err := tlsConn.Read(buf)
-				if err != nil {
-					break
-				}
-				if n < 1024 {
-					break
-				}
-			}
-
-			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil, false)
-			conn.Close()
+			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil)
 		}
 	}
 }

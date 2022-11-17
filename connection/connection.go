@@ -333,30 +333,22 @@ func (c *Connection) Respond(timeout time.Duration) error {
 }
 
 // Respond with a connection error.
-func ConnectionError(s network.DataStream, timeout time.Duration, code int, str string, connErr error, receiveChunkData bool) {
-	// If we haven't received the chunk data yet, do that now.
-	if receiveChunkData {
-		ch := network.NewChunkHandler(s)
-		ci, err := ch.GetChunkRequestInfo(timeout)
+func ConnectionError(s network.DataStream, timeout time.Duration, code int, str string, connErr error) {
+	// Receive the remaining data.
+	buf := make([]byte, 1024)
+	tcs, ok := s.(*network.TLSConnStream)
+	if !ok {
+		return
+	}
+	conn := tcs.Conn()
+	for {
+		conn.SetReadDeadline(time.Now().Add(timeout))
+		n, err := conn.Read(buf)
 		if err != nil {
-			return
+			break
 		}
-		for i := range ci {
-			// Receive each chunk.
-			for j := 0; j < ci[i].NumChunks; j++ {
-				_, chunkLen, err := ch.GetChunkInfo(timeout)
-				if err != nil {
-					return
-				}
-				buf := make([]byte, chunkLen)
-				err = ch.GetChunk(&buf, timeout)
-				if err != nil {
-					return
-				}
-			}
-		}
-		if ch.GetFooter(timeout) != nil {
-			return
+		if n < 1024 {
+			break
 		}
 	}
 
@@ -437,7 +429,7 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	// Accept the header.
 	header := make([]byte, 7)
 	if _, err := tlsStream.Read(&header, timeout); err != nil {
-		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, true)
+		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		return
 	}
 
@@ -445,7 +437,7 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	request_length := binary.LittleEndian.Uint16(header[4:6])
 	request_data := make([]byte, request_length)
 	if _, err := tlsStream.Read(&request_data, timeout); err != nil {
-		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, true)
+		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		return
 	}
 
@@ -455,7 +447,7 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 
 	// Check the protocol version.
 	if string(header[6]) != network.PROTOCOL_VERSION {
-		ConnectionError(tlsStream, timeout, 5, "Invalid protocol version.", nil, true)
+		ConnectionError(tlsStream, timeout, 5, "Invalid protocol version.", nil)
 		return
 	}
 
@@ -463,11 +455,11 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	cobj := NewConnection(tlsStream, stream)
 	if err := cobj.ReceiveRequest(timeout, s); err != nil {
 		if err == ErrInvalidProtocol {
-			ConnectionError(tlsStream, timeout, 3, "Invalid request.", err, true)
+			ConnectionError(tlsStream, timeout, 3, "Invalid request.", err)
 		} else if err == ErrInvalidSessionUsername || err == userlist.ErrUserNotFound {
-			ConnectionError(tlsStream, timeout, 6, "Invalid or expired authentication.", err, true)
+			ConnectionError(tlsStream, timeout, 6, "Invalid or expired authentication.", err)
 		} else {
-			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, true)
+			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		}
 		return
 	}
@@ -480,7 +472,7 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 		ch := network.NewChunkHandler(tlsStream)
 		ci, err := ch.GetChunkRequestInfo(timeout)
 		if err != nil {
-			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, false)
+			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 			return
 		}
 		for i := range ci {
@@ -488,13 +480,13 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 			for j := 0; j < ci[i].NumChunks; j++ {
 				_, chunkLen, err := ch.GetChunkInfo(timeout)
 				if err != nil {
-					ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, false)
+					ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 					return
 				}
 				buf := make([]byte, chunkLen)
 				err = ch.GetChunk(&buf, timeout)
 				if err != nil {
-					ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, false)
+					ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 					return
 				}
 			}
@@ -514,13 +506,13 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	if !cobj.Command.Chunks.DidWriteChunkData() {
 		ch := network.NewChunkHandler(tlsStream)
 		if err := ch.WriteChunkResponseInfo(nil, timeout, true); err != nil {
-			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, false)
+			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 			return
 		}
 	}
 	data := []byte("END")
 	if _, err := tlsStream.Write(&data, timeout); err != nil {
-		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err, false)
+		ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		return
 	}
 

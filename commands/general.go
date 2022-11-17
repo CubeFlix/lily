@@ -32,6 +32,7 @@ func InfoCommand(c *Command) error {
 		"defaultSessionExpiration":     defaultSessionExpiration,
 		"allowChangeSessionExpiration": allowChangeSessionExpiration,
 		"allowNonExpiringSessions":     allowNonExpiringSessions,
+		"perUserSessionLimit":          cobj.GetUserSessionLimit(),
 		"timeout":                      cobj.GetTimeout(),
 		"limit":                        limit,
 		"maxLimitEvents":               maxEvents,
@@ -80,7 +81,11 @@ func LoginCommand(c *Command) error {
 	// Create the new session.
 	username, _, _ := uauth.GetInfo()
 	sobj := session.NewSession(newUUID, username, expireAfter)
-	c.Server.Sessions().SetSessionsByID(map[uuid.UUID]*session.Session{newUUID: sobj})
+	if c.Server.Sessions().SetSessionsByID(map[uuid.UUID]*session.Session{newUUID: sobj}) != nil {
+		// Limit reached.
+		c.Respond(11, "Per-user session limit reached.", map[string]interface{}{})
+		return nil
+	}
 	bytes, err := newUUID.MarshalBinary()
 	if err != nil {
 		c.Respond(2, "Unhandled command error.", map[string]interface{}{"error": err.Error()})

@@ -47,11 +47,11 @@ func serverFunc() {
 	drivelist := map[string]*drive.Drive{"drive": dobj}
 
 	// create a server
-	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Hour, true, true, time.Minute, 3, nil, tlsconfig)
+	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, nil, tlsconfig)
 	if err != nil {
 		panic(err)
 	}
-	s := server.NewServer(slist.NewSessionList(10), userlist, c)
+	s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
 	s.SetDrives(drivelist)
 	err = s.Serve()
 	if err != nil {
@@ -74,7 +74,7 @@ func serverFunc() {
 }
 
 func clientFunc() {
-	request := client.NewRequest(client.NewUserAuth("admim", "admin"), "login", map[string]interface{}{})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {

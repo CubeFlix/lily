@@ -91,6 +91,9 @@ type Config struct {
 	allowChangeSessionExpiration bool
 	allowNonExpiringSessions     bool
 
+	// Max sessions per user.
+	perUserSessionLimit int
+
 	// Rate limiting settings.
 	limit          time.Duration
 	maxLimitEvents int
@@ -108,7 +111,7 @@ func NewConfig(file, name, host string, port int, driveFiles map[string]string,
 	mainCronInterval, sessionCronInterval, netTimeout time.Duration, verbose,
 	logToFile, logJSON bool, logLevel, logPath string,
 	defaultSessionExpiration time.Duration, allowChangeSessionExpiration,
-	allowNonExpiringSessions bool, limit time.Duration, maxLimitEvents int,
+	allowNonExpiringSessions bool, perUserSessionLimit int, limit time.Duration, maxLimitEvents int,
 	tlsCerts []tls.Certificate, tlsConfig *tls.Config) (*Config, error) {
 	if netTimeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
@@ -148,6 +151,7 @@ func NewConfig(file, name, host string, port int, driveFiles map[string]string,
 		defaultSessionExpiration:     defaultSessionExpiration,
 		allowChangeSessionExpiration: allowChangeSessionExpiration,
 		allowNonExpiringSessions:     allowNonExpiringSessions,
+		perUserSessionLimit:          perUserSessionLimit,
 		limit:                        limit,
 		maxLimitEvents:               maxLimitEvents,
 		tlsCerts:                     tlsCerts,
@@ -422,6 +426,19 @@ func (c *Config) SetSessionExpirationSettings(defaultSessionExpiration time.Dura
 	c.defaultSessionExpiration = defaultSessionExpiration
 	c.allowChangeSessionExpiration = allowChangeSessionExpiration
 	c.allowNonExpiringSessions = allowNonExpiringSessions
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Get per-user session limit.
+func (c *Config) GetUserSessionLimit() int {
+	return c.perUserSessionLimit
+}
+
+// Set per-user session limit.
+func (c *Config) SetUserSessionLimit(limit int) {
+	c.perUserSessionLimit = limit
 
 	// Set the dirty value.
 	c.SetDirty(true)

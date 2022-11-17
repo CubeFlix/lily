@@ -97,3 +97,7 @@ func (c *TLSConnStream) Write(b *[]byte, timeout time.Duration) (int, error) {
 func (c *TLSConnStream) Flush() {
 	c.writer.Flush()
 }
+
+func (c *TLSConnStream) Conn() *tls.Conn {
+	return c.conn
+}

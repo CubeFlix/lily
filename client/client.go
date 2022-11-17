@@ -150,6 +150,7 @@ func (c *Client) ReceiveResponse(stream network.DataStream, timeout time.Duratio
 	if err != nil {
 		return Response{}, err
 	}
+	robj.Data = *params
 
 	// Receive the footer.
 	footer := make([]byte, 3)

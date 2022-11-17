@@ -61,7 +61,7 @@ func TestConnectionUserAuth(t *testing.T) {
 	userlist.SetUsersByName(map[string]*user.User{"foo": uobj})
 
 	// Create the server object.
-	sobj := server.NewServer(slist.NewSessionList(0), userlist, nil)
+	sobj := server.NewServer(slist.NewSessionList(0, 100), userlist, nil)
 
 	// Create the authentication request data.
 	testInput := make([]byte, 0)
@@ -108,7 +108,7 @@ func TestConnectionSessionAuth(t *testing.T) {
 	sobj := session.NewSession(suuid, "foo", time.Duration(0))
 
 	// Create the session list.
-	sessionlist := slist.NewSessionList(0)
+	sessionlist := slist.NewSessionList(0, 100)
 	sessionlist.SetSessionsByID(map[uuid.UUID]*session.Session{suuid: sobj})
 
 	// Create the server object.
@@ -160,7 +160,7 @@ func TestConnectionRequest(t *testing.T) {
 	sobj := session.NewSession(suuid, "foo", time.Duration(0))
 
 	// Create the session list.
-	sessionlist := slist.NewSessionList(0)
+	sessionlist := slist.NewSessionList(0, 100)
 	sessionlist.SetSessionsByID(map[uuid.UUID]*session.Session{suuid: sobj})
 
 	// Create the server object.

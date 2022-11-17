@@ -15,24 +15,27 @@ import (
 
 var ErrSessionNotFound = errors.New("lily.session.list: Session not found")
 var ErrSessionGenLimitReached = errors.New("lily.session.list: Session generation limit reached, try again later")
+var ErrPerUserLimitReached = errors.New("lily.session.list: ")
 
 // Session list type.
 type SessionList struct {
-	lock     sync.RWMutex
-	genLock  sync.Mutex
-	genLimit int
-	sessions map[uuid.UUID]*session.Session
-	ids      []uuid.UUID
+	lock         sync.RWMutex
+	genLock      sync.Mutex
+	genLimit     int
+	sessions     map[uuid.UUID]*session.Session
+	ids          []uuid.UUID
+	perUserLimit int
 }
 
 // Create the session list.
-func NewSessionList(genLimit int) *SessionList {
+func NewSessionList(genLimit, perUserLimit int) *SessionList {
 	return &SessionList{
-		lock:     sync.RWMutex{},
-		genLock:  sync.Mutex{},
-		genLimit: genLimit,
-		sessions: map[uuid.UUID]*session.Session{},
-		ids:      []uuid.UUID{},
+		lock:         sync.RWMutex{},
+		genLock:      sync.Mutex{},
+		genLimit:     genLimit,
+		sessions:     map[uuid.UUID]*session.Session{},
+		ids:          []uuid.UUID{},
+		perUserLimit: perUserLimit,
 	}
 }
 
@@ -84,20 +87,52 @@ func (u *SessionList) GetSessionsByID(ids []uuid.UUID) ([]*session.Session, erro
 }
 
 // Set sessions by ID.
-func (u *SessionList) SetSessionsByID(sessions map[uuid.UUID]*session.Session) {
+func (u *SessionList) SetSessionsByID(sessions map[uuid.UUID]*session.Session) error {
 	// Acquire the write lock.
 	u.lock.Lock()
 	defer u.lock.Unlock()
 
 	for id := range sessions {
+
 		// Check if the session already exists.
 		_, ok := u.sessions[id]
 		if !ok {
+			// This is a new session, so add the ID.
 			u.ids = append(u.ids, id)
+
+			// Check if the user has exceeded their limit.
+			if len(u.AllUserSessions((*sessions[id]).GetUsername(), false)) >= u.perUserLimit {
+				return ErrPerUserLimitReached
+			}
 		}
 		// Set the session.
 		u.sessions[id] = sessions[id]
 	}
+
+	// Return.
+	return nil
+}
+
+// Get all the sessions of for a user. useLock determines if the function
+// should acquire the read lock. This is recommended to be set to true,
+// however, if the calling routine already has the lock, this should be false
+// in order to prevent a deadlock.
+func (u *SessionList) AllUserSessions(user string, useLock bool) []*session.Session {
+	// Acquire the read lock.
+	if useLock {
+		u.lock.RLock()
+		defer u.lock.RUnlock()
+	}
+
+	sessions := []*session.Session{}
+	for id := range u.sessions {
+		if u.sessions[id].GetUsername() == user {
+			sessions = append(sessions, u.sessions[id])
+		}
+	}
+
+	// Return the list of sessions.
+	return sessions
 }
 
 // Remove sessions by ID.
