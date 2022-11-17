@@ -47,12 +47,13 @@ func serverFunc() {
 	drivelist := map[string]*drive.Drive{"drive": dobj}
 
 	// create a server
-	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, 0, 0, time.Second*5, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, nil, tlsconfig)
+	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, nil, tlsconfig)
 	if err != nil {
 		panic(err)
 	}
 	s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
 	s.SetDrives(drivelist)
+	s.StartCronRoutines()
 	err = s.Serve()
 	if err != nil {
 		panic(err)
@@ -70,11 +71,12 @@ func serverFunc() {
 	// stop the server and its workers
 	s.StopServerRoutine()
 	s.StopWorkers()
+	s.StopCronRoutines()
 	fmt.Println("(main:info) - stopped")
 }
 
 func clientFunc() {
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{"expireAfter": time.Second * 10})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {
@@ -99,6 +101,8 @@ func clientFunc() {
 	}
 	fmt.Println(response)
 	id := response.Data["id"].([]byte)
+
+	time.Sleep(time.Second * 15)
 
 	// Logout.
 	request = client.NewRequest(client.NewSessionAuth("admin", id), "logout", map[string]interface{}{})

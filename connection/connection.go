@@ -454,11 +454,12 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	// Get the request.
 	cobj := NewConnection(tlsStream, stream)
 	if err := cobj.ReceiveRequest(timeout, s); err != nil {
-		if err == ErrInvalidProtocol {
+		switch err {
+		case ErrInvalidProtocol:
 			ConnectionError(tlsStream, timeout, 3, "Invalid request.", err)
-		} else if err == ErrInvalidSessionUsername || err == userlist.ErrUserNotFound {
+		case ErrInvalidSessionUsername, userlist.ErrUserNotFound, ErrInvalidSessionUsername, sessionlist.ErrSessionNotFound:
 			ConnectionError(tlsStream, timeout, 6, "Invalid or expired authentication.", err)
-		} else {
+		default:
 			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
 		}
 		return

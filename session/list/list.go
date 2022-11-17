@@ -136,10 +136,12 @@ func (u *SessionList) AllUserSessions(user string, useLock bool) []*session.Sess
 }
 
 // Remove sessions by ID.
-func (u *SessionList) RemoveSessionsByID(ids []uuid.UUID) error {
+func (u *SessionList) RemoveSessionsByID(ids []uuid.UUID, useLock bool) error {
 	// Acquire the write lock.
-	u.lock.Lock()
-	defer u.lock.Unlock()
+	if useLock {
+		u.lock.Lock()
+		defer u.lock.Unlock()
+	}
 
 	for i := range ids {
 		// Check that the session exists.
@@ -186,4 +188,28 @@ func (u *SessionList) GenerateSessionID() (uuid.UUID, error) {
 
 	// Return.
 	return uuid.UUID{}, ErrSessionGenLimitReached
+}
+
+// Expire all expired sessions.
+func (u *SessionList) ExpireSessions() error {
+	// Acquire the lock.
+	u.lock.Lock()
+	defer u.lock.Unlock()
+
+	// Loop over all sessions.
+	toExpire := []uuid.UUID{}
+	for id := range u.sessions {
+		if u.sessions[id].ShouldExpire() {
+			// Expire the session.
+			toExpire = append(toExpire, id)
+		}
+	}
+
+	// Expire the sessions.
+	if err := u.RemoveSessionsByID(toExpire, false); err != nil {
+		return err
+	}
+
+	// Return.
+	return nil
 }

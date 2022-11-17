@@ -53,7 +53,7 @@ func TestUserList(t *testing.T) {
 	}
 
 	// Remove the session.
-	err = list.RemoveSessionsByID([]uuid.UUID{uuid1})
+	err = list.RemoveSessionsByID([]uuid.UUID{uuid1}, true)
 	if err != nil {
 		t.Error(err.Error())
 	}

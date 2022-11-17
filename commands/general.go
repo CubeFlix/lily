@@ -71,7 +71,7 @@ func LoginCommand(c *Command) error {
 		// Argument exists, but we aren't allowed to set it.
 		expireAfter = defaultExpire
 	} else {
-		expireAfter = *param.(*time.Duration)
+		expireAfter = time.Duration(param.(int64))
 	}
 	if expireAfter == 0 && !allowNonExpire {
 		c.Respond(10, "Invalid expiration time. Server does not allow non-expiring sessions.", map[string]interface{}{})
@@ -108,7 +108,7 @@ func LogoutCommand(c *Command) error {
 	}
 
 	// Remove the session.
-	if c.Server.Sessions().RemoveSessionsByID([]uuid.UUID{sauth.GetID()}) != nil {
+	if c.Server.Sessions().RemoveSessionsByID([]uuid.UUID{sauth.GetID()}, true) != nil {
 		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
 		return nil
 	}

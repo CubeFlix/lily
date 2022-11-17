@@ -42,6 +42,7 @@ type Server struct {
 	limiter      golimit.Store
 	running      bool
 	stop         chan struct{}
+	cronStop     chan struct{}
 	listener     net.Listener
 }
 
