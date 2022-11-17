@@ -94,3 +94,24 @@ func LoginCommand(c *Command) error {
 	c.Respond(0, "Logged in.", map[string]interface{}{"id": bytes})
 	return nil
 }
+
+func LogoutCommand(c *Command) error {
+	// Authenticate.
+	sauth, ok := (*c.Auth).(*session.Session)
+	if !ok {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+	if sauth.Authenticate() != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Remove the session.
+	if c.Server.Sessions().RemoveSessionsByID([]uuid.UUID{sauth.GetID()}) != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+	c.Respond(0, "Logged out.", map[string]interface{}{})
+	return nil
+}

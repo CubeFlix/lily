@@ -260,6 +260,7 @@ func (a *SessionAuth) MarshalBinary() ([]byte, error) {
 		return nil, ErrInvalidSessionID
 	}
 	data = append(data, a.sessionID...)
+	data = append(data, []byte("END")...)
 	return data, nil
 }
 

@@ -98,6 +98,33 @@ func clientFunc() {
 		panic(err)
 	}
 	fmt.Println(response)
+	id := response.Data["id"].([]byte)
+
+	// Logout.
+	request = client.NewRequest(client.NewSessionAuth("admin", id), "logout", map[string]interface{}{})
+	conn, err = cobj.MakeConnection(true)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(request.MarshalBinary())
+	if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
+		panic(err)
+	}
+
+	// Receive the response.
+	stream = network.DataStream(network.NewTLSStream(conn))
+	if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
+		panic(err)
+	}
+	if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
+		panic(err)
+	}
+	response, err = cobj.ReceiveResponse(stream, time.Second*5)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(response)
+
 	// conn.Write([]byte{76, 73, 76, 89, 35, 0, 48, 85, 5, 0, 97, 100, 109, 105, 110, 5, 0, 97, 100, 109, 105, 110, 69, 78, 68, 5, 0, 76, 79, 71, 73, 78, 5, 0, 5, 0, 0, 0, 0, 69, 78, 68, 0, 0, 69, 78, 68})
 	// data := make([]byte, 0)
 	// buf := make([]byte, 1024)

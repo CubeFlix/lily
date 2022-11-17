@@ -11,9 +11,10 @@ import (
 // Commands map object.
 var COMMANDS = map[string]func(*Command) error{
 	// General commands.
-	"ping":  PingCommand,
-	"info":  InfoCommand,
-	"login": LoginCommand,
+	"ping":   PingCommand,
+	"info":   InfoCommand,
+	"login":  LoginCommand,
+	"logout": LogoutCommand,
 }
 
 // Execute a given command. We won't bother with timeouts here since the code
