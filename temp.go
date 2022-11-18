@@ -25,13 +25,9 @@ import (
 
 func serverFunc() {
 	// create the tls config
-	cert, err := tls.LoadX509KeyPair("c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
-	if err != nil {
-		panic(err)
-	}
+	certPair := []config.CertFilePair{config.CertFilePair{"c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem"}}
 	tlsconfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		MinVersion:   tls.VersionTLS10,
+		MinVersion: tls.VersionTLS10,
 	}
 
 	// create the users list
@@ -47,10 +43,11 @@ func serverFunc() {
 	drivelist := map[string]*drive.Drive{"drive": dobj}
 
 	// create a server
-	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, nil, tlsconfig)
+	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, certPair, tlsconfig)
 	if err != nil {
 		panic(err)
 	}
+	c.LoadCerts()
 	s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
 	s.SetDrives(drivelist)
 	s.StartCronRoutines()
@@ -102,7 +99,7 @@ func clientFunc() {
 	fmt.Println(response)
 	id := response.Data["id"].([]byte)
 
-	time.Sleep(time.Second * 15)
+	// time.Sleep(time.Second * 15)
 
 	// Logout.
 	request = client.NewRequest(client.NewSessionAuth("admin", id), "logout", map[string]interface{}{})

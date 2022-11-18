@@ -470,36 +470,17 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 
 	// If we haven't received the chunk data yet, do that now.
 	if !cobj.Command.Chunks.DidReceiveChunkData() {
-		ch := network.NewChunkHandler(tlsStream)
-		ci, err := ch.GetChunkRequestInfo(timeout)
-		if err != nil {
-			ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
-			return
-		}
-		for i := range ci {
-			// Receive each chunk.
-			for j := 0; j < ci[i].NumChunks; j++ {
-				_, chunkLen, err := ch.GetChunkInfo(timeout)
-				if err != nil {
-					ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
-					return
-				}
-				buf := make([]byte, chunkLen)
-				err = ch.GetChunk(&buf, timeout)
-				if err != nil {
-					ConnectionError(tlsStream, timeout, 4, "Connection timed out or connection error.", err)
-					return
-				}
+		// Receive the remaining data.
+		buf := make([]byte, 1024)
+		for {
+			conn.SetReadDeadline(time.Now().Add(timeout))
+			n, err := conn.Read(buf)
+			if err != nil {
+				break
 			}
-		}
-		// Receive the footer.
-		footer := make([]byte, 3)
-		_, err = tlsStream.Read(&footer, timeout)
-		if err != nil {
-			return
-		}
-		if string(footer) != "END" {
-			return
+			if n < 1024 {
+				break
+			}
 		}
 	}
 

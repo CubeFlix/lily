@@ -52,7 +52,15 @@ func (s *Server) CronWorker() {
 			run = false
 			continue
 		case <-time.After(interval):
-			// Don't stop, interval complete.
+			// Don't stop, interval completed.
+
 		}
 	}
 }
+
+// Cron save.
+func (s *Server) CronSave() {
+	// Loop over the server drives.
+}
+
+// Cron save worker.

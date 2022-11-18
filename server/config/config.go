@@ -32,6 +32,12 @@ const (
 	LoggingLevelFatal   = "fatal"
 )
 
+// TLS certificate file pair struct.
+type CertFilePair struct {
+	Cert string
+	Key  string
+}
+
 // The server config object.
 type Config struct {
 	// The config lock.
@@ -98,8 +104,8 @@ type Config struct {
 	limit          time.Duration
 	maxLimitEvents int
 
-	// TLS X509 certificate objects.
-	tlsCerts []tls.Certificate
+	// TLS certificate paths.
+	certFiles []CertFilePair
 
 	// TLS config.
 	tlsConfig *tls.Config
@@ -112,7 +118,7 @@ func NewConfig(file, name, host string, port int, driveFiles map[string]string,
 	logToFile, logJSON bool, logLevel, logPath string,
 	defaultSessionExpiration time.Duration, allowChangeSessionExpiration,
 	allowNonExpiringSessions bool, perUserSessionLimit int, limit time.Duration, maxLimitEvents int,
-	tlsCerts []tls.Certificate, tlsConfig *tls.Config) (*Config, error) {
+	certFiles []CertFilePair, tlsConfig *tls.Config) (*Config, error) {
 	if netTimeout == time.Duration(0) {
 		return &Config{}, ErrTimeoutInvalid
 	}
@@ -154,9 +160,29 @@ func NewConfig(file, name, host string, port int, driveFiles map[string]string,
 		perUserSessionLimit:          perUserSessionLimit,
 		limit:                        limit,
 		maxLimitEvents:               maxLimitEvents,
-		tlsCerts:                     tlsCerts,
+		certFiles:                    certFiles,
 		tlsConfig:                    tlsConfig,
 	}, nil
+}
+
+// Lock the config for reading.
+func (c *Config) RLock() {
+	c.lock.RLock()
+}
+
+// Unlock the config for reading.
+func (c *Config) RUnlock() {
+	c.lock.RUnlock()
+}
+
+// Lock the config for writing.
+func (c *Config) Lock() {
+	c.lock.Lock()
+}
+
+// Unlock the config for writing.
+func (c *Config) Unlock() {
+	c.lock.Unlock()
 }
 
 // See if the config object is dirty.
@@ -458,6 +484,40 @@ func (c *Config) SetRateLimit(limit time.Duration, maxLimitEvent int) {
 
 	// Set the dirty value.
 	c.SetDirty(true)
+}
+
+// Get the certificate file pairs.
+func (c *Config) GetCertFilePairs() []CertFilePair {
+	return c.certFiles
+}
+
+// Set the certificate file pairs.
+func (c *Config) SetCertFilePairs(files []CertFilePair) {
+	c.certFiles = files
+
+	// Set the dirty value.
+	c.SetDirty(true)
+}
+
+// Create the TLS config.
+func (c *Config) LoadCerts() error {
+	// Lock.
+	c.RLock()
+	defer c.RUnlock()
+
+	// Load the certificates.
+	certs := make([]tls.Certificate, len(c.certFiles))
+	var err error
+	for i := range certs {
+		certs[i], err = tls.LoadX509KeyPair(c.certFiles[i].Cert, c.certFiles[i].Key)
+		if err != nil {
+			return err
+		}
+	}
+	c.tlsConfig.Certificates = certs
+
+	// Return.
+	return nil
 }
 
 // Get TLS config.
