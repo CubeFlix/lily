@@ -15,21 +15,15 @@ var ErrInvalidChunk = errors.New("lily.fs: Invalid chunk")
 var ErrInsufficientMemory = errors.New("lily.fs: Insufficient memory for chunk")
 
 // Read a file into a chunked handler.
-func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int64, handler network.ChunkHandler, timeout time.Duration) (outputErr error) {
+func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int64, handler *network.ChunkHandler, timeout time.Duration) (outputErr error) {
 	if end == -1 {
 		// End at the end of the file.
-		stat, err := os.Stat(path)
-		if err != nil {
-			return err
-		}
+		stat, _ := os.Stat(path)
 		end = stat.Size()
 	}
 
 	// Open the file.
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
+	file, _ := os.Open(path)
 	defer func() {
 		// We close the file and if we encounter an error, we check if the
 		// standard error is nil, then return the close error. Else, we just
@@ -44,10 +38,7 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 	}()
 
 	// Read in chunks.
-	_, err = file.Seek(start, 0)
-	if err != nil {
-		return err
-	}
+	_, _ = file.Seek(start, 0)
 	current := start
 	for i := 0; i < numChunks; i++ {
 		// Read the chunk.
@@ -60,23 +51,20 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 			d = make([]byte, chunkSize)
 		}
 		if d == nil {
+			// Insufficient memory. Write the remaining chunks.
+			for j := 0; j < (numChunks - i); j++ {
+				handler.WriteChunkInfo(name, 0, timeout)
+				d = make([]byte, 0)
+				handler.WriteChunk(&d, timeout)
+			}
 			return ErrInsufficientMemory
 		}
-		size, err := file.Read(d)
-		if err != nil {
-			return err
-		}
+		size, _ := file.Read(d)
 		current += int64(size)
 
 		// Write the chunk.
-		err = handler.WriteChunkInfo(name, size, timeout)
-		if err != nil {
-			return err
-		}
-		err = handler.WriteChunk(&d, timeout)
-		if err != nil {
-			return err
-		}
+		handler.WriteChunkInfo(name, size, timeout)
+		handler.WriteChunk(&d, timeout)
 	}
 
 	// Return.
@@ -84,7 +72,7 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 }
 
 // Write to a file from a chunked handler.
-func WriteFileChunks(name, path string, numChunks int, start int64, handler network.ChunkHandler, timeout time.Duration) (outputErr error) {
+func WriteFileChunks(name, path string, numChunks int, start int64, handler *network.ChunkHandler, timeout time.Duration) (outputErr error) {
 	// Open the file.
 	file, err := os.OpenFile(path, os.O_WRONLY, 0644)
 	if err != nil {

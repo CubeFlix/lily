@@ -777,7 +777,7 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 }
 
 // Read files.
-func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler network.ChunkHandler, chunkSize int64, timeout time.Duration) error {
+func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *network.ChunkHandler, chunkSize int64, timeout time.Duration) error {
 	// Check that the length of starts and ends are correct.
 	if len(files) != len(start) || len(files) != len(end) {
 		return ErrInvalidStartEnd
@@ -831,38 +831,34 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler ne
 	// Write the chunks to the handler.
 	handler.WriteChunkResponseInfo(chunks, timeout, true)
 
+	// After writing the chunk response info, we MUST write all chunk data.
+	var globalError error
 	for i := range files {
 		// We don't have to check again.
-		clean, err := fs.CleanPath(files[i])
-		if err != nil {
-			return err
-		}
+		clean, _ := fs.CleanPath(files[i])
 
-		// Get the file lock.
-		file, err := d.GetFileByPath(clean)
-		if err != nil {
-			return err
-		}
-		file.AcquireRLock()
+		// Get the file object again so we can unlock it.
+		file, _ := d.GetFileByPath(clean)
 
 		// Read the file into the chunk handler.
 		numChunks := chunks[i].NumChunks
-		err = fs.ReadFileChunks(files[i], d.getHostPath(clean), numChunks, chunkSize, start[i], end[i], handler, timeout)
+		err := fs.ReadFileChunks(files[i], d.getHostPath(clean), numChunks, chunkSize, start[i], end[i], handler, timeout)
 		if err != nil {
-			file.ReleaseRLock()
-			return err
+			globalError = err
 		}
 
 		// Release the lock.
 		file.ReleaseRLock()
 	}
 
+	handler.WriteFooter(timeout)
+
 	// Return.
-	return nil
+	return globalError
 }
 
 // Write files.
-func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkHandler, timeout time.Duration, username string) error {
+func (d *Drive) WriteFiles(files []string, start []int64, handler *network.ChunkHandler, timeout time.Duration, username string) error {
 	now := time.Now()
 
 	var err error
@@ -949,6 +945,10 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler network.ChunkH
 		d.AcquireLock()
 		d.SetDirty(true)
 		d.ReleaseLock()
+	}
+
+	if err := handler.GetFooter(timeout); err != nil {
+		return err
 	}
 
 	// Return.
