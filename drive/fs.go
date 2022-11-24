@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/access"
+	"github.com/cubeflix/lily/user"
 )
 
 var ErrEmptyPath = errors.New("lily.drive: Empty path")
@@ -27,6 +29,7 @@ var ErrInvalidName = errors.New("lily.drive: Invalid name")
 var ErrInvalidLength = errors.New("lily.drive: Invalid length of array")
 var ErrInvalidChunks = errors.New("lily.drive: Invalid chunks")
 var ErrInvalidStartEnd = errors.New("lily.drive: Invalid start and end values")
+var ErrCannotAccess = errors.New("lily.drive: Cannot access/modify")
 var EmptyShaHash = sha256.Sum256([]byte{})
 
 var IllegalNames = "\"*/:<>?\\|"
@@ -46,7 +49,7 @@ func (d *Drive) getHostPath(path string) string {
 }
 
 // Create directories.
-func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, useParentAccessSettings bool, username string) error {
+func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, useParentAccessSettings bool, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -103,6 +106,13 @@ func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, use
 			return ErrAlreadyExists
 		}
 
+		// Check if we are permitted to create a directory.
+		if !user.CanModify(parent.Settings) {
+			// Cannot modify.
+			parent.ReleaseLock()
+			return ErrCannotAccess
+		}
+
 		// Create the directory object.
 		var newdir *fs.Directory
 		if useParentAccessSettings {
@@ -151,7 +161,7 @@ func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, use
 // The list of directories should be in order from the first to add to the last. These
 // directories should be local within the parent.
 func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *access.AccessSettings,
-	settings []*access.AccessSettings, useParentAccessSettings bool, username string) error {
+	settings []*access.AccessSettings, useParentAccessSettings bool, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -193,12 +203,20 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 	_, err = parentParent.GetSubdirsByName([]string{split[len(split)-1]})
 	if err == nil {
 		// Already exists.
+		parentParent.ReleaseLock()
 		return ErrAlreadyExists
 	}
 	_, err = parentParent.GetFilesByName([]string{split[len(split)-1]})
 	if err == nil {
 		// Already exists.
+		parentParent.ReleaseLock()
 		return ErrAlreadyExists
+	}
+
+	// Check if we are allowed to modify.
+	if !user.CanModify(parentParent.Settings) {
+		parentParent.ReleaseLock()
+		return ErrCannotAccess
 	}
 
 	// Create the parent directory object.
@@ -328,19 +346,27 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 }
 
 // List directory.
-func (d *Drive) ListDir(dir string) ([]fs.ListDirObj, error) {
+func (d *Drive) ListDir(dir string, user *user.User) ([]fs.ListDirObj, error) {
 	// Get the directory object.
 	dirobj, err := d.GetDirectoryByPath(dir)
 	if err != nil {
 		return nil, err
 	}
 
+	// Check if we are allowed to access.
+	dirobj.Lock.RLock()
+	if !user.CanAccess(dirobj.Settings) {
+		dirobj.Lock.RUnlock()
+		return nil, ErrCannotAccess
+	}
+	dirobj.Lock.RUnlock()
+
 	// Return the listed directory.
 	return dirobj.ListDir(), nil
 }
 
 // Rename directories.
-func (d *Drive) RenameDirs(dirs []string, newNames []string, username string) error {
+func (d *Drive) RenameDirs(dirs []string, newNames []string, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -392,6 +418,12 @@ func (d *Drive) RenameDirs(dirs []string, newNames []string, username string) er
 			// Already exists.
 			parent.ReleaseLock()
 			return ErrAlreadyExists
+		}
+
+		// Check if we are allowed to modify.
+		if !user.CanModify(parent.Settings) {
+			parent.ReleaseLock()
+			return ErrCannotAccess
 		}
 
 		// Get the old object.
@@ -451,7 +483,7 @@ func (d *Drive) RenameDirs(dirs []string, newNames []string, username string) er
 }
 
 // Move directories.
-func (d *Drive) MoveDirs(dirs, dests []string, username string) error {
+func (d *Drive) MoveDirs(dirs, dests []string, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -517,6 +549,22 @@ func (d *Drive) MoveDirs(dirs, dests []string, username string) error {
 			parentDest.AcquireLock()
 		}
 
+		// Check if we are allowed to modify.
+		if !user.CanModify(parentDir.Settings) {
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return ErrCannotAccess
+		}
+		if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+			if !user.CanModify(parentDest.Settings) {
+				parentDir.ReleaseLock()
+				parentDest.ReleaseLock()
+				return ErrCannotAccess
+			}
+		}
+
 		// Check if the directory exists.
 		_, err = parentDest.GetSubdirsByName([]string{splitDest[len(splitDest)-1]})
 		if err == nil {
@@ -547,6 +595,8 @@ func (d *Drive) MoveDirs(dirs, dests []string, username string) error {
 			return err
 		}
 		accessSettings := oldSubdir[0].Settings
+		files := oldSubdir[0].GetFiles()
+		subdirs := oldSubdir[0].GetSubdirs()
 
 		// Create the directory object.
 		var newdir *fs.Directory
@@ -559,6 +609,10 @@ func (d *Drive) MoveDirs(dirs, dests []string, username string) error {
 			}
 			return err
 		}
+
+		// Set the subdirs and files.
+		newdir.SetFiles(files)
+		newdir.SetSubdirs(subdirs)
 
 		// Set the edit information for the new directory.
 		newdir.SetLastEditTime(now)
@@ -602,7 +656,7 @@ func (d *Drive) MoveDirs(dirs, dests []string, username string) error {
 }
 
 // Delete directories.
-func (d *Drive) DeleteDirs(dirs []string, username string) error {
+func (d *Drive) DeleteDirs(dirs []string, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -632,6 +686,12 @@ func (d *Drive) DeleteDirs(dirs []string, username string) error {
 			return err
 		}
 		parent.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanModify(parent.Settings) {
+			parent.ReleaseLock()
+			return ErrCannotAccess
+		}
 
 		// Check if the directory already exists.
 		_, err = parent.GetSubdirsByName([]string{split[len(split)-1]})
@@ -671,7 +731,7 @@ func (d *Drive) DeleteDirs(dirs []string, username string) error {
 }
 
 // Create files.
-func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, useParentAccessSettings bool, username string) error {
+func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, useParentAccessSettings bool, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -707,6 +767,12 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 			return err
 		}
 		parent.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanModify(parent.Settings) {
+			parent.ReleaseLock()
+			return ErrCannotAccess
+		}
 
 		// Check that the name is valid.
 		if strings.ContainsAny(split[len(split)-1], IllegalNames) {
@@ -771,13 +837,14 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 		d.SetDirty(true)
 		d.ReleaseLock()
 	}
+	fmt.Println(d.fs.GetFiles())
 
 	// Return.
 	return nil
 }
 
 // Read files.
-func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *network.ChunkHandler, chunkSize int64, timeout time.Duration) error {
+func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *network.ChunkHandler, chunkSize int64, timeout time.Duration, user *user.User) error {
 	// Check that the length of starts and ends are correct.
 	if len(files) != len(start) || len(files) != len(end) {
 		return ErrInvalidStartEnd
@@ -801,6 +868,12 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *n
 			return err
 		}
 		file.AcquireRLock()
+
+		// Check if we can access.
+		if !user.CanAccess(file.Settings) {
+			file.ReleaseRLock()
+			return ErrCannotAccess
+		}
 
 		// Get the file size.
 		info, err := os.Stat(d.getHostPath(clean))
@@ -858,7 +931,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *n
 }
 
 // Write files.
-func (d *Drive) WriteFiles(files []string, start []int64, handler *network.ChunkHandler, timeout time.Duration, username string) error {
+func (d *Drive) WriteFiles(files []string, start []int64, handler *network.ChunkHandler, timeout time.Duration, username string, user *user.User) error {
 	now := time.Now()
 
 	var err error
@@ -901,6 +974,12 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler *network.Chunk
 			return err
 		}
 		file.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanModify(file.Settings) {
+			file.ReleaseLock()
+			return ErrCannotAccess
+		}
 
 		// Check that the start is correct.
 		stat, err := os.Stat(d.getHostPath(clean))
@@ -956,7 +1035,7 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler *network.Chunk
 }
 
 // Rename files.
-func (d *Drive) RenameFiles(files []string, newNames []string, username string) error {
+func (d *Drive) RenameFiles(files []string, newNames []string, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -995,6 +1074,12 @@ func (d *Drive) RenameFiles(files []string, newNames []string, username string) 
 			return err
 		}
 		parent.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanModify(parent.Settings) {
+			parent.ReleaseLock()
+			return ErrCannotAccess
+		}
 
 		// Check if the directory already exists.
 		_, err = parent.GetSubdirsByName([]string{dirsToNames[files[i]]})
@@ -1068,7 +1153,7 @@ func (d *Drive) RenameFiles(files []string, newNames []string, username string) 
 }
 
 // Move files.
-func (d *Drive) MoveFiles(files, dests []string, username string) error {
+func (d *Drive) MoveFiles(files, dests []string, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -1132,6 +1217,22 @@ func (d *Drive) MoveFiles(files, dests []string, username string) error {
 				return err
 			}
 			parentDest.AcquireLock()
+		}
+
+		// Check if we can access.
+		if !user.CanModify(parentDir.Settings) {
+			parentDir.ReleaseLock()
+			if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+				parentDest.ReleaseLock()
+			}
+			return ErrCannotAccess
+		}
+		if !(strings.Join(splitDest[:len(splitDest)-1], "/") == strings.Join(splitDir[:len(splitDir)-1], "/")) {
+			if !user.CanModify(parentDest.Settings) {
+				parentDir.ReleaseLock()
+				parentDest.ReleaseLock()
+				return ErrCannotAccess
+			}
 		}
 
 		// Check if the directory exists.
@@ -1221,7 +1322,7 @@ func (d *Drive) MoveFiles(files, dests []string, username string) error {
 }
 
 // Delete files.
-func (d *Drive) DeleteFiles(files []string, username string) error {
+func (d *Drive) DeleteFiles(files []string, username string, user *user.User) error {
 	var err error
 	now := time.Now()
 
@@ -1251,6 +1352,12 @@ func (d *Drive) DeleteFiles(files []string, username string) error {
 			return err
 		}
 		parent.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanModify(parent.Settings) {
+			parent.ReleaseLock()
+			return ErrCannotAccess
+		}
 
 		// Check if the file already exists.
 		_, err = parent.GetFilesByName([]string{split[len(split)-1]})
@@ -1290,7 +1397,7 @@ func (d *Drive) DeleteFiles(files []string, username string) error {
 }
 
 // Get the status for paths.
-func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
+func (d *Drive) Stat(paths []string, user *user.User) ([]PathStatus, error) {
 	// Loop over each path.
 	outputs := make([]PathStatus, len(paths))
 	for i := range paths {
@@ -1315,7 +1422,7 @@ func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
 
 		// List the parent directory.
 		parent := strings.Join(split[:len(split)-1], "/")
-		listdir, err := d.ListDir(parent)
+		listdir, err := d.ListDir(parent, user)
 		if err != nil {
 			return []PathStatus{}, err
 		}
@@ -1368,7 +1475,7 @@ func (d *Drive) Stat(paths []string) ([]PathStatus, error) {
 }
 
 // Recalculate hashes for files.
-func (d *Drive) ReHash(files []string) error {
+func (d *Drive) ReHash(files []string, user *user.User) error {
 	var err error
 
 	// Clean the files.
@@ -1392,6 +1499,12 @@ func (d *Drive) ReHash(files []string) error {
 			return err
 		}
 		file.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanModify(file.Settings) {
+			file.ReleaseLock()
+			return ErrCannotAccess
+		}
 
 		// Calculate the hash.
 		f, err := os.Open(d.getHostPath(files[i]))
@@ -1423,7 +1536,7 @@ func (d *Drive) ReHash(files []string) error {
 }
 
 // Verify hashes for files.
-func (d *Drive) VerifyHashes(files []string) (map[string]bool, error) {
+func (d *Drive) VerifyHashes(files []string, user *user.User) (map[string]bool, error) {
 	hasher := sha256.New()
 	outputs := map[string]bool{}
 	for i := range files {
@@ -1442,6 +1555,12 @@ func (d *Drive) VerifyHashes(files []string) (map[string]bool, error) {
 			return map[string]bool{}, err
 		}
 		file.AcquireLock()
+
+		// Check if we can access.
+		if !user.CanAccess(file.Settings) {
+			file.ReleaseLock()
+			return map[string]bool{}, ErrCannotAccess
+		}
 
 		// Calculate the hash.
 		f, err := os.Open(d.getHostPath(clean))

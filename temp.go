@@ -25,7 +25,7 @@ import (
 
 func serverFunc() {
 	// create the tls config
-	certPair := []config.CertFilePair{config.CertFilePair{"c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem"}}
+	certPair := []config.CertFilePair{{"c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem"}}
 	tlsconfig := &tls.Config{
 		MinVersion: tls.VersionTLS10,
 	}
@@ -39,7 +39,19 @@ func serverFunc() {
 	userlist.SetUsersByName(map[string]*user.User{"admin": uobj})
 
 	// create the drives list
-	dobj := drive.NewDrive("drive", "", &access.AccessSettings{}, &fs.Directory{})
+	rootaccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
+	if err != nil {
+		panic(err)
+	}
+	daccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
+	if err != nil {
+		panic(err)
+	}
+	root, err := fs.NewDirectory("", true, nil, rootaccess)
+	if err != nil {
+		panic(err)
+	}
+	dobj := drive.NewDrive("drive", "c:/users/kevin chen/lilytest", daccess, root)
 	drivelist := map[string]*drive.Drive{"drive": dobj}
 
 	// create a server
@@ -73,7 +85,7 @@ func serverFunc() {
 }
 
 func clientFunc() {
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{"expireAfter": time.Second * 10})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createFiles", map[string]interface{}{"drive": "drive", "paths": []string{"a", "b"}})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {
@@ -97,34 +109,34 @@ func clientFunc() {
 		panic(err)
 	}
 	fmt.Println(response)
-	id := response.Data["id"].([]byte)
+	// id := response.Data["id"].([]byte)
 
 	// time.Sleep(time.Second * 15)
 
 	// Logout.
-	request = client.NewRequest(client.NewSessionAuth("admin", id), "logout", map[string]interface{}{})
-	conn, err = cobj.MakeConnection(true)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(request.MarshalBinary())
-	if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
-		panic(err)
-	}
-
-	// Receive the response.
-	stream = network.DataStream(network.NewTLSStream(conn))
-	if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
-		panic(err)
-	}
-	if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
-		panic(err)
-	}
-	response, err = cobj.ReceiveResponse(stream, time.Second*5)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(response)
+	//request = client.NewRequest(client.NewSessionAuth("admin", id), "logout", map[string]interface{}{})
+	//conn, err = cobj.MakeConnection(true)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(request.MarshalBinary())
+	//if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
+	//	panic(err)
+	//}
+	//
+	//// Receive the response.
+	//stream = network.DataStream(network.NewTLSStream(conn))
+	//if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
+	//	panic(err)
+	//}
+	//if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
+	//	panic(err)
+	//}
+	//response, err = cobj.ReceiveResponse(stream, time.Second*5)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(response)
 
 	// conn.Write([]byte{76, 73, 76, 89, 35, 0, 48, 85, 5, 0, 97, 100, 109, 105, 110, 5, 0, 97, 100, 109, 105, 110, 69, 78, 68, 5, 0, 76, 79, 71, 73, 78, 5, 0, 5, 0, 0, 0, 0, 69, 78, 68, 0, 0, 69, 78, 68})
 	// data := make([]byte, 0)

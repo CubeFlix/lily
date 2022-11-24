@@ -617,6 +617,22 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
+### Set Drive Access Settings
+
+> Set the drive's access settings. Requires drive modify clearance.
+
+**Parameters:** 
+
+> - `settings` (type `BSONAccessSettings`)
+> 
+>   The new access settings.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
 ### Set Drive Clearances
 
 > Set the access and modify clearances for a drive. Requires drive modify clearance. If the clearances are invalid, this returns an error.
@@ -830,6 +846,22 @@ These following commands all require administrator privileges to execute.
 > - `modifyBlacklist` (type `[]string`)
 > 
 >   Modify blacklist.
+
+**Chunk Returns:** None
+
+### Set Path Access Settings
+
+> Set the path's access settings. Requires modify clearance.
+
+**Parameters:** 
+
+> - `settings` (type `BSONAccessSettings`)
+> 
+>   The new access settings.
+
+**Chunk Arguments:** None
+
+**Returns:** None
 
 **Chunk Returns:** None
 

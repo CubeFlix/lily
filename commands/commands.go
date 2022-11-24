@@ -15,6 +15,9 @@ var COMMANDS = map[string]func(*Command) error{
 	"info":   InfoCommand,
 	"login":  LoginCommand,
 	"logout": LogoutCommand,
+
+	// FS drive commands.
+	"createfiles": CreateFilesCommand,
 }
 
 // Execute a given command. We won't bother with timeouts here since the code

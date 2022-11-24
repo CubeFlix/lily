@@ -14,6 +14,7 @@ var ErrNullAuth = errors.New("lily.security.auth: Invalid null authentication ob
 // Auth interface object.
 type Auth interface {
 	Authenticate() error
+	Type() string
 }
 
 // Null auth object.
@@ -21,4 +22,8 @@ type NullAuth struct{}
 
 func (n *NullAuth) Authenticate() error {
 	return ErrNullAuth
+}
+
+func (n *NullAuth) Type() string {
+	return "null"
 }

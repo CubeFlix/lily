@@ -262,3 +262,50 @@ func (a *AccessSettings) AddUsersModifyBlacklist(users []string) error {
 func (a *AccessSettings) RemoveUsersModifyBlacklist(users []string) error {
 	return a.modifyBlacklist.RemoveUsers(users)
 }
+
+type BSONAccessSettings struct {
+	AccessClearance int
+	ModifyClearance int
+	AccessWhitelist []string
+	ModifyWhitelist []string
+	AccessBlacklist []string
+	ModifyBlacklist []string
+}
+
+func ToBSON(a *AccessSettings) BSONAccessSettings {
+	return BSONAccessSettings{
+		AccessClearance: int(a.accessClearance),
+		ModifyClearance: int(a.modifyClearance),
+		AccessWhitelist: a.GetAccessWhitelist(),
+		ModifyWhitelist: a.GetModifyWhitelist(),
+		AccessBlacklist: a.GetAccessBlacklist(),
+		ModifyBlacklist: a.GetModifyBlacklist(),
+	}
+}
+
+func ToAccess(bson BSONAccessSettings) (*AccessSettings, error) {
+	aw := namelist.NewUsernameList()
+	aw.AddUsers(bson.AccessWhitelist)
+	mw := namelist.NewUsernameList()
+	mw.AddUsers(bson.ModifyWhitelist)
+	ab := namelist.NewUsernameList()
+	ab.AddUsers(bson.AccessBlacklist)
+	mb := namelist.NewUsernameList()
+	mb.AddUsers(bson.ModifyBlacklist)
+	ac := Clearance(bson.AccessClearance)
+	mc := Clearance(bson.ModifyClearance)
+	if err := (&ac).Validate(); err != nil {
+		return nil, err
+	}
+	if err := (&mc).Validate(); err != nil {
+		return nil, err
+	}
+	return &AccessSettings{
+		accessClearance: Clearance(bson.AccessClearance),
+		modifyClearance: Clearance(bson.ModifyClearance),
+		accessWhitelist: aw,
+		modifyWhitelist: mw,
+		accessBlacklist: ab,
+		modifyBlacklist: mb,
+	}, nil
+}

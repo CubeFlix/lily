@@ -98,11 +98,13 @@ func (s *Server) SetDrives(drives map[string]*drive.Drive) {
 }
 
 // Get a drive.
-func (s *Server) GetDrive(name string) *drive.Drive {
+func (s *Server) GetDrive(name string) (*drive.Drive, bool) {
 	s.Lock.RLock()
 	defer s.Lock.RUnlock()
 
-	return s.drives[name]
+	d, ok := s.drives[name]
+
+	return d, ok
 }
 
 // Set a drive.

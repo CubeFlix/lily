@@ -61,10 +61,35 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Per-user session limit reached.
 
-### **Code:** 8
+### **Code:** 12
 
 **Description:**
-> Insufficient clearance.
+> Invalid parameters.
+
+### **Code:** 13
+
+**Description:**
+> Drive does not exist.
+
+### **Code:** 14
+
+**Description:**
+> Invalid access settings.
+
+### **Code:** 15
+
+**Description:**
+> FS argument error.
+
+### **Code:** 16
+
+**Description:**
+> Insufficient clearance for access/modify.
+
+### **Code:** 17
+
+**Description:**
+> Unknown FS error.
 
 ### **Code:** 9
 
@@ -90,11 +115,6 @@ Responses in Lily consist of a response code and a response string, an optional 
 
 **Description:**
 > Session does not exist.
-
-### **Code:** 14
-
-**Description:**
-> Drive does not exist.
 
 ### **Code:** 15
 

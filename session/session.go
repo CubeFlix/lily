@@ -140,3 +140,7 @@ func (s *Session) Authenticate() error {
 	// Return.
 	return nil
 }
+
+func (n *Session) Type() string {
+	return "session"
+}

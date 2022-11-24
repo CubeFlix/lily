@@ -25,7 +25,7 @@ type Server interface {
 	GetDrives() map[string]*drive.Drive
 	GetDriveNames() []string
 	SetDrives(map[string]*drive.Drive)
-	GetDrive(string) *drive.Drive
+	GetDrive(string) (*drive.Drive, bool)
 	SetDrive(string, *drive.Drive)
 }
 
