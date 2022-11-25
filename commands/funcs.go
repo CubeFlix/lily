@@ -80,6 +80,26 @@ func getListOfStrings(c *Command, paramName string) ([]string, error) {
 	return list, nil
 }
 
+// Get a list of int64s.
+func getListOfInt64(c *Command, paramName string) ([]int64, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return nil, ErrParamFail
+	}
+	argInterface, ok := arg.([]interface{})
+	if !ok {
+		return nil, ErrParamFail
+	}
+	list := make([]int64, len(argInterface))
+	for i := range argInterface {
+		list[i], ok = argInterface[i].(int64)
+		if !ok {
+			return nil, ErrParamFail
+		}
+	}
+	return list, nil
+}
+
 // Get optional access settings.
 func getOptionalAccessSettings(c *Command, paramName string) ([]*access.AccessSettings, bool, error) {
 	accessSettingsArg, ok := c.Params[paramName]
@@ -95,8 +115,12 @@ func getOptionalAccessSettings(c *Command, paramName string) ([]*access.AccessSe
 		accessSettings := make([]*access.AccessSettings, len(bsonAccessSettingsInterface))
 		for i := range bsonAccessSettingsInterface {
 			var err error
-			bsonAccessSetting, ok := bsonAccessSettingsInterface[i].(access.BSONAccessSettings)
+			bsonAccessSettingMap, ok := bsonAccessSettingsInterface[i].(map[string]interface{})
 			if !ok {
+				return nil, false, ErrParamFail
+			}
+			bsonAccessSetting, err := access.MapToBSON(bsonAccessSettingMap)
+			if err != nil {
 				return nil, false, ErrParamFail
 			}
 			accessSettings[i], err = access.ToAccess(bsonAccessSetting)

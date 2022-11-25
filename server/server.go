@@ -13,6 +13,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 
 	"github.com/cubeflix/lily/connection"
@@ -113,6 +114,27 @@ func (s *Server) SetDrive(name string, d *drive.Drive) {
 	defer s.Lock.Unlock()
 
 	s.drives[name] = d
+}
+
+// Load drives from files.
+func (s *Server) LoadDrives() error {
+	s.SetDrives(map[string]*drive.Drive{})
+	driveFiles := s.config.GetDriveFiles()
+	for driveName := range driveFiles {
+		// Load the drive.
+		file, err := os.OpenFile(driveFiles[driveName], os.O_RDONLY, 0644)
+		if err != nil {
+			return ErrDriveFileDoesNotExist
+		}
+		dobj, err := drive.Unmarshal(file)
+		if err != nil {
+			file.Close()
+			return err
+		}
+		file.Close()
+		s.SetDrive(driveName, dobj)
+	}
+	return nil
 }
 
 // Check if the server is running.
@@ -261,6 +283,14 @@ func (s *Server) LimitResponseWorker() {
 			connection.ConnectionError(stream, s.config.GetTimeout(), 7, "Rate limit reached. Please try again later.", nil)
 		}
 	}
+}
+
+// Fully close the server.
+func (s *Server) FullyClose() error {
+	s.StopServerRoutine()
+	s.StopWorkers()
+	s.StopCronRoutines()
+	return s.CronSave()
 }
 
 // Get sessions.

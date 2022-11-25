@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"os"
@@ -26,7 +25,7 @@ var ErrNotAChildOf = errors.New("lily.drive: Path is not a child of parent")
 var ErrAlreadyExists = errors.New("lily.drive: Path already exists")
 var ErrInvalidDirectoryTree = errors.New("lily.drive: Invalid directory tree")
 var ErrInvalidName = errors.New("lily.drive: Invalid name")
-var ErrInvalidLength = errors.New("lily.drive: Invalid length of array")
+var ErrInvalidLength = errors.New("lily.drive: Invalid length of argument array")
 var ErrInvalidChunks = errors.New("lily.drive: Invalid chunks")
 var ErrInvalidStartEnd = errors.New("lily.drive: Invalid start and end values")
 var ErrCannotAccess = errors.New("lily.drive: Cannot access/modify")
@@ -837,7 +836,6 @@ func (d *Drive) CreateFiles(files []string, settings []*access.AccessSettings, u
 		d.SetDirty(true)
 		d.ReleaseLock()
 	}
-	fmt.Println(d.fs.GetFiles())
 
 	// Return.
 	return nil

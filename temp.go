@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/cubeflix/lily/client"
-	"github.com/cubeflix/lily/drive"
-	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/server"
@@ -39,29 +37,31 @@ func serverFunc() {
 	userlist.SetUsersByName(map[string]*user.User{"admin": uobj})
 
 	// create the drives list
-	rootaccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
-	if err != nil {
-		panic(err)
-	}
-	daccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
-	if err != nil {
-		panic(err)
-	}
-	root, err := fs.NewDirectory("", true, nil, rootaccess)
-	if err != nil {
-		panic(err)
-	}
-	dobj := drive.NewDrive("drive", "c:/users/kevin chen/lilytest", daccess, root)
-	drivelist := map[string]*drive.Drive{"drive": dobj}
+	// rootaccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// daccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// root, err := fs.NewDirectory("", true, nil, rootaccess)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// dobj := drive.NewDrive("drive", "c:/users/kevin chen/lilytest", daccess, root)
+	// drivelist := map[string]*drive.Drive{"drive": dobj}
 
 	// create a server
-	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, nil, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, certPair, tlsconfig)
+	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, map[string]string{"drive": "c:/users/kevin chen/drive.lily"}, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, certPair, tlsconfig)
 	if err != nil {
 		panic(err)
 	}
 	c.LoadCerts()
 	s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
-	s.SetDrives(drivelist)
+	if err := s.LoadDrives(); err != nil {
+		panic(err)
+	}
 	s.StartCronRoutines()
 	err = s.Serve()
 	if err != nil {
@@ -78,14 +78,19 @@ func serverFunc() {
 		syscall.SIGQUIT)
 	<-sigc
 	// stop the server and its workers
-	s.StopServerRoutine()
-	s.StopWorkers()
-	s.StopCronRoutines()
+	fmt.Println("(main:info) - stopping:", s.FullyClose())
 	fmt.Println("(main:info) - stopped")
 }
 
 func clientFunc() {
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createFiles", map[string]interface{}{"drive": "drive", "paths": []string{"a", "b"}})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createFiles", map[string]interface{}{
+		"drive": "drive",
+		"paths": []string{"c", "d"},
+		"settings": []access.BSONAccessSettings{
+			access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
+			access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
+		},
+	})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {

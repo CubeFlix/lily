@@ -3,7 +3,9 @@
 
 package commands
 
-import "github.com/cubeflix/lily/drive"
+import (
+	"github.com/cubeflix/lily/drive"
+)
 
 // Handle an FS error.
 func handleFSError(c *Command, err error) error {
@@ -59,6 +61,68 @@ func CreateFilesCommand(c *Command) error {
 
 	// Create the files.
 	err = driveObj.CreateFiles(paths, accessSettings, useParentAccessSettings, username, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Read files using chunks.
+func ReadFilesCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	start, err := getListOfInt64(c, "start")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	end, err := getListOfInt64(c, "end")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	var chunkSize int64
+	chunkSizeArg, ok := c.Params["chunkSize"]
+	if ok {
+		chunkSize = chunkSizeArg.(int64)
+		if chunkSize < 0 || chunkSize > 1000000 {
+			c.Respond(18, "Invalid chunk size.", map[string]interface{}{})
+			return nil
+		}
+	} else {
+		// Default.
+		chunkSize = 4096
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Read the files.
+	err = driveObj.ReadFiles(paths, start, end, c.Chunks, chunkSize, c.Server.Config().GetTimeout(), userObj)
 	if err != nil {
 		handleFSError(c, err)
 		return nil

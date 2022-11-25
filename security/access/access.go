@@ -45,6 +45,9 @@ var ErrInvalidAccessModifyClearances = errors.New("lily.security.access: Invalid
 	"clearance should be higher than " +
 	"access clearance")
 
+// Invalid BSON access settings map.
+var ErrInvalidBSONMap = errors.New("lily.security.access: Invalid BSON access settings map")
+
 // Create a new empty access settings object.
 func NewAccessSettings(access, modify Clearance) (*AccessSettings, error) {
 	if !modify.IsSufficient(access) {
@@ -270,6 +273,74 @@ type BSONAccessSettings struct {
 	ModifyWhitelist []string
 	AccessBlacklist []string
 	ModifyBlacklist []string
+}
+
+// Get a list of strings from a map[string]interface{}.
+func getListOfStrings(m map[string]interface{}, paramName string) ([]string, error) {
+	arg, ok := m[paramName]
+	if !ok {
+		return nil, ErrInvalidBSONMap
+	}
+	argInterface, ok := arg.([]interface{})
+	if !ok {
+		return nil, ErrInvalidBSONMap
+	}
+	list := make([]string, len(argInterface))
+	for i := range argInterface {
+		list[i], ok = argInterface[i].(string)
+		if !ok {
+			return nil, ErrInvalidBSONMap
+		}
+	}
+	return list, nil
+}
+
+func MapToBSON(m map[string]interface{}) (BSONAccessSettings, error) {
+	settings := BSONAccessSettings{}
+
+	// Get fields accessclearance and modifyclearance.
+	ac, ok := m["accessclearance"]
+	if !ok {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	acInt, ok := ac.(int)
+	if !ok {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	mc, ok := m["modifyclearance"]
+	if !ok {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	mcInt, ok := mc.(int)
+	if !ok {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	settings.AccessClearance = acInt
+	settings.ModifyClearance = mcInt
+
+	// Get the whitelists and blacklists.
+	aw, err := getListOfStrings(m, "accesswhitelist")
+	if err != nil {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	mw, err := getListOfStrings(m, "modifyblacklist")
+	if err != nil {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	ab, err := getListOfStrings(m, "accessblacklist")
+	if err != nil {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	mb, err := getListOfStrings(m, "modifyblacklist")
+	if err != nil {
+		return BSONAccessSettings{}, ErrInvalidBSONMap
+	}
+	settings.AccessWhitelist = aw
+	settings.ModifyWhitelist = mw
+	settings.AccessBlacklist = ab
+	settings.ModifyBlacklist = mb
+
+	return settings, nil
 }
 
 func ToBSON(a *AccessSettings) BSONAccessSettings {

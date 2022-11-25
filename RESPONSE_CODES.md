@@ -91,6 +91,11 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Unknown FS error.
 
+### **Code:** 18
+
+**Description:**
+> Invalid chunk size.
+
 ### **Code:** 9
 
 **Description:**
