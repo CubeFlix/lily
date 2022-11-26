@@ -11,6 +11,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/cubeflix/lily/connection"
 	"github.com/cubeflix/lily/drive"
+	"github.com/cubeflix/lily/marshal"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/server/config"
 	slist "github.com/cubeflix/lily/session/list"
@@ -25,6 +27,46 @@ import (
 	golimit "github.com/sethvargo/go-limiter"
 	"github.com/sethvargo/go-limiter/memorystore"
 )
+
+const SESSION_GEN_LIMIT = 10
+
+var ErrServerFileInvalid = errors.New("lily.server: Server file invalid or does not exist")
+
+// Load a server from a server file.
+func LoadServerFromFile(path string) (*Server, error) {
+	// Open the server file.
+	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, ErrServerFileInvalid
+	}
+	config, err := marshal.UnmarshalConfig(file)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	users, err := marshal.UnmarshalUserList(file)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	file.Close()
+
+	// Load the certs.
+	if err := config.LoadCerts(); err != nil {
+		return nil, err
+	}
+
+	// Create the new server.
+	s := NewServer(slist.NewSessionList(10, config.GetUserSessionLimit()), users, config)
+
+	// Load the drives.
+	if err := s.LoadDrives(); err != nil {
+		return nil, err
+	}
+
+	// Return.
+	return s, nil
+}
 
 // The Lily server object. We only need a mutex for the drives map.
 type Server struct {

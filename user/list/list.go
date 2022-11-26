@@ -19,6 +19,7 @@ type UserList struct {
 	lock  sync.RWMutex
 	users map[string]*user.User
 	names []string
+	dirty bool
 }
 
 // Create the user list.
@@ -27,7 +28,18 @@ func NewUserList() *UserList {
 		lock:  sync.RWMutex{},
 		users: map[string]*user.User{},
 		names: []string{},
+		dirty: false,
 	}
+}
+
+// Is dirty.
+func (u *UserList) IsDirty() bool {
+	return u.dirty
+}
+
+// Set dirty.
+func (u *UserList) SetDirty(dirty bool) {
+	u.dirty = dirty
 }
 
 // Check the list for a user.
@@ -102,6 +114,7 @@ func (u *UserList) SetUsersByName(users map[string]*user.User) {
 		// Set the user.
 		u.users[user] = users[user]
 	}
+	u.dirty = true
 }
 
 // Remove users by name.
@@ -133,6 +146,7 @@ func (u *UserList) RemoveUsersByName(users []string) error {
 			}
 		}
 	}
+	u.dirty = true
 
 	// Return.
 	return nil

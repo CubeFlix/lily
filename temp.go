@@ -4,7 +4,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,53 +12,54 @@ import (
 
 	"github.com/cubeflix/lily/client"
 	"github.com/cubeflix/lily/network"
-	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/server"
-	"github.com/cubeflix/lily/server/config"
-	slist "github.com/cubeflix/lily/session/list"
-	"github.com/cubeflix/lily/user"
-	ulist "github.com/cubeflix/lily/user/list"
 )
 
 func serverFunc() {
-	// create the tls config
-	certPair := []config.CertFilePair{{"c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem"}}
-	tlsconfig := &tls.Config{
-		MinVersion: tls.VersionTLS10,
-	}
-
-	// create the users list
-	uobj, err := user.NewUser("admin", "admin", access.ClearanceLevelFive)
+	//// create the tls config
+	//certPair := []config.CertFilePair{{"c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem"}}
+	//tlsconfig := &tls.Config{
+	//	MinVersion: tls.VersionTLS10,
+	//}
+	//
+	//// // create the users list
+	//uobj, err := user.NewUser("admin", "admin", access.ClearanceLevelFive)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//userlist := ulist.NewUserList()
+	//userlist.SetUsersByName(map[string]*user.User{"admin": uobj})
+	//
+	//// create the drives list
+	//// rootaccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
+	//// if err != nil {
+	//// 	panic(err)
+	//// }
+	//// daccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
+	//// if err != nil {
+	//// 	panic(err)
+	//// }
+	//// root, err := fs.NewDirectory("", true, nil, rootaccess)
+	//// if err != nil {
+	//// 	panic(err)
+	//// }
+	//// dobj := drive.NewDrive("drive", "c:/users/kevin chen/lilytest", daccess, root)
+	//// drivelist := map[string]*drive.Drive{"drive": dobj}
+	////
+	//// create a server
+	//c, err := config.NewConfig("c:/users/kevin chen/server.lily", "server", "127.0.0.1", 8001, map[string]string{"drive": "c:/users/kevin chen/drive.lily"}, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, certPair, tlsconfig)
+	//c.LoadCerts()
+	//c.SetDirty(true)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
+	//if err := s.LoadDrives(); err != nil {
+	//	panic(err)
+	//}
+	s, err := server.LoadServerFromFile("c:/users/kevin chen/server.lily")
 	if err != nil {
-		panic(err)
-	}
-	userlist := ulist.NewUserList()
-	userlist.SetUsersByName(map[string]*user.User{"admin": uobj})
-
-	// create the drives list
-	// rootaccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// daccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// root, err := fs.NewDirectory("", true, nil, rootaccess)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// dobj := drive.NewDrive("drive", "c:/users/kevin chen/lilytest", daccess, root)
-	// drivelist := map[string]*drive.Drive{"drive": dobj}
-
-	// create a server
-	c, err := config.NewConfig("", "server", "127.0.0.1", 8001, map[string]string{"drive": "c:/users/kevin chen/drive.lily"}, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, certPair, tlsconfig)
-	if err != nil {
-		panic(err)
-	}
-	c.LoadCerts()
-	s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
-	if err := s.LoadDrives(); err != nil {
 		panic(err)
 	}
 	s.StartCronRoutines()
@@ -83,14 +83,15 @@ func serverFunc() {
 }
 
 func clientFunc() {
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createFiles", map[string]interface{}{
-		"drive": "drive",
-		"paths": []string{"c", "d"},
-		"settings": []access.BSONAccessSettings{
-			access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
-			access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
-		},
-	})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createFiles", map[string]interface{}{
+	// 	"drive": "drive",
+	// 	"paths": []string{"c", "d"},
+	// 	"settings": []access.BSONAccessSettings{
+	// 		access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
+	// 		access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
+	// 	},
+	// })
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "info", map[string]interface{}{})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {

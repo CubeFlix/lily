@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/cubeflix/lily/marshal"
 )
 
 var ErrDriveDoesNotExist = errors.New("lily.server: Drive does not exist")
@@ -94,6 +96,30 @@ func (s *Server) CronSave() error {
 			return err
 		}
 		file.Close()
+		d.SetDirty(false)
 	}
+
+	// Save the server file.
+	if s.config.IsDirty() || s.users.IsDirty() {
+		// Dirty, we should save.
+		file, err := os.OpenFile(s.config.GetServerFile(), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+		if err != nil {
+			return ErrDriveFileDoesNotExist
+		}
+		err = marshal.MarshalConfig(s.config, file)
+		if err != nil {
+			file.Close()
+			return err
+		}
+		err = marshal.MarshalUserList(s.users, file)
+		if err != nil {
+			file.Close()
+			return err
+		}
+		file.Close()
+		s.config.SetDirty(false)
+		s.users.SetDirty(false)
+	}
+
 	return nil
 }

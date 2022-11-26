@@ -71,7 +71,7 @@ type Config struct {
 	// A list of optional daemons to run at startup, alongside the main Lily
 	// server.
 	optionalDaemons []string
-	optionalArgs    [][]string
+	optionalArgs    map[string]string
 
 	// The interval time for the main cron routine. This value should not be
 	// too short, as the main cron routine can sometimes slow down the server.
@@ -113,7 +113,7 @@ type Config struct {
 
 // Create the config object.
 func NewConfig(file, name, host string, port int, driveFiles map[string]string,
-	numWorkers, backlog int, optionalDaemons []string, optionalArgs [][]string,
+	numWorkers, backlog int, optionalDaemons []string, optionalArgs map[string]string,
 	mainCronInterval, sessionCronInterval, netTimeout time.Duration, verbose,
 	logToFile, logJSON bool, logLevel, logPath string,
 	defaultSessionExpiration time.Duration, allowChangeSessionExpiration,
@@ -388,7 +388,7 @@ func (c *Config) SetBacklog(backlog int) error {
 }
 
 // Get the list of optional daemons and list of arguments.
-func (c *Config) GetOptionalDaemons() ([]string, [][]string) {
+func (c *Config) GetOptionalDaemons() ([]string, map[string]string) {
 	// No need to get the lock, as these values won't change.
 	return c.optionalDaemons, c.optionalArgs
 }
