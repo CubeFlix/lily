@@ -185,6 +185,7 @@ func (c *Client) ReceiveIgnoreChunkData(stream network.DataStream, timeout time.
 			}
 			buf := make([]byte, chunkLen)
 			err = ch.GetChunk(&buf, timeout)
+			fmt.Println(buf)
 			if err != nil {
 				return err
 			}

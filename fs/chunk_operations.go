@@ -54,8 +54,8 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 			// Insufficient memory. Write the remaining chunks.
 			for j := 0; j < (numChunks - i); j++ {
 				handler.WriteChunkInfo(name, 0, timeout)
-				d = make([]byte, 0)
-				handler.WriteChunk(&d, timeout)
+				// d = make([]byte, 0)
+				// handler.WriteChunk(&d, timeout)
 			}
 			return ErrInsufficientMemory
 		}

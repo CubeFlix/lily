@@ -90,12 +90,16 @@ func ReadFilesCommand(c *Command) error {
 		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
 		return nil
 	}
-	start, err := getListOfInt64(c, "start")
+	start, err := getListOfInt64(c, "start", make([]int64, len(paths)))
 	if err != nil {
 		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
 		return nil
 	}
-	end, err := getListOfInt64(c, "end")
+	end := make([]int64, len(paths))
+	for i := range end {
+		end[i] = -1
+	}
+	end, err = getListOfInt64(c, "end", end)
 	if err != nil {
 		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
 		return nil

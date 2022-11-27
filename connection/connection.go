@@ -26,7 +26,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var ErrFixedStreamEmpty = errors.New("lily.connection.FixedStream: Stream empty")
+var ErrFixedStreamEmpty = errors.New("lily.connection: Stream empty")
 
 type Server interface {
 	Users() *userlist.UserList

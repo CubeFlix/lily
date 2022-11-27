@@ -881,7 +881,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *n
 		}
 
 		if end[i] == -1 {
-			if !(start[i] < info.Size()) {
+			if !(start[i] <= info.Size()) {
 				file.ReleaseRLock()
 				return ErrInvalidStartEnd
 			}
@@ -889,7 +889,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *n
 				Name:      files[i],
 				NumChunks: int(math.Ceil(float64(info.Size()-start[i]) / float64(chunkSize)))})
 		} else {
-			if !(start[i] < info.Size() && start[i] >= 0) || !(end[i] <= info.Size() && end[i] > 0) || !(start[i] <= end[i]) {
+			if !(start[i] <= info.Size() && start[i] >= 0) || !(end[i] <= info.Size() && end[i] > 0) || !(start[i] <= end[i]) {
 				file.ReleaseRLock()
 				return ErrInvalidStartEnd
 			}
@@ -921,8 +921,6 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *n
 		// Release the lock.
 		file.ReleaseRLock()
 	}
-
-	handler.WriteFooter(timeout)
 
 	// Return.
 	return globalError

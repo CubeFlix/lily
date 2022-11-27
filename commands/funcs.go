@@ -81,10 +81,10 @@ func getListOfStrings(c *Command, paramName string) ([]string, error) {
 }
 
 // Get a list of int64s.
-func getListOfInt64(c *Command, paramName string) ([]int64, error) {
+func getListOfInt64(c *Command, paramName string, normal []int64) ([]int64, error) {
 	arg, ok := c.Params[paramName]
 	if !ok {
-		return nil, ErrParamFail
+		return normal, nil
 	}
 	argInterface, ok := arg.([]interface{})
 	if !ok {
