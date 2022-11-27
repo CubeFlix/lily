@@ -57,10 +57,10 @@ func (c *Client) MakeConnection(insecureSkipVerify bool) (*tls.Conn, error) {
 }
 
 // Make a request.
-func (c *Client) MakeRequest(conn *tls.Conn, r Request, timeout time.Duration, sendEmptyChunks bool) error {
+func (c *Client) MakeRequest(conn *tls.Conn, r Request, timeout time.Duration, sendEmptyChunks bool) (network.DataStream, error) {
 	data, err := r.MarshalBinary()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	length := make([]byte, 2)
 	binary.LittleEndian.PutUint16(length, uint16(len(data)))
@@ -69,17 +69,17 @@ func (c *Client) MakeRequest(conn *tls.Conn, r Request, timeout time.Duration, s
 	header = append(header, length...)
 	header = append(header, []byte(network.PROTOCOL_VERSION)...)
 	if _, err := stream.Write(&header, timeout); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := stream.Write(&data, timeout); err != nil {
-		return err
+		return nil, err
 	}
 	if sendEmptyChunks {
 		ch := network.NewChunkHandler(stream)
 		ch.WriteChunkResponseInfo([]network.ChunkInfo{}, timeout, false)
 		ch.WriteFooter(timeout)
 	}
-	return nil
+	return stream, nil
 }
 
 // Receive the header.

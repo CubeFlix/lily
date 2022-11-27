@@ -91,19 +91,53 @@ func clientFunc() {
 	// 		access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
 	// 	},
 	// })
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{"expireAfter": 5 * time.Hour})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{"expireAfter": 5 * time.Hour})
+	// cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
+	// conn, err := cobj.MakeConnection(true)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
+	// 	panic(err)
+	// }
+	//
+	// // Receive the response.
+	// stream := network.DataStream(network.NewTLSStream(conn))
+	// if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
+	// 	panic(err)
+	// }
+	// if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
+	// 	panic(err)
+	// }
+	// response, err := cobj.ReceiveResponse(stream, time.Second*5)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(response)
+	// sessID := response.Data["id"].([]byte)
+	//request = client.NewRequest(client.NewSessionAuth("admin", sessID), "readfiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(request.MarshalBinary())
-	if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
+	stream, err := cobj.MakeRequest(conn, *request, time.Second*5, false)
+	if err != nil {
 		panic(err)
 	}
+	ch := network.NewChunkHandler(stream)
+	ch.WriteChunkResponseInfo([]network.ChunkInfo{{"a", 2}}, time.Second*5, false)
+	ch.WriteChunkInfo("a", 5, time.Second*5)
+	data := []byte("write")
+	ch.WriteChunk(&data, time.Second*5)
+	ch.WriteChunkInfo("a", 5, time.Second*5)
+	data = []byte(" data")
+	ch.WriteChunk(&data, time.Second*5)
+	ch.WriteFooter(time.Second * 5)
 
 	// Receive the response.
-	stream := network.DataStream(network.NewTLSStream(conn))
+	// stream := network.DataStream(network.NewTLSStream(conn))
 	if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
 		panic(err)
 	}
@@ -114,31 +148,7 @@ func clientFunc() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(response)
-	sessID := response.Data["id"].([]byte)
-	request = client.NewRequest(client.NewSessionAuth("admin", sessID), "readfiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}})
-	cobj = client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
-	conn, err = cobj.MakeConnection(true)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(request.MarshalBinary())
-	if err := cobj.MakeRequest(conn, *request, time.Second*5, true); err != nil {
-		panic(err)
-	}
-
-	// Receive the response.
-	stream = network.DataStream(network.NewTLSStream(conn))
-	if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
-		panic(err)
-	}
-	if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
-		panic(err)
-	}
-	response, err = cobj.ReceiveResponse(stream, time.Second*5)
-	if err != nil {
-		panic(err)
-	}
+	conn.Close()
 	fmt.Println(response)
 	// id := response.Data["id"].([]byte)
 
