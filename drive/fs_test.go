@@ -622,7 +622,7 @@ func TestWriteFile(t *testing.T) {
 	c.WriteFooter(time.Duration(0))
 
 	// Write.
-	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, []bool{false}, c, time.Duration(0), "foo", u)
+	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, []bool{false, false}, c, time.Duration(0), "foo", u)
 	if err != nil {
 		t.Error(err.Error())
 	}

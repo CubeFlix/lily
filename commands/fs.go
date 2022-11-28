@@ -181,6 +181,133 @@ func ListDirCommand(c *Command) error {
 	return nil
 }
 
+// Rename directories.
+func RenameDirsCommand(c *Command) error {
+	userObj, username, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	newNames, err := getListOfStrings(c, "newNames")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Rename the dirs.
+	err = driveObj.RenameDirs(paths, newNames, username, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Move directories.
+func MoveDirsCommand(c *Command) error {
+	userObj, username, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	dests, err := getListOfStrings(c, "dests")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Move the dirs.
+	err = driveObj.MoveDirs(paths, dests, username, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Delete directories.
+func DeleteDirsCommand(c *Command) error {
+	userObj, username, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Delete the dirs.
+	err = driveObj.DeleteDirs(paths, username, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
 // Create files.
 func CreateFilesCommand(c *Command) error {
 	userObj, username, err := authUserOrSession(c)

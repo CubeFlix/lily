@@ -20,6 +20,9 @@ var COMMANDS = map[string]func(*Command) error{
 	"createdirs":    CreateDirsCommand,
 	"createdirtree": CreateDirTreeCommand,
 	"listdir":       ListDirCommand,
+	"renamedirs":    RenameDirsCommand,
+	"movedirs":      MoveDirsCommand,
+	"deletedirs":    DeleteDirsCommand,
 
 	"createfiles":  CreateFilesCommand,
 	"readfiles":    ReadFilesCommand,
