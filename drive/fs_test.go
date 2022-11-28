@@ -622,7 +622,7 @@ func TestWriteFile(t *testing.T) {
 	c.WriteFooter(time.Duration(0))
 
 	// Write.
-	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, c, time.Duration(0), "foo", u)
+	err = drive.WriteFiles([]string{"./foo", "bar"}, []int64{0, 2}, []bool{false}, c, time.Duration(0), "foo", u)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -915,7 +915,7 @@ func TestHashVerify(t *testing.T) {
 	data = []byte("hello")
 	c.WriteChunk(&data, time.Duration(0))
 	c.WriteFooter(time.Duration(0))
-	drive.WriteFiles([]string{"./a", "b"}, []int64{0, 0}, c, time.Duration(0), "foo", u)
+	drive.WriteFiles([]string{"./a", "b"}, []int64{0, 0}, []bool{false}, c, time.Duration(0), "foo", u)
 
 	// Verify the hashes.
 	verify, err := drive.VerifyHashes([]string{"./a", "b"}, u)

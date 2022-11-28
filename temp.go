@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/cubeflix/lily/client"
-	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/server"
 )
 
@@ -92,6 +91,7 @@ func clientFunc() {
 	// 	},
 	// })
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{"expireAfter": 5 * time.Hour})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "movefiles", map[string]interface{}{"paths": []string{"./a"}, "dests": []string{"e"}, "drive": "drive"})
 	// cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	// conn, err := cobj.MakeConnection(true)
 	// if err != nil {
@@ -115,26 +115,26 @@ func clientFunc() {
 	// }
 	// fmt.Println(response)
 	// sessID := response.Data["id"].([]byte)
-	//request = client.NewRequest(client.NewSessionAuth("admin", sessID), "readfiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}})
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}, "clear": []bool{true}})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {
 		panic(err)
 	}
-	stream, err := cobj.MakeRequest(conn, *request, time.Second*5, false)
+	stream, err := cobj.MakeRequest(conn, *request, time.Second*5, true)
 	if err != nil {
 		panic(err)
 	}
-	ch := network.NewChunkHandler(stream)
-	ch.WriteChunkResponseInfo([]network.ChunkInfo{{"a", 2}}, time.Second*5, false)
-	ch.WriteChunkInfo("a", 5, time.Second*5)
-	data := []byte("write")
-	ch.WriteChunk(&data, time.Second*5)
-	ch.WriteChunkInfo("a", 5, time.Second*5)
-	data = []byte(" data")
-	ch.WriteChunk(&data, time.Second*5)
-	ch.WriteFooter(time.Second * 5)
+	// ch := network.NewChunkHandler(stream)
+	// ch.WriteChunkResponseInfo([]network.ChunkInfo{{"a", 2}}, time.Second*5, false)
+	// ch.WriteChunkInfo("a", 10, time.Second*5)
+	// data := []byte("write file")
+	// ch.WriteChunk(&data, time.Second*5)
+	// ch.WriteChunkInfo("a", 9, time.Second*5)
+	// data = []byte(" the data")
+	// ch.WriteChunk(&data, time.Second*5)
+	// ch.WriteFooter(time.Second * 5)
 
 	// Receive the response.
 	// stream := network.DataStream(network.NewTLSStream(conn))
@@ -200,6 +200,7 @@ func clientFunc() {
 func main() {
 	if len(os.Args) < 2 {
 		serverFunc()
+		return
 	}
 	if os.Args[1] == "server" {
 		serverFunc()

@@ -927,7 +927,7 @@ func (d *Drive) ReadFiles(files []string, start []int64, end []int64, handler *n
 }
 
 // Write files.
-func (d *Drive) WriteFiles(files []string, start []int64, handler *network.ChunkHandler, timeout time.Duration, username string, user *user.User) error {
+func (d *Drive) WriteFiles(files []string, start []int64, clear []bool, handler *network.ChunkHandler, timeout time.Duration, username string, user *user.User) error {
 	now := time.Now()
 
 	var err error
@@ -935,6 +935,11 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler *network.Chunk
 	// Check that the length of starts and ends are correct.
 	if len(files) != len(start) {
 		return ErrInvalidStartEnd
+	}
+
+	// Check that the clear list is valid.
+	if len(files) != len(clear) {
+		return ErrInvalidLength
 	}
 
 	// Read the chunks from the handler.
@@ -988,7 +993,7 @@ func (d *Drive) WriteFiles(files []string, start []int64, handler *network.Chunk
 		}
 
 		// Write to the file from the chunk handler.
-		err = fs.WriteFileChunks(files[i], d.getHostPath(clean), int(chunks[i].NumChunks), start[i], handler, timeout)
+		err = fs.WriteFileChunks(files[i], d.getHostPath(clean), int(chunks[i].NumChunks), start[i], clear[i], handler, timeout)
 		if err != nil {
 			file.ReleaseLock()
 			return err

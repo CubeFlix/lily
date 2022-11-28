@@ -72,11 +72,20 @@ func ReadFileChunks(name, path string, numChunks int, chunkSize, start, end int6
 }
 
 // Write to a file from a chunked handler.
-func WriteFileChunks(name, path string, numChunks int, start int64, handler *network.ChunkHandler, timeout time.Duration) (outputErr error) {
+func WriteFileChunks(name, path string, numChunks int, start int64, clear bool, handler *network.ChunkHandler, timeout time.Duration) (outputErr error) {
 	// Open the file.
-	file, err := os.OpenFile(path, os.O_WRONLY, 0644)
-	if err != nil {
-		return err
+	var file *os.File
+	var err error
+	if clear {
+		file, err = os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+	} else {
+		file, err = os.OpenFile(path, os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
 	}
 	defer func() {
 		// We close the file and if we encounter an error, we check if the

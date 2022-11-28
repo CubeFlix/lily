@@ -20,6 +20,9 @@ var COMMANDS = map[string]func(*Command) error{
 	"createfiles": CreateFilesCommand,
 	"readfiles":   ReadFilesCommand,
 	"writefiles":  WriteFilesCommand,
+	"renamefiles": RenameFilesCommand,
+	"movefiles":   MoveFilesCommand,
+	"deletefiles": DeleteFilesCommand,
 }
 
 // Execute a given command. We won't bother with timeouts here since the code

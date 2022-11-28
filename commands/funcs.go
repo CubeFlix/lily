@@ -100,6 +100,26 @@ func getListOfInt64(c *Command, paramName string, normal []int64) ([]int64, erro
 	return list, nil
 }
 
+// Get a list of booleans.
+func getListOfBool(c *Command, paramName string, normal []bool) ([]bool, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return normal, nil
+	}
+	argInterface, ok := arg.([]interface{})
+	if !ok {
+		return nil, ErrParamFail
+	}
+	list := make([]bool, len(argInterface))
+	for i := range argInterface {
+		list[i], ok = argInterface[i].(bool)
+		if !ok {
+			return nil, ErrParamFail
+		}
+	}
+	return list, nil
+}
+
 // Get optional access settings.
 func getOptionalAccessSettings(c *Command, paramName string) ([]*access.AccessSettings, bool, error) {
 	accessSettingsArg, ok := c.Params[paramName]
