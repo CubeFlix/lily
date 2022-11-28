@@ -1398,20 +1398,20 @@ func (d *Drive) DeleteFiles(files []string, username string, user *user.User) er
 }
 
 // Get the status for paths.
-func (d *Drive) Stat(paths []string, user *user.User) ([]PathStatus, error) {
+func (d *Drive) Stat(paths []string, user *user.User) (map[string]PathStatus, error) {
 	// Loop over each path.
-	outputs := make([]PathStatus, len(paths))
+	outputs := map[string]PathStatus{}
 	for i := range paths {
 		// Split the path.
 		split, err := fs.SplitPath(paths[i])
 		if err != nil {
-			return []PathStatus{}, err
+			return map[string]PathStatus{}, err
 		}
 
 		// If the path is empty, return the stat for the root.
 		if len(split) == 0 {
 			root := d.GetRoot()
-			outputs[i] = PathStatus{
+			outputs[paths[i]] = PathStatus{
 				Exists:       true,
 				Name:         paths[i],
 				IsFile:       false,
@@ -1425,7 +1425,7 @@ func (d *Drive) Stat(paths []string, user *user.User) ([]PathStatus, error) {
 		parent := strings.Join(split[:len(split)-1], "/")
 		listdir, err := d.ListDir(parent, user)
 		if err != nil {
-			return []PathStatus{}, err
+			return map[string]PathStatus{}, err
 		}
 
 		// Try to find our item.
@@ -1438,19 +1438,19 @@ func (d *Drive) Stat(paths []string, user *user.User) ([]PathStatus, error) {
 				if listdir[j].File {
 					fileobj, err := d.GetFileByPath(paths[i])
 					if err != nil {
-						return []PathStatus{}, err
+						return map[string]PathStatus{}, err
 					}
 					lastEditTime = fileobj.GetLastEditTime()
 					lastEditor = fileobj.GetLastEditor()
 				} else {
 					dirobj, err := d.GetDirectoryByPath(paths[i])
 					if err != nil {
-						return []PathStatus{}, err
+						return map[string]PathStatus{}, err
 					}
 					lastEditTime = dirobj.GetLastEditTime()
 					lastEditor = dirobj.GetLastEditor()
 				}
-				outputs[i] = PathStatus{
+				outputs[paths[i]] = PathStatus{
 					Exists:       true,
 					Name:         paths[i],
 					IsFile:       listdir[j].File,
@@ -1464,7 +1464,7 @@ func (d *Drive) Stat(paths []string, user *user.User) ([]PathStatus, error) {
 			continue
 		}
 		// Did not find it.
-		outputs[i] = PathStatus{
+		outputs[paths[i]] = PathStatus{
 			Exists: false,
 			Name:   paths[i],
 			IsFile: false,

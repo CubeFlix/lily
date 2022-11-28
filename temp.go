@@ -115,7 +115,8 @@ func clientFunc() {
 	// }
 	// fmt.Println(response)
 	// sessID := response.Data["id"].([]byte)
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "stat", map[string]interface{}{"paths": []string{"e"}, "drive": "drive"})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}, "clear": []bool{true}})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)

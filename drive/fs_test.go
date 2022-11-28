@@ -860,13 +860,13 @@ func TestStat(t *testing.T) {
 	if len(stat) != 3 {
 		t.Fail()
 	}
-	if stat[0].Exists != true || stat[0].Name != "./a" || stat[0].IsFile != true || stat[0].LastEditor != "foo" {
+	if stat["./a"].Exists != true || stat["./a"].Name != "./a" || stat["./a"].IsFile != true || stat["./a"].LastEditor != "foo" {
 		t.Fail()
 	}
-	if stat[1].Exists != true || stat[1].Name != "b" || stat[1].IsFile != false || stat[1].LastEditor != "foo" {
+	if stat["b"].Exists != true || stat["b"].Name != "b" || stat["b"].IsFile != false || stat["b"].LastEditor != "foo" {
 		t.Fail()
 	}
-	if stat[2].Exists != false || stat[2].Name != "c/" || stat[2].IsFile != false {
+	if stat["c/"].Exists != false || stat["c/"].Name != "c/" || stat["c/"].IsFile != false {
 		t.Fail()
 	}
 }

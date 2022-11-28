@@ -218,7 +218,7 @@ func RenameFilesCommand(c *Command) error {
 		return nil
 	}
 
-	// Read the files.
+	// Rename the files.
 	err = driveObj.RenameFiles(paths, newNames, username, userObj)
 	if err != nil {
 		handleFSError(c, err)
@@ -262,7 +262,7 @@ func MoveFilesCommand(c *Command) error {
 		return nil
 	}
 
-	// Read the files.
+	// Move the files.
 	err = driveObj.MoveFiles(paths, dests, username, userObj)
 	if err != nil {
 		handleFSError(c, err)
@@ -301,7 +301,7 @@ func DeleteFilesCommand(c *Command) error {
 		return nil
 	}
 
-	// Read the files.
+	// Delete the files.
 	err = driveObj.DeleteFiles(paths, username, userObj)
 	if err != nil {
 		handleFSError(c, err)
@@ -310,5 +310,122 @@ func DeleteFilesCommand(c *Command) error {
 
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Stat command.
+func StatCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Stat.
+	pathInfo, err := driveObj.Stat(paths, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{"stat": pathInfo})
+	return nil
+}
+
+// Rehash files.
+func RehashFilesCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Rehash the files.
+	err = driveObj.ReHash(paths, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Verify hashes command.
+func VerifyHashesCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Stat.
+	results, err := driveObj.VerifyHashes(paths, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{"results": results})
 	return nil
 }

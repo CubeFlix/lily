@@ -17,12 +17,15 @@ var COMMANDS = map[string]func(*Command) error{
 	"logout": LogoutCommand,
 
 	// FS drive commands.
-	"createfiles": CreateFilesCommand,
-	"readfiles":   ReadFilesCommand,
-	"writefiles":  WriteFilesCommand,
-	"renamefiles": RenameFilesCommand,
-	"movefiles":   MoveFilesCommand,
-	"deletefiles": DeleteFilesCommand,
+	"createfiles":  CreateFilesCommand,
+	"readfiles":    ReadFilesCommand,
+	"writefiles":   WriteFilesCommand,
+	"renamefiles":  RenameFilesCommand,
+	"movefiles":    MoveFilesCommand,
+	"deletefiles":  DeleteFilesCommand,
+	"stat":         StatCommand,
+	"rehashfiles":  RehashFilesCommand,
+	"verifyhashes": VerifyHashesCommand,
 }
 
 // Execute a given command. We won't bother with timeouts here since the code
