@@ -17,6 +17,10 @@ var COMMANDS = map[string]func(*Command) error{
 	"logout": LogoutCommand,
 
 	// FS drive commands.
+	"createdirs":    CreateDirsCommand,
+	"createdirtree": CreateDirTreeCommand,
+	"listdir":       ListDirCommand,
+
 	"createfiles":  CreateFilesCommand,
 	"readfiles":    ReadFilesCommand,
 	"writefiles":   WriteFilesCommand,

@@ -21,6 +21,166 @@ func handleFSError(c *Command, err error) error {
 	return nil
 }
 
+// Create directories.
+func CreateDirsCommand(c *Command) error {
+	userObj, username, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	accessSettings, useParentAccessSettings, err := getOptionalAccessSettings(c, "settings")
+	if err != nil {
+		switch err {
+		case ErrInvalidAccessSettings:
+			c.Respond(14, "Invalid access settings.", map[string]interface{}{})
+			return nil
+		case ErrParamFail:
+			c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+			return nil
+		}
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Create the files.
+	err = driveObj.CreateDirs(paths, accessSettings, useParentAccessSettings, username, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Create a directory tree.
+func CreateDirTreeCommand(c *Command) error {
+	userObj, username, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	parent, err := getString(c, "parent")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	paths, err := getListOfStrings(c, "paths")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	accessSettings, settingsExists, err := getOptionalAccessSettings(c, "settings")
+	if err != nil {
+		switch err {
+		case ErrInvalidAccessSettings:
+			c.Respond(14, "Invalid access settings.", map[string]interface{}{})
+			return nil
+		case ErrParamFail:
+			c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+			return nil
+		}
+	}
+	parentSettings, parentSettingsExists, err := getOptionalAccessSetting(c, "parentSettings")
+	if err != nil {
+		switch err {
+		case ErrInvalidAccessSettings:
+			c.Respond(14, "Invalid access settings.", map[string]interface{}{})
+			return nil
+		case ErrParamFail:
+			c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+			return nil
+		}
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	useParentAccessSettings := true
+	if settingsExists && parentSettingsExists {
+		useParentAccessSettings = false
+	}
+
+	// Create the files.
+	err = driveObj.CreateDirsTree(parent, paths, parentSettings, accessSettings, useParentAccessSettings, username, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// List directories.
+func ListDirCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Create the files.
+	listdir, err := driveObj.ListDir(path, userObj)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{"list": listdir})
+	return nil
+}
+
 // Create files.
 func CreateFilesCommand(c *Command) error {
 	userObj, username, err := authUserOrSession(c)

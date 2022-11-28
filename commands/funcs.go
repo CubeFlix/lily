@@ -120,6 +120,32 @@ func getListOfBool(c *Command, paramName string, normal []bool) ([]bool, error) 
 	return list, nil
 }
 
+// Get singular optional access settings.
+func getOptionalAccessSetting(c *Command, paramName string) (*access.AccessSettings, bool, error) {
+	accessSettingsArg, ok := c.Params[paramName]
+	var accessSettings *access.AccessSettings
+	useParentAccessSettings := true
+	if ok {
+		// Access settings given.
+		useParentAccessSettings = false
+		var err error
+		bsonAccessSettingMap, ok := accessSettingsArg.(map[string]interface{})
+		if !ok {
+			return nil, false, ErrParamFail
+		}
+		bsonAccessSetting, err := access.MapToBSON(bsonAccessSettingMap)
+		if err != nil {
+			return nil, false, ErrParamFail
+		}
+		accessSettings, err := access.ToAccess(bsonAccessSetting)
+		if err != nil {
+			return nil, false, ErrInvalidAccessSettings
+		}
+		return accessSettings, useParentAccessSettings, nil
+	}
+	return accessSettings, useParentAccessSettings, nil
+}
+
 // Get optional access settings.
 func getOptionalAccessSettings(c *Command, paramName string) ([]*access.AccessSettings, bool, error) {
 	accessSettingsArg, ok := c.Params[paramName]
