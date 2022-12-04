@@ -1555,22 +1555,22 @@ func (d *Drive) VerifyHashes(files []string, user *user.User) (map[string]bool, 
 		if err != nil {
 			return map[string]bool{}, err
 		}
-		file.AcquireLock()
+		file.AcquireRLock()
 
 		// Check if we can access.
 		if !user.CanAccess(file.Settings) {
-			file.ReleaseLock()
+			file.ReleaseRLock()
 			return map[string]bool{}, ErrCannotAccess
 		}
 
 		// Calculate the hash.
 		f, err := os.Open(d.getHostPath(clean))
 		if err != nil {
-			file.ReleaseLock()
+			file.ReleaseRLock()
 			return map[string]bool{}, err
 		}
 		if _, err := io.Copy(hasher, f); err != nil {
-			file.ReleaseLock()
+			file.ReleaseRLock()
 			f.Close()
 			return map[string]bool{}, err
 		}
@@ -1581,7 +1581,7 @@ func (d *Drive) VerifyHashes(files []string, user *user.User) (map[string]bool, 
 		f.Close()
 
 		// Release the lock on the file.
-		file.ReleaseLock()
+		file.ReleaseRLock()
 
 		// Compare the hashes.
 		if bytes.Equal(hash, file.GetHash()) {
@@ -1593,4 +1593,26 @@ func (d *Drive) VerifyHashes(files []string, user *user.User) (map[string]bool, 
 
 	// Return.
 	return outputs, nil
+}
+
+// Get access settings.
+func (d *Drive) GetAccessSettings(path string) (*access.AccessSettings, error) {
+	// Check for an empty path.
+	clean, err := fs.CleanPath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the settings object.
+	file, err := d.GetFileByPath(clean)
+	if err == nil {
+		return file.Settings, nil
+	}
+	dir, err := d.GetDirectoryByPath(clean)
+	if err == nil {
+		return dir.Settings, nil
+	}
+
+	// Return the access settings.
+	return nil, ErrPathNotFound
 }

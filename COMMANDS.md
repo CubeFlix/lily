@@ -809,7 +809,137 @@ These following commands all require administrator privileges to execute.
 
 ## Filesystem Commands
 
-### TODO: Filesystem commands
+### Create Dirs
+
+> Create directories. Requires drive modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The directories to create.
+> - `settings` (type `[]BSONAccessSettings`)
+> 
+>   Optional. The settings for the paths.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Create Dir Tree
+
+> Create a directory tree. Requires drive modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `parent` (type `string`)
+> 
+>   The parent directory.
+> - `paths` (type `[]string`)
+> 
+>   The directories to create. Must be in the parent directory.
+> - `parentSettings` (type `BSONAccessSettings`)
+> 
+>   Optional. The settings for the parent.
+> - `settings` (type `[]BSONAccessSettings`)
+> 
+>   Optional. The settings for the paths.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### List Dir
+
+> List the contents of a directory.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `path` (type `string`)
+> 
+>   The path.
+
+**Chunk Arguments:** None
+
+**Returns:** `list` (type `map[string]PathStatus`)
+
+**Chunk Returns:** None
+
+### Rename Dirs
+
+> Rename directories within their respective directories.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The paths to rename.
+> - `newNames` (type `[]string`)
+>  
+>   The new names for the paths.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Move Dirs
+
+> Move directories throughout the drive.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The paths to move.
+> - `dests` (type `[]string`)
+>  
+>   The new destinations.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Delete Dirs
+
+> Delete directories.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The paths to delete.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
 
 ### Get Path Settings
 
@@ -828,24 +958,9 @@ These following commands all require administrator privileges to execute.
 
 **Returns:** 
 
-> - `accessClearance` (type `int`)
+> - `settings` (type `BSONAccessSettings`)
 > 
->   Access clearance level.
-> - `modifyClearance` (type `int`)
-> 
->   Modify clearance level.
-> - `accessWhitelist` (type `[]string`)
-> 
->   Access whitelist.
-> - `modifyWhitelist` (type `[]string`)
-> 
->   Modify whitelist.
-> - `accessBlacklist` (type `[]string`)
-> 
->   Access blacklist.
-> - `modifyBlacklist` (type `[]string`)
-> 
->   Modify blacklist.
+>   The access settings.
 
 **Chunk Returns:** None
 

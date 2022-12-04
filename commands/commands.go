@@ -33,6 +33,8 @@ var COMMANDS = map[string]func(*Command) error{
 	"stat":         StatCommand,
 	"rehashfiles":  RehashFilesCommand,
 	"verifyhashes": VerifyHashesCommand,
+
+	"getsettings": GetSettingsCommand,
 }
 
 // Execute a given command. We won't bother with timeouts here since the code

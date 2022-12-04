@@ -230,6 +230,10 @@ func (d *Drive) GetFileByPath(path string) (*fs.File, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(splitPath) == 0 {
+		// Empty path.
+		return nil, ErrPathNotFound
+	}
 
 	// Traverse the drive to the last directory.
 	current := d.fs

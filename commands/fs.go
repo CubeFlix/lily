@@ -5,6 +5,7 @@ package commands
 
 import (
 	"github.com/cubeflix/lily/drive"
+	"github.com/cubeflix/lily/security/access"
 )
 
 // Handle an FS error.
@@ -714,5 +715,55 @@ func VerifyHashesCommand(c *Command) error {
 
 	// Return.
 	c.Respond(0, "", map[string]interface{}{"results": results})
+	return nil
+}
+
+// Get access settings command.
+func GetSettingsCommand(c *Command) error {
+	_, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the access settings.
+	settings, err := driveObj.GetAccessSettings(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Convert to BSON access settings.
+	ac, mc := settings.GetClearances()
+	bson := access.BSONAccessSettings{
+		AccessClearance: int(ac),
+		ModifyClearance: int(mc),
+		AccessWhitelist: settings.GetAccessWhitelist(),
+		ModifyWhitelist: settings.GetModifyWhitelist(),
+		AccessBlacklist: settings.GetAccessBlacklist(),
+		ModifyBlacklist: settings.GetModifyBlacklist(),
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{"settings": bson})
 	return nil
 }
