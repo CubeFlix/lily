@@ -82,14 +82,10 @@ func serverFunc() {
 }
 
 func clientFunc() {
-	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createFiles", map[string]interface{}{
-	// 	"drive": "drive",
-	// 	"paths": []string{"c", "d"},
-	// 	"settings": []access.BSONAccessSettings{
-	// 		access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
-	// 		access.BSONAccessSettings{AccessClearance: 3, ModifyClearance: 4, AccessWhitelist: []string{"lily"}},
-	// 	},
-	// })
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "setsettings", map[string]interface{}{
+	// 	"drive":    "drive",
+	// 	"path":     "c",
+	// 	"settings": access.BSONAccessSettings{AccessClearance: 2, ModifyClearance: 2, AccessWhitelist: []string{"lily"}}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "login", map[string]interface{}{"expireAfter": 5 * time.Hour})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "movefiles", map[string]interface{}{"paths": []string{"./a"}, "dests": []string{"e"}, "drive": "drive"})
 	// cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
@@ -117,7 +113,7 @@ func clientFunc() {
 	// sessID := response.Data["id"].([]byte)
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createdirs", map[string]interface{}{"paths": []string{"./mypath"}, "drive": "drive"})
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "getsettings", map[string]interface{}{"drive": "drive", "path": ""})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "getsettings", map[string]interface{}{"drive": "drive", "path": "c"})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}, "clear": []bool{true}})
 	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)

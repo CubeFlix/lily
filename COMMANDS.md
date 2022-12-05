@@ -964,7 +964,7 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
-### Set Path Access Settings
+### Set Path Settings
 
 > Set the path's access settings. Requires modify clearance.
 

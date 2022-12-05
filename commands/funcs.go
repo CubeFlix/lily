@@ -178,3 +178,25 @@ func getOptionalAccessSettings(c *Command, paramName string) ([]*access.AccessSe
 	}
 	return accessSettings, useParentAccessSettings, nil
 }
+
+// Get access setting.
+func getAccessSetting(c *Command, paramName string) (*access.AccessSettings, error) {
+	accessSettingsArg, ok := c.Params[paramName]
+	if ok {
+		// Access settings given.
+		bsonAccessSettingMap, ok := accessSettingsArg.(map[string]interface{})
+		if !ok {
+			return nil, ErrParamFail
+		}
+		bsonAccessSetting, err := access.MapToBSON(bsonAccessSettingMap)
+		if err != nil {
+			return nil, ErrParamFail
+		}
+		accessSettings, err := access.ToAccess(bsonAccessSetting)
+		if err != nil {
+			return nil, ErrInvalidAccessSettings
+		}
+		return accessSettings, nil
+	}
+	return nil, ErrParamFail
+}

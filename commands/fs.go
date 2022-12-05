@@ -767,3 +767,56 @@ func GetSettingsCommand(c *Command) error {
 	c.Respond(0, "", map[string]interface{}{"settings": bson})
 	return nil
 }
+
+// Set access settings command.
+func SetSettingsCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	settings, err := getAccessSetting(c, "settings")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	origSettings, err := driveObj.GetAccessSettings(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the new access settings.
+	if err := driveObj.SetAccessSettings(path, settings); err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
