@@ -70,6 +70,11 @@ func (f *File) ReleaseLock() {
 	f.Lock.Unlock()
 }
 
+// Get the settings (for interface).
+func (f *File) GetSettings() *access.AccessSettings {
+	return f.Settings
+}
+
 // Get the path.
 func (f *File) GetPath() string {
 	// Acquire the read lock.

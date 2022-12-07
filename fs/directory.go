@@ -98,6 +98,11 @@ func (d *Directory) ReleaseLock() {
 	d.Lock.Unlock()
 }
 
+// Get the settings (for interface).
+func (d *Directory) GetSettings() *access.AccessSettings {
+	return d.Settings
+}
+
 // Get the path.
 func (d *Directory) GetPath() string {
 	// Acquire the read lock.

@@ -820,3 +820,77 @@ func SetSettingsCommand(c *Command) error {
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
 }
+
+// Set access setting clearances.
+func SetClearancesCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	ac, err := getInt(c, "access")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	mc, err := getInt(c, "modify")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Ensure the access and modify clearances are valid.
+	accessClearance := access.Clearance(ac)
+	modifyClearance := access.Clearance(mc)
+	if accessClearance.Validate() != nil {
+		c.Respond(19, "Invalid access and modify clearances.", map[string]interface{}{})
+		return nil
+	}
+	if modifyClearance.Validate() != nil {
+		c.Respond(19, "Invalid access and modify clearances.", map[string]interface{}{})
+		return nil
+	}
+	if accessClearance > modifyClearance {
+		c.Respond(19, "Invalid access and modify clearances.", map[string]interface{}{})
+		return nil
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	fobj.GetSettings().SetClearances(accessClearance, modifyClearance)
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}

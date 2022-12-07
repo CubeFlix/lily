@@ -60,6 +60,19 @@ func getString(c *Command, paramName string) (string, error) {
 	return str, nil
 }
 
+// Get an int.
+func getInt(c *Command, paramName string) (int, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return 0, ErrParamFail
+	}
+	str, ok := arg.(int)
+	if !ok {
+		return 0, ErrParamFail
+	}
+	return str, nil
+}
+
 // Get a list of strings.
 func getListOfStrings(c *Command, paramName string) ([]string, error) {
 	arg, ok := c.Params[paramName]

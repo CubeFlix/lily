@@ -96,6 +96,11 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Invalid chunk size.
 
+### **Code:** 19
+
+**Description:**
+> Invalid access and modify clearances.
+
 ### **Code:** 9
 
 **Description:**

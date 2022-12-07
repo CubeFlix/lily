@@ -1644,3 +1644,31 @@ func (d *Drive) SetAccessSettings(path string, settings *access.AccessSettings) 
 	// Return.
 	return ErrPathNotFound
 }
+
+// Get a file or directory.
+func (d *Drive) GetFileOrDirectory(path string) (interface {
+	AcquireLock()
+	ReleaseLock()
+	AcquireRLock()
+	ReleaseRLock()
+	GetSettings() *access.AccessSettings
+}, error) {
+	// Check for an empty path.
+	clean, err := fs.CleanPath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the settings object.
+	file, err := d.GetFileByPath(clean)
+	if err == nil {
+		return file, nil
+	}
+	dir, err := d.GetDirectoryByPath(clean)
+	if err == nil {
+		return dir, nil
+	}
+
+	// Return the access settings.
+	return nil, ErrPathNotFound
+}
