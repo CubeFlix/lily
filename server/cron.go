@@ -5,11 +5,11 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
 	"github.com/cubeflix/lily/marshal"
+	log "github.com/sirupsen/logrus"
 )
 
 var ErrDriveDoesNotExist = errors.New("lily.server: Drive does not exist")
@@ -43,7 +43,9 @@ func (s *Server) SessionCronWorker() {
 			// Don't stop, interval completed.
 			if err := s.sessions.ExpireSessions(); err != nil {
 				// Error, log it.
-				// TODO: logging
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error with expiring sessions")
 			}
 		}
 	}
@@ -64,8 +66,11 @@ func (s *Server) CronWorker() {
 			err := s.CronSave()
 			if err != nil {
 				// Error, log it.
-				fmt.Println("(lily.Server.CronWorker:error) - " + err.Error())
-				// TODO: logging
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("failed to save")
+			} else {
+				log.Info("successfully saved")
 			}
 		}
 	}

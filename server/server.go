@@ -26,6 +26,7 @@ import (
 	ulist "github.com/cubeflix/lily/user/list"
 	golimit "github.com/sethvargo/go-limiter"
 	"github.com/sethvargo/go-limiter/memorystore"
+	log "github.com/sirupsen/logrus"
 )
 
 const SESSION_GEN_LIMIT = 10
@@ -87,6 +88,7 @@ type Server struct {
 	stop         chan struct{}
 	cronStop     chan struct{}
 	listener     net.Listener
+	logFile      *os.File
 }
 
 // Create a new server object.
@@ -179,6 +181,57 @@ func (s *Server) LoadDrives() error {
 	return nil
 }
 
+// Initialize the logging.
+func (s *Server) InitLogging() error {
+	// Get logging settings.
+	verbose, logToFile, logJSON, level, path := s.config.GetLogging()
+
+	// If not verbose, don't initialize logging.
+	if !verbose {
+		return nil
+	}
+
+	// Set the JSON formatter (if necessary).
+	if logJSON {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	// Set the output.
+	if logToFile {
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		if err != nil {
+			return err
+		}
+		log.SetOutput(file)
+	} else {
+		log.SetOutput(os.Stdout)
+	}
+
+	// Set the correct logging level.
+	if level == config.LoggingLevelDebug {
+		log.SetLevel(log.DebugLevel)
+	} else if level == config.LoggingLevelInfo {
+		log.SetLevel(log.InfoLevel)
+	} else if level == config.LoggingLevelWarning {
+		log.SetLevel(log.WarnLevel)
+	} else if level == config.LoggingLevelError {
+		log.SetLevel(log.ErrorLevel)
+	} else if level == config.LoggingLevelFatal {
+		log.SetLevel(log.FatalLevel)
+	}
+
+	// Return.
+	return nil
+}
+
+// Finish logging.
+func (s *Server) FinishLogging() {
+	// Close the log file, if it exists.
+	if s.logFile != nil {
+		s.logFile.Close()
+	}
+}
+
 // Check if the server is running.
 func (s *Server) Running() bool {
 	return s.running
@@ -186,8 +239,16 @@ func (s *Server) Running() bool {
 
 // Serve.
 func (s *Server) Serve() error {
+	// Initialize logging.
+	if err := s.InitLogging(); err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"name": s.config.GetName(),
+	}).Info("starting server")
+
 	// Create the channels and rate limiter.
-	fmt.Println("(lily.Server.Serve:debug) - started")
 	s.jobs = make(chan net.Conn, s.config.GetBacklog())
 	s.limitReached = make(chan net.Conn, s.config.GetBacklog())
 	s.stop = make(chan struct{}, s.config.GetNumWorkers()+1)
@@ -221,6 +282,10 @@ func (s *Server) Serve() error {
 
 	// Start listening.
 	go func() {
+		log.WithFields(log.Fields{
+			"host": host,
+			"port": port,
+		}).Info("server is listening")
 		for s.running {
 			conn, err := s.listener.Accept()
 			if err != nil {
@@ -230,7 +295,9 @@ func (s *Server) Serve() error {
 					return
 				} else {
 					// Actual error, log and ignore.
-					// TODO: Future logging
+					log.WithFields(log.Fields{
+						"error": err.Error(),
+					}).Error("error with accepting connection")
 					continue
 				}
 			}
@@ -238,15 +305,16 @@ func (s *Server) Serve() error {
 			// Check the rate limit.
 			addr, ok := conn.RemoteAddr().(*net.TCPAddr)
 			if !ok {
-				// Weird error, log and ignore.
-				// TODO: Future logging
+				// Weird error, ignore.
 				conn.Close()
 				continue
 			}
 			_, _, _, valid, err := s.limiter.Take(context.Background(), addr.IP.String())
 			if err != nil {
 				// Weird error, log and ignore.
-				// TODO: Future logging
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+				}).Error("error with rate limiter")
 				conn.Close()
 				continue
 			}
@@ -289,14 +357,17 @@ func (s *Server) Worker() {
 			// sure we'll ever get the stop signal, we may just exit the loop.
 			return
 		case conn := <-s.jobs:
+			addr := conn.RemoteAddr().(*net.TCPAddr)
+			log.WithFields(log.Fields{
+				"ip":   addr.IP,
+				"port": addr.Port,
+			}).Info("accepted connection")
 			// Got a new connection.
 			tlsConn, ok := conn.(*tls.Conn)
 			if !ok {
-				// Weird error, log and ignore.
-				// TODO: Future logging
+				// Weird error, ignore.
 				continue
 			}
-			fmt.Println("(lily.Server.Worker:debug) - connection")
 			connection.HandleConnection(tlsConn, s.config.GetTimeout(), s)
 		}
 	}
@@ -315,8 +386,7 @@ func (s *Server) LimitResponseWorker() {
 			// Got a new connection.
 			tlsConn, ok := conn.(*tls.Conn)
 			if !ok {
-				// Weird error, log and ignore.
-				// TODO: Future logging
+				// Weird error, ignore.
 				conn.Close()
 				continue
 			}
@@ -328,11 +398,18 @@ func (s *Server) LimitResponseWorker() {
 }
 
 // Fully close the server.
-func (s *Server) FullyClose() error {
+func (s *Server) FullyClose() {
 	s.StopServerRoutine()
 	s.StopWorkers()
 	s.StopCronRoutines()
-	return s.CronSave()
+	err := s.CronSave()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Fatal("failed to save")
+	}
+	log.Info("stopped server")
+	s.FinishLogging()
 }
 
 // Get sessions.

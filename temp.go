@@ -12,6 +12,7 @@ import (
 
 	"github.com/cubeflix/lily/client"
 	"github.com/cubeflix/lily/server"
+	"github.com/cubeflix/lily/server/config"
 )
 
 func serverFunc() {
@@ -57,16 +58,17 @@ func serverFunc() {
 	//if err := s.LoadDrives(); err != nil {
 	//	panic(err)
 	//}
+
 	s, err := server.LoadServerFromFile("c:/users/kevin chen/server.lily")
 	if err != nil {
 		panic(err)
 	}
+	s.Config().SetLogging(true, false, false, config.LoggingLevelDebug, "")
 	s.StartCronRoutines()
 	err = s.Serve()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("(main:info) - started")
 
 	// catch signals
 	sigc := make(chan os.Signal, 1)
@@ -77,8 +79,7 @@ func serverFunc() {
 		syscall.SIGQUIT)
 	<-sigc
 	// stop the server and its workers
-	fmt.Println("(main:info) - stopping:", s.FullyClose())
-	fmt.Println("(main:info) - stopped")
+	s.FullyClose()
 }
 
 func clientFunc() {

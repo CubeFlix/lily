@@ -29,6 +29,7 @@ const (
 	LoggingLevelDebug   = "debug"
 	LoggingLevelInfo    = "info"
 	LoggingLevelWarning = "warning"
+	LoggingLevelError   = "error"
 	LoggingLevelFatal   = "fatal"
 )
 
@@ -123,7 +124,7 @@ func NewConfig(file, name, host string, port int, driveFiles map[string]string,
 		return &Config{}, ErrTimeoutInvalid
 	}
 	if logLevel != LoggingLevelDebug && logLevel != LoggingLevelInfo &&
-		logLevel != LoggingLevelWarning && logLevel != LoggingLevelFatal {
+		logLevel != LoggingLevelWarning && logLevel != LoggingLevelError && logLevel != LoggingLevelFatal {
 		return &Config{}, ErrInvalidLoggingLevel
 	}
 	if numWorkers < 1 {
