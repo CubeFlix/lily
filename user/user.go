@@ -30,6 +30,13 @@ type User struct {
 	clearance access.Clearance
 }
 
+// User info type.
+type UserInfo struct {
+	Username     string
+	Clearance    int
+	PasswordHash []byte
+}
+
 // Create a new user object.
 func NewUser(username, password string, clearance access.Clearance) (*User, error) {
 	// Hash the password.

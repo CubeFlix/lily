@@ -5,10 +5,12 @@ package commands
 
 import (
 	"errors"
+	"time"
 
 	"github.com/cubeflix/lily/security/access"
 	"github.com/cubeflix/lily/session"
 	"github.com/cubeflix/lily/user"
+	"github.com/google/uuid"
 )
 
 var ErrAuthFail = errors.New("lily.commands: Auth fail")
@@ -73,6 +75,58 @@ func getInt(c *Command, paramName string) (int, error) {
 	return str, nil
 }
 
+// Get a time.Duration.
+func getDuration(c *Command, paramName string) (time.Duration, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return 0, ErrParamFail
+	}
+	str, ok := arg.(time.Duration)
+	if !ok {
+		return 0, ErrParamFail
+	}
+	return str, nil
+}
+
+// Get a bool.
+func getBool(c *Command, paramName string) (bool, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return true, ErrParamFail
+	}
+	str, ok := arg.(bool)
+	if !ok {
+		return true, ErrParamFail
+	}
+	return str, nil
+}
+
+// Get a list of UUIDs.
+func getUUIDs(c *Command, paramName string) ([]uuid.UUID, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return nil, ErrParamFail
+	}
+	argInterface, ok := arg.([]interface{})
+	if !ok {
+		return nil, ErrParamFail
+	}
+	list := make([][]byte, len(argInterface))
+	uuids := make([]uuid.UUID, len(argInterface))
+	var err error
+	for i := range argInterface {
+		list[i], ok = argInterface[i].([]byte)
+		if !ok {
+			return nil, ErrParamFail
+		}
+		uuids[i], err = uuid.FromBytes(list[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return uuids, nil
+}
+
 // Get a list of strings.
 func getListOfStrings(c *Command, paramName string) ([]string, error) {
 	arg, ok := c.Params[paramName]
@@ -86,6 +140,26 @@ func getListOfStrings(c *Command, paramName string) ([]string, error) {
 	list := make([]string, len(argInterface))
 	for i := range argInterface {
 		list[i], ok = argInterface[i].(string)
+		if !ok {
+			return nil, ErrParamFail
+		}
+	}
+	return list, nil
+}
+
+// Get a list of ints.
+func getListOfInts(c *Command, paramName string) ([]int, error) {
+	arg, ok := c.Params[paramName]
+	if !ok {
+		return nil, ErrParamFail
+	}
+	argInterface, ok := arg.([]interface{})
+	if !ok {
+		return nil, ErrParamFail
+	}
+	list := make([]int, len(argInterface))
+	for i := range argInterface {
+		list[i], ok = argInterface[i].(int)
 		if !ok {
 			return nil, ErrParamFail
 		}

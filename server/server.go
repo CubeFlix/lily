@@ -98,6 +98,8 @@ type Server struct {
 	cronStop     chan struct{}
 	listener     net.Listener
 	logFile      *os.File
+
+	PublicStop chan os.Signal
 }
 
 // Create a new server object.
@@ -108,6 +110,16 @@ func NewServer(sessions *slist.SessionList, users *ulist.UserList, config *confi
 		users:    users,
 		config:   config,
 	}
+}
+
+// Set public stop channel.
+func (s *Server) SetPublicStopChan(stop chan os.Signal) {
+	s.PublicStop = stop
+}
+
+// Get public stop channel.
+func (s *Server) GetPublicStopChan() chan os.Signal {
+	return s.PublicStop
 }
 
 // Lock drives.

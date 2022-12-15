@@ -116,9 +116,13 @@ These following commands all require administrator privileges to execute.
 **Chunk Returns:** None
 
 ### Get User Information
-> Get information about users, given a list of users. Returns the user's name, clearance level, and bcrypt password hash as a UserInfo object. If a given user does not exist, the command does not return an error. Rather, it reports that the user does not exist in the resultant user info structure.
+> Get information about users, given a list of users. Returns the user's name, clearance level, and bcrypt password hash as a UserInfo object. If a given user does not exist, the command returns an error.
 
-**Parameters:** None
+**Parameters:** 
+
+> - `users` (type `[]string`)
+> 
+>   The list of users.
 
 **Chunk Arguments:** None
 
@@ -160,25 +164,6 @@ These following commands all require administrator privileges to execute.
 > - `passwords` (type `[]string`)
 > 
 >   The list of new passwords. 
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Rename Users
-
-> Rename users, given a list of users. If a given user does not exist, it returns an error. If a user with new name already exists, it returns an error. If the lengths of the two parameters are not the same, it returns an error.
-
-**Parameters:** 
-
-> - `users` (type `[]string`)
-> 
->   The list of users to rename.
-> - `newNames` (type `[]string`)
-> 
->   The list of new names. 
 
 **Chunk Arguments:** None
 
@@ -244,7 +229,11 @@ These following commands all require administrator privileges to execute.
 
 > Get a list of all sessions for a specific user, returning their IDs.
 
-**Parameters:** None
+**Parameters:** 
+
+> - `user` (type `string`)
+> 
+>   The user to get.
 
 **Chunk Arguments:** None
 
@@ -278,7 +267,7 @@ These following commands all require administrator privileges to execute.
 
 ### Expire All Sessions
 
-> Expire all active sessions on the server.
+> Expire all expired sessions on the server.
 
 **Parameters:** None
 
@@ -314,9 +303,6 @@ These following commands all require administrator privileges to execute.
 
 **Returns:** 
 
-> - `serverFile` (type `string`)
-> 
->   The path to the server file.
 > - `host` (type `string`)
 > 
 >   The host string.
@@ -332,12 +318,6 @@ These following commands all require administrator privileges to execute.
 > - `numWorkers` (type `int`)
 > 
 >   The number of server workers.
-> - `optionalDaemons` (type `[]string`)
-> 
->   A list of optional daemon executables to run at startup.
-> - `optionalArgs` (type `[][]string`)
-> 
->   A list of lists of arguments for each optional daemon. 
 > - `mainCronInterval` (type `time.Duration`)
 > 
 >   The main cron interval duration.
@@ -389,12 +369,18 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
-### Add Drives
+### Add Drive
 
-> Add drives to the Lily server. Accepts a map of drive names and drive files. If the drives are invalid, this returns an error.
+> Add a drive to the Lily server. Accepts a drive name and absolute drive file path. If the drive is invalid, this returns an error. If the path is not absolute, this returns an error.
 
 **Parameters:** 
-> - `files` (type `map[string]string`)
+
+> - `name` (type `string`)
+> 
+>   The new drive name.
+> - `path` (type `string`)
+> 
+>   The drive file path.
 
 **Chunk Arguments:** None
 
@@ -402,12 +388,14 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
-### Remove Drives
+### Remove Drive
 
-> Remove drives on the Lily server. Accepts a list of drive names. If the drive names are invalid, this returns an error. This DOES NOT remove the drive or drive file from the host filesystem, instead, it removes the drives from the server.
+> Remove a drive on the Lily server. Accepts a drive name. If the drive name is invalid, this returns an error. This DOES NOT remove the drive or drive file from the host filesystem, instead, it removes the drive from the server.
 
 **Parameters:** 
-> - `drives` (type `[]string`)
+> - `drive` (type `string`)
+> 
+>   The drive to remove.
 
 **Chunk Arguments:** None
 
@@ -417,7 +405,7 @@ These following commands all require administrator privileges to execute.
 
 ### Set Num Workers
 
-> Set the number of workers. This updates the server. If the number of workers is invalid, this returns an error.
+> Set the number of workers. This does not update the server. If the number of workers is invalid, this returns an error.
 
 **Parameters:** 
 > - `numWorkers` (type `int`)
@@ -463,7 +451,7 @@ These following commands all require administrator privileges to execute.
 
 ### Set Logging Settings
 
-> Set the logging settings. This WILL NOT update the active server, but will update after the server is restarted. If the log file path or log level are invalid, this returns an error.
+> Set the logging settings. This WILL NOT update the active server, but will update after the server is restarted. If log level is invalid, this returns an error.
 
 **Parameters:** 
 > - `verbose` (type `bool`)
@@ -490,12 +478,15 @@ These following commands all require administrator privileges to execute.
 
 ### Set Rate Limit
 
-> Set the rate limit. This WILL NOT update the active server, but will update after the server is restarted. If the rate limit value is invalid, this returns an error.
+> Set the rate limit. This WILL NOT update the active server, but will update after the server is restarted. 
 
 **Parameters:** 
-> - `limit` (type `float64`)
+> - `limit` (type `time.Duration`)
 > 
->   The new rate limit. The limit is represented as the maximum number of events per second.
+>   The new rate limit interval.
+> - `maxLimitEvents` (type `int`)
+> 
+>   The max number of events per interval.
 
 **Chunk Arguments:** None
 
@@ -508,6 +499,24 @@ These following commands all require administrator privileges to execute.
 > Shutdown the Lily server. Returns after all cron jobs have finished and the server has been saved.
 
 **Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+## User Commands
+
+### Set Password
+
+> Set the password for the currently logged in user. Requires user or session authentication.
+
+**Parameters:** 
+
+> - `password` (type `string`)
+> 
+>   The new password.
 
 **Chunk Arguments:** None
 

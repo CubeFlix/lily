@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"errors"
+	"os"
 	"time"
 
 	"github.com/cubeflix/lily/commands"
@@ -19,6 +20,7 @@ import (
 	"github.com/cubeflix/lily/server/config"
 	"github.com/cubeflix/lily/user"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 
 	sessionlist "github.com/cubeflix/lily/session/list"
 	userlist "github.com/cubeflix/lily/user/list"
@@ -41,6 +43,7 @@ type Server interface {
 	SetDrives(map[string]*drive.Drive)
 	GetDrive(string) (*drive.Drive, bool)
 	SetDrive(string, *drive.Drive)
+	GetPublicStopChan() chan os.Signal
 }
 
 // Fixed DataStream.
@@ -501,6 +504,8 @@ func HandleConnection(conn *tls.Conn, timeout time.Duration, s Server) {
 	// Reply.
 	if err := cobj.Respond(timeout); err != nil {
 		// If there's a problem with responding, we shouldn't even bother.
-		// TODO: Future logging
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("error with responding")
 	}
 }

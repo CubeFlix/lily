@@ -38,6 +38,9 @@ func ServeCommand(cmd *cobra.Command, args []string) {
 	}
 	s.Config().SetHostAndPort(origHost, origPort)
 
+	sigc := make(chan os.Signal, 1)
+	s.SetPublicStopChan(sigc)
+
 	// Start cron routines and begin listening.
 	s.StartCronRoutines()
 	err = s.Serve()
@@ -48,7 +51,6 @@ func ServeCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Catch exit signals.
-	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
 		syscall.SIGHUP,
 		syscall.SIGINT,

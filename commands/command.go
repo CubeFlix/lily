@@ -6,6 +6,8 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/cubeflix/lily/drive"
 	"github.com/cubeflix/lily/network"
 	"github.com/cubeflix/lily/security/auth"
@@ -27,6 +29,7 @@ type Server interface {
 	SetDrives(map[string]*drive.Drive)
 	GetDrive(string) (*drive.Drive, bool)
 	SetDrive(string, *drive.Drive)
+	GetPublicStopChan() chan os.Signal
 }
 
 // The basic command object.

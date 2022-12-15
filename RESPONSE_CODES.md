@@ -111,6 +111,36 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Username not found.
 
+### **Code:** 22
+
+**Description:**
+> Failed to hash password.
+
+### **Code:** 23
+
+**Description:**
+> Session not found.
+
+### **Code:** 24
+
+**Description:**
+> Invalid drive file.
+
+### **Code:** 25
+
+**Description:**
+> Invalid number of workers.
+
+### **Code:** 26
+
+**Description:**
+> Invalid timeout interval.
+
+### **Code:** 27
+
+**Description:**
+> Invalid log level.
+
 ### **Code:** 9
 
 **Description:**
@@ -140,16 +170,6 @@ Responses in Lily consist of a response code and a response string, an optional 
 
 **Description:**
 > Drive already exists.
-
-### **Code:** 16
-
-**Description:**
-> Invalid number of workers.
-
-### **Code:** 17
-
-**Description:**
-> Invalid timeout interval.
 
 ### **Code:** 18
 

@@ -402,11 +402,18 @@ func (c *Config) GetTimeout() time.Duration {
 }
 
 // Set the timeout intervals.
-func (c *Config) SetTimeout(netTimeout time.Duration) {
+func (c *Config) SetTimeout(netTimeout time.Duration) error {
+	if netTimeout == time.Duration(0) {
+		return ErrTimeoutInvalid
+	}
+
 	c.netTimeout = netTimeout
 
 	// Set the dirty value.
 	c.SetDirty(true)
+
+	// Return.
+	return nil
 }
 
 // Get the logging values. These values are thread-safe and thus do not need

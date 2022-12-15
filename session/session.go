@@ -30,6 +30,14 @@ type Session struct {
 	expireAt    time.Time
 }
 
+// Session info type.
+type SessionInfo struct {
+	ID          []byte
+	Username    string
+	ExpireAfter time.Duration
+	ExpireAt    time.Time
+}
+
 var ErrSessionExpired = errors.New("lily.session: Session expired")
 
 // Create a new session object. Note that UUID generation is handled by session
@@ -129,6 +137,15 @@ func (s *Session) SetExpireAfter(expireAfter time.Duration) {
 	defer s.lock.Unlock()
 
 	s.expireAfter = expireAfter
+}
+
+// Get the expire at value.
+func (s *Session) GetExpireAt() time.Time {
+	// Acquire the read lock.
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.expireAt
 }
 
 // Authenticate.
