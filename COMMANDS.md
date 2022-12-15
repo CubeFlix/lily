@@ -941,6 +941,194 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
+### Create Files
+
+> Create files. Requires drive modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to create.
+> - `settings` (type `[]BSONAccessSettings`)
+> 
+>   Optional. The settings for the paths.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Read Files
+
+> Read files. Requires access clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to read.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** Chunked files.
+
+### Write Files
+
+> Write files. Requires modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to write.
+
+**Chunk Arguments:** Chunked files.
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Rename Files
+
+> Rename files. Requires modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to rename.
+> - `newNames` (type `[]string`)
+> 
+>   The new names.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Move Files
+
+> Move files. Requires modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to move.
+> - `dests` (type `[]string`)
+> 
+>   The destinations.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Delete Files
+
+> Delete files. Requires modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to delete.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Stat
+
+> Status command. Does not require access clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to get the status of.
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `stat` (type `[]PathInfo`)
+> 
+>   The destinations.
+
+**Chunk Returns:** None
+
+### Rehash Files
+
+> Rehash files. Require modify clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to rehash.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
+### Verify Hashes
+
+> Verify hashes for files. Require access clearance.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The name of the drive.
+> - `paths` (type `[]string`)
+> 
+>   The files to verify.
+
+**Chunk Arguments:** None
+
+**Returns:** 
+
+> - `results` (type `map[string]bool`)
+> 
+>   The hash results.
+
+**Chunk Returns:** None
+
 ### Get Path Settings
 
 > Get a path's settings. Requires access clearance. If the path does not exist, this returns an error.

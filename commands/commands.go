@@ -34,17 +34,17 @@ var COMMANDS = map[string]func(*Command) error{
 	"rehashfiles":  RehashFilesCommand,
 	"verifyhashes": VerifyHashesCommand,
 
-	"getsettings":               GetSettingsCommand,
-	"setsettings":               SetSettingsCommand,
-	"setclearances":             SetClearancesCommand,
-	"addtoaccesswhitelist":      AddToAccessWhitelistCommand,
-	"removefromaccesswhitelist": RemoveFromAccessWhitelistCommand,
-	"addtomodifywhitelist":      AddToModifyWhitelistCommand,
-	"removefrommodifywhitelist": RemoveFromModifyWhitelistCommand,
-	"addtoaccessblacklist":      AddToAccessBlacklistCommand,
-	"removefromaccessblacklist": RemoveFromAccessBlacklistCommand,
-	"addtomodifyblacklist":      AddToModifyBlacklistCommand,
-	"removefrommodifyblacklist": RemoveFromModifyBlacklistCommand,
+	"getpathsettings":               GetSettingsCommand,
+	"setpathsettings":               SetSettingsCommand,
+	"setpathclearances":             SetClearancesCommand,
+	"addtopathaccesswhitelist":      AddToAccessWhitelistCommand,
+	"removefrompathaccesswhitelist": RemoveFromAccessWhitelistCommand,
+	"addtopathmodifywhitelist":      AddToModifyWhitelistCommand,
+	"removefrompathmodifywhitelist": RemoveFromModifyWhitelistCommand,
+	"addtopathaccessblacklist":      AddToAccessBlacklistCommand,
+	"removefrompathaccessblacklist": RemoveFromAccessBlacklistCommand,
+	"addtopathmodifyblacklist":      AddToModifyBlacklistCommand,
+	"removefrompathmodifyblacklist": RemoveFromModifyBlacklistCommand,
 }
 
 // Execute a given command. We won't bother with timeouts here since the code
