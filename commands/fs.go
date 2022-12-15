@@ -6,6 +6,7 @@ package commands
 import (
 	"github.com/cubeflix/lily/drive"
 	"github.com/cubeflix/lily/security/access"
+	"github.com/cubeflix/lily/user/namelist"
 )
 
 // Handle an FS error.
@@ -808,6 +809,7 @@ func SetSettingsCommand(c *Command) error {
 	}
 	if !userObj.CanModify(origSettings) {
 		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+		return nil
 	}
 
 	// Set the new access settings.
@@ -867,6 +869,7 @@ func SetClearancesCommand(c *Command) error {
 	origSettings := fobj.GetSettings()
 	if !userObj.CanModify(origSettings) {
 		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+		return nil
 	}
 
 	// Ensure the access and modify clearances are valid.
@@ -888,6 +891,520 @@ func SetClearancesCommand(c *Command) error {
 	// Set the access and modify values.
 	fobj.AcquireLock()
 	fobj.GetSettings().SetClearances(accessClearance, modifyClearance)
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Add to access whitelist.
+func AddToAccessWhitelistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+		return nil
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().AddUsersAccessWhitelist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Remove from access whitelist.
+func RemoveFromAccessWhitelistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().RemoveUsersAccessWhitelist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Add to modify whitelist.
+func AddToModifyWhitelistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().AddUsersModifyWhitelist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Remove from modify whitelist.
+func RemoveFromModifyWhitelistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().RemoveUsersModifyWhitelist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Add to access blacklist.
+func AddToAccessBlacklistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+		return nil
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().AddUsersAccessBlacklist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Remove from access blacklist.
+func RemoveFromAccessBlacklistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().RemoveUsersAccessBlacklist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Add to modify blacklist.
+func AddToModifyBlacklistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().AddUsersModifyBlacklist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
+	fobj.ReleaseLock()
+
+	// Return.
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
+// Remove from modify blacklist.
+func RemoveFromModifyBlacklistCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	path, err := getString(c, "path")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	users, err := getListOfStrings(c, "users")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the drive.
+	driveObj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the original access settings.
+	fobj, err := driveObj.GetFileByPath(path)
+	if err != nil {
+		handleFSError(c, err)
+		return nil
+	}
+	origSettings := fobj.GetSettings()
+	if !userObj.CanModify(origSettings) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+	}
+
+	// Set the access and modify values.
+	fobj.AcquireLock()
+	err = fobj.GetSettings().RemoveUsersModifyBlacklist(users)
+	if err != nil {
+		if err == namelist.UsernameAlreadyExistsError {
+			c.Respond(20, "Username already exists.", map[string]interface{}{})
+		} else if err == namelist.UsernameNotFoundError {
+			c.Respond(21, "Username not found.", map[string]interface{}{})
+		} else {
+			c.Respond(17, "Unknown FS error.", map[string]interface{}{"error": err.Error()})
+		}
+		fobj.ReleaseLock()
+		return nil
+	}
 	fobj.ReleaseLock()
 
 	// Return.

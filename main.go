@@ -6,83 +6,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/cubeflix/lily/client"
-	"github.com/cubeflix/lily/server"
-	"github.com/cubeflix/lily/server/config"
 
 	"github.com/cubeflix/lily/cmd"
 )
-
-func serverFunc() {
-	//// create the tls config
-	//certPair := []config.CertFilePair{{"c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem"}}
-	//tlsconfig := &tls.Config{
-	//	MinVersion: tls.VersionTLS10,
-	//}
-	//
-	//// // create the users list
-	//uobj, err := user.NewUser("admin", "admin", access.ClearanceLevelFive)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//userlist := ulist.NewUserList()
-	//userlist.SetUsersByName(map[string]*user.User{"admin": uobj})
-	//
-	//// create the drives list
-	//// rootaccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
-	//// if err != nil {
-	//// 	panic(err)
-	//// }
-	//// daccess, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelOne)
-	//// if err != nil {
-	//// 	panic(err)
-	//// }
-	//// root, err := fs.NewDirectory("", true, nil, rootaccess)
-	//// if err != nil {
-	//// 	panic(err)
-	//// }
-	//// dobj := drive.NewDrive("drive", "c:/users/kevin chen/lilytest", daccess, root)
-	//// drivelist := map[string]*drive.Drive{"drive": dobj}
-	////
-	//// create a server
-	//c, err := config.NewConfig("c:/users/kevin chen/server.lily", "server", "127.0.0.1", 8001, map[string]string{"drive": "c:/users/kevin chen/drive.lily"}, 5, 5, nil, nil, time.Second*5, time.Second, time.Second, true, true, true, "debug", "", time.Hour, true, true, 5, time.Minute, 3, certPair, tlsconfig)
-	//c.LoadCerts()
-	//c.SetDirty(true)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//s := server.NewServer(slist.NewSessionList(10, 5), userlist, c)
-	//if err := s.LoadDrives(); err != nil {
-	//	panic(err)
-	//}
-
-	s, err := server.LoadServerFromFile("c:/users/kevin chen/server.lily")
-	if err != nil {
-		panic(err)
-	}
-	s.Config().SetLogging(true, true, false, config.LoggingLevelDebug, "server.log")
-	s.StartCronRoutines()
-	err = s.Serve()
-	if err != nil {
-		panic(err)
-	}
-
-	// catch signals
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	<-sigc
-	// stop the server and its workers
-	s.FullyClose()
-}
 
 func clientFunc() {
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "setsettings", map[string]interface{}{
@@ -117,9 +46,10 @@ func clientFunc() {
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createdirs", map[string]interface{}{"paths": []string{"./mypath"}, "drive": "drive"})
 	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "getsettings", map[string]interface{}{"drive": "drive", "path": "d"})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "addtoaccessblacklist", map[string]interface{}{"drive": "drive", "path": "d", "users": []string{"lily", "billy"}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "setclearances", map[string]interface{}{"drive": "drive", "path": "d", "access": 2, "modify": 3})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}, "clear": []bool{true}})
-	cobj := client.NewClient("127.0.0.1", 8001, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
+	cobj := client.NewClient("127.0.0.1", 42069, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
 	conn, err := cobj.MakeConnection(true)
 	if err != nil {
 		panic(err)

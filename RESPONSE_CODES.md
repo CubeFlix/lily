@@ -101,6 +101,16 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Invalid access and modify clearances.
 
+### **Code:** 20
+
+**Description:**
+> Username already exists.
+
+### **Code:** 21
+
+**Description:**
+> Username not found.
+
 ### **Code:** 9
 
 **Description:**
