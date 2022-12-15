@@ -1641,6 +1641,8 @@ func (d *Drive) SetAccessSettings(path string, settings *access.AccessSettings) 
 		return nil
 	}
 
+	d.SetDirty(true)
+
 	// Return.
 	return ErrPathNotFound
 }

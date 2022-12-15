@@ -231,3 +231,180 @@ func DriveList(cmd *cobra.Command, args []string) {
 
 	listDriveDir(d.GetRoot(), 0)
 }
+
+func fixDir(path string, dir *fs.Directory, ac, mc access.Clearance, depth int) error {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	// Iterate over the OS files.
+	for _, f := range files {
+		if f.IsDir() {
+			// Check that this directory exists in the drive.
+			subdirs, err := dir.GetSubdirsByName([]string{f.Name()})
+			if err != nil {
+				// Does not exist.
+				fmt.Println(strings.Repeat("  ", depth+1)+"discrepancy: dir", f.Name(), "found in filesystem, not in drive")
+				var answer string
+				for {
+					fmt.Println(strings.Repeat("  ", depth+1) + "you may [r]eimport the directory, or [i]gnore:")
+
+					fmt.Scanln(&answer)
+					if len(answer) != 1 {
+						continue
+					}
+					if answer[0] == 'r' {
+						newDir, err := fsFromDir(filepath.Join(path, f.Name()), f.Name(), false, dir, ac, mc, depth+1)
+						if err != nil {
+							return err
+						}
+						dir.SetSubdirsByName(map[string]*fs.Directory{f.Name(): newDir})
+						break
+					} else if answer[1] == 'i' {
+						break
+					}
+				}
+			} else {
+				err = fixDir(filepath.Join(path, f.Name()), subdirs[0], ac, mc, depth+1)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			// Check that this file exists in the drive.
+			_, err := dir.GetFilesByName([]string{f.Name()})
+			if err != nil {
+				// Does not exist.
+				fmt.Println(strings.Repeat("  ", depth+1)+"discrepancy: file", f.Name(), "found in filesystem, not in drive")
+				var answer string
+				for {
+					fmt.Println(strings.Repeat("  ", depth+1) + "you may [r]eimport the file, or [i]gnore:")
+					fmt.Scanln(&answer)
+					if len(answer) != 1 {
+						continue
+					}
+					if answer[0] == 'r' {
+						accessSettings, err := access.NewAccessSettings(ac, mc)
+						if err != nil {
+							return err
+						}
+						newFile, err := fs.NewFile(f.Name(), accessSettings)
+						if err != nil {
+							return err
+						}
+						dir.SetFilesByName(map[string]*fs.File{f.Name(): newFile})
+						break
+					} else if answer[1] == 'i' {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Iterate over drive subdirs and files.
+	for i := range dir.GetSubdirs() {
+		// Make sure the dir exists.
+		stat, err := os.Stat(filepath.Join(path, i))
+		if err != nil || (err == nil && !stat.IsDir()) {
+			// Directory does not exist.
+			fmt.Println(strings.Repeat("  ", depth+1)+"discrepancy: dir", i, "found in drive, not in filesystem")
+			var answer string
+			for {
+				fmt.Println(strings.Repeat("  ", depth+1) + "you may [c]reate, or [i]gnore:")
+				fmt.Scanln(&answer)
+				if len(answer) != 1 {
+					continue
+				}
+				if answer[0] == 'c' {
+					if err := os.Mkdir(filepath.Join(path, i), 0666); err != nil {
+						return err
+					}
+					break
+				} else if answer[1] == 'i' {
+					break
+				}
+			}
+		}
+		err = fixDir(filepath.Join(path, i), dir.GetSubdirs()[i], ac, mc, depth+1)
+		if err != nil {
+			return err
+		}
+	}
+	for i := range dir.GetFiles() {
+		// Make sure the dir exists.
+		stat, err := os.Stat(filepath.Join(path, i))
+		if err != nil || (err == nil && stat.IsDir()) {
+			// Directory does not exist.
+			fmt.Println(strings.Repeat("  ", depth+1)+"discrepancy: file", i, "found in drive, not in filesystem")
+			var answer string
+			for {
+				fmt.Println(strings.Repeat("  ", depth+1) + "you may [c]reate, or [i]gnore:")
+				fmt.Scanln(&answer)
+				if len(answer) != 1 {
+					continue
+				}
+				if answer[0] == 'c' {
+					f, err := os.Create(filepath.Join(path, i))
+					if err != err {
+						return err
+					}
+					f.Close()
+					break
+				} else if answer[1] == 'i' {
+					break
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func DriveFix(cmd *cobra.Command, args []string) {
+	ac := access.Clearance(accessClearance)
+	err := ac.Validate()
+	if err != nil {
+		fmt.Println("drive:", err.Error())
+		return
+	}
+	mc := access.Clearance(modifyClearance)
+	err = mc.Validate()
+	if err != nil {
+		fmt.Println("drive:", err.Error())
+		return
+	}
+
+	f, err := os.Open(driveFile)
+	if err != nil {
+		fmt.Println("drive:", err.Error())
+		return
+	}
+	d, err := drive.Unmarshal(f)
+	if err != nil {
+		f.Close()
+		fmt.Println("drive:", err.Error())
+		return
+	}
+	f.Close()
+
+	err = fixDir(d.GetPath(), d.GetRoot(), ac, mc, 0)
+	if err != nil {
+		fmt.Println("drive:", err.Error())
+		return
+	}
+
+	f, err = os.Create(driveFile)
+	if err != nil {
+		fmt.Println("drive:", err.Error())
+		return
+	}
+	err = d.Marshal(f)
+	if err != nil {
+		fmt.Println("drive:", err.Error())
+		f.Close()
+		return
+	}
+	f.Close()
+}

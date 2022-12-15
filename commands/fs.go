@@ -893,6 +893,8 @@ func SetClearancesCommand(c *Command) error {
 	fobj.GetSettings().SetClearances(accessClearance, modifyClearance)
 	fobj.ReleaseLock()
 
+	driveObj.SetDirty(true)
+
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
@@ -958,6 +960,8 @@ func AddToAccessWhitelistCommand(c *Command) error {
 	}
 	fobj.ReleaseLock()
 
+	driveObj.SetDirty(true)
+
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
@@ -1021,6 +1025,8 @@ func RemoveFromAccessWhitelistCommand(c *Command) error {
 		return nil
 	}
 	fobj.ReleaseLock()
+
+	driveObj.SetDirty(true)
 
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
@@ -1086,6 +1092,8 @@ func AddToModifyWhitelistCommand(c *Command) error {
 	}
 	fobj.ReleaseLock()
 
+	driveObj.SetDirty(true)
+
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
@@ -1149,6 +1157,8 @@ func RemoveFromModifyWhitelistCommand(c *Command) error {
 		return nil
 	}
 	fobj.ReleaseLock()
+
+	driveObj.SetDirty(true)
 
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
@@ -1215,6 +1225,8 @@ func AddToAccessBlacklistCommand(c *Command) error {
 	}
 	fobj.ReleaseLock()
 
+	driveObj.SetDirty(true)
+
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
@@ -1278,6 +1290,8 @@ func RemoveFromAccessBlacklistCommand(c *Command) error {
 		return nil
 	}
 	fobj.ReleaseLock()
+
+	driveObj.SetDirty(true)
 
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
@@ -1343,6 +1357,8 @@ func AddToModifyBlacklistCommand(c *Command) error {
 	}
 	fobj.ReleaseLock()
 
+	driveObj.SetDirty(true)
+
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
@@ -1406,6 +1422,8 @@ func RemoveFromModifyBlacklistCommand(c *Command) error {
 		return nil
 	}
 	fobj.ReleaseLock()
+
+	driveObj.SetDirty(true)
 
 	// Return.
 	c.Respond(0, "", map[string]interface{}{})

@@ -1,2 +1,2 @@
-go build main.go
-rename main.exe lilys.exe
+go build
+rename lily.exe lilys.exe

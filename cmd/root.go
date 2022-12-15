@@ -200,6 +200,14 @@ var DriveListCmd = &cobra.Command{
 	Run:   DriveList,
 }
 
+// Drive fix command.
+var DriveFixCmd = &cobra.Command{
+	Use:   "fix",
+	Short: "Attempt to fix drive/FS inconsistencies.",
+	Long:  `Recursively loop through the drive and filesystem, looking for missing files and folders.`,
+	Run:   DriveFix,
+}
+
 // Execute the root command.
 func Execute() {
 	// Execute the main command.
@@ -245,4 +253,5 @@ func init() {
 	DriveCmd.AddCommand(DriveReimportCmd)
 	DriveCmd.AddCommand(DriveSettingsCmd)
 	DriveCmd.AddCommand(DriveListCmd)
+	DriveCmd.AddCommand(DriveFixCmd)
 }
