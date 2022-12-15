@@ -2,8 +2,9 @@
     "cSpell.words": [
         "Subdirs"
     ],
-    "workbench.colorTheme": "Material Theme Ocean",
+    "workbench.colorTheme": "Material Theme Darker",
     "go.testFlags": [
         // "-race"
-    ]
+    ],
+    "workbench.iconTheme": "vs-seti"
 }

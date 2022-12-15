@@ -1,5 +1,5 @@
-// temp.go
-// Temporary testing.
+// main.go
+// Lily server main program.
 
 package main
 
@@ -13,6 +13,8 @@ import (
 	"github.com/cubeflix/lily/client"
 	"github.com/cubeflix/lily/server"
 	"github.com/cubeflix/lily/server/config"
+
+	"github.com/cubeflix/lily/cmd"
 )
 
 func serverFunc() {
@@ -63,7 +65,7 @@ func serverFunc() {
 	if err != nil {
 		panic(err)
 	}
-	s.Config().SetLogging(true, false, false, config.LoggingLevelDebug, "")
+	s.Config().SetLogging(true, true, false, config.LoggingLevelDebug, "server.log")
 	s.StartCronRoutines()
 	err = s.Serve()
 	if err != nil {
@@ -198,13 +200,18 @@ func clientFunc() {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		serverFunc()
+	if len(os.Args) == 2 && os.Args[1] == "client" {
+		clientFunc()
 		return
 	}
-	if os.Args[1] == "server" {
-		serverFunc()
-	} else if os.Args[1] == "client" {
-		clientFunc()
-	}
+	cmd.Execute()
+	// if len(os.Args) < 2 {
+	// 	serverFunc()
+	// 	return
+	// }
+	// if os.Args[1] == "server" {
+	// 	serverFunc()
+	// } else if os.Args[1] == "client" {
+	// 	clientFunc()
+	// }
 }

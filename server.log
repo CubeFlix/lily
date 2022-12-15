@@ -1,0 +1,46 @@
+time="2022-12-12T15:18:13-06:00" level=info msg="starting server" name=server
+time="2022-12-12T15:18:13-06:00" level=info msg="server is listening" host=127.0.0.1 port=8001
+time="2022-12-12T15:18:15-06:00" level=info msg="stopped server"
+time="2022-12-13T10:10:30-06:00" level=info msg="starting server" name=server
+time="2022-12-13T10:10:30-06:00" level=info msg="server is listening" host=127.0.0.1 port=8001
+time="2022-12-13T10:10:35-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:10:40-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:10:43-06:00" level=info msg="stopped server"
+time="2022-12-13T10:36:18-06:00" level=info msg="starting server" name=server
+time="2022-12-13T10:36:18-06:00" level=info msg="server is listening" host=127.0.0.1 port=8001
+time="2022-12-13T10:36:23-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:28-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:33-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:38-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:43-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:48-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:53-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:36:58-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:03-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:08-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:13-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:18-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:23-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:28-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:34-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:39-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:44-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:49-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:54-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:37:59-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:04-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:05-06:00" level=info msg="accepted connection" ip=127.0.0.1 port=56532
+time="2022-12-13T10:38:09-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:14-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:19-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:24-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:29-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:34-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:38:37-06:00" level=info msg="stopped server"
+time="2022-12-13T10:39:34-06:00" level=info msg="starting server" name=server
+time="2022-12-13T10:39:34-06:00" level=info msg="server is listening" host=127.0.0.1 port=8001
+time="2022-12-13T10:39:39-06:00" level=info msg="successfully saved"
+time="2022-12-13T10:39:39-06:00" level=info msg="stopped server"
+time="2022-12-13T10:49:26-06:00" level=info msg="starting server" name=server
+time="2022-12-13T10:49:26-06:00" level=info msg="server is listening" host=127.0.0.1 port=8001
+time="2022-12-13T10:49:29-06:00" level=info msg="stopped server"

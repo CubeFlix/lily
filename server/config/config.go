@@ -28,7 +28,7 @@ var ErrInvalidLoggingLevel = errors.New("lily.server.config: Invalid logging lev
 const (
 	LoggingLevelDebug   = "debug"
 	LoggingLevelInfo    = "info"
-	LoggingLevelWarning = "warning"
+	LoggingLevelWarning = "warn"
 	LoggingLevelError   = "error"
 	LoggingLevelFatal   = "fatal"
 )
@@ -68,11 +68,6 @@ type Config struct {
 
 	// The maximum backlog amount.
 	backlog int
-
-	// A list of optional daemons to run at startup, alongside the main Lily
-	// server.
-	optionalDaemons []string
-	optionalArgs    map[string]string
 
 	// The interval time for the main cron routine. This value should not be
 	// too short, as the main cron routine can sometimes slow down the server.
@@ -114,9 +109,8 @@ type Config struct {
 
 // Create the config object.
 func NewConfig(file, name, host string, port int, driveFiles map[string]string,
-	numWorkers, backlog int, optionalDaemons []string, optionalArgs map[string]string,
-	mainCronInterval, sessionCronInterval, netTimeout time.Duration, verbose,
-	logToFile, logJSON bool, logLevel, logPath string,
+	numWorkers, backlog int, mainCronInterval, sessionCronInterval, netTimeout time.Duration,
+	verbose, logToFile, logJSON bool, logLevel, logPath string,
 	defaultSessionExpiration time.Duration, allowChangeSessionExpiration,
 	allowNonExpiringSessions bool, perUserSessionLimit int, limit time.Duration, maxLimitEvents int,
 	certFiles []CertFilePair, tlsConfig *tls.Config) (*Config, error) {
@@ -145,8 +139,6 @@ func NewConfig(file, name, host string, port int, driveFiles map[string]string,
 		driveFiles:                   driveFiles,
 		numWorkers:                   numWorkers,
 		backlog:                      backlog,
-		optionalDaemons:              optionalDaemons,
-		optionalArgs:                 optionalArgs,
 		mainCronInterval:             mainCronInterval,
 		sessionCronInterval:          sessionCronInterval,
 		netTimeout:                   netTimeout,
@@ -388,12 +380,6 @@ func (c *Config) SetBacklog(backlog int) error {
 	return nil
 }
 
-// Get the list of optional daemons and list of arguments.
-func (c *Config) GetOptionalDaemons() ([]string, map[string]string) {
-	// No need to get the lock, as these values won't change.
-	return c.optionalDaemons, c.optionalArgs
-}
-
 // Get the cron intervals. These values are thread-safe and thus do not need
 // locks.
 func (c *Config) GetCronIntervals() (time.Duration, time.Duration) {
@@ -431,7 +417,12 @@ func (c *Config) GetLogging() (bool, bool, bool, string, string) {
 
 // Set the logging values. These values are thread-safe and thus do not need
 // locks. Note that this does not update the server.
-func (c *Config) SetLogging(verbose, logToFile, logJSON bool, logLevel, logPath string) {
+func (c *Config) SetLogging(verbose, logToFile, logJSON bool, logLevel, logPath string) error {
+	if logLevel != LoggingLevelDebug && logLevel != LoggingLevelInfo &&
+		logLevel != LoggingLevelWarning && logLevel != LoggingLevelError && logLevel != LoggingLevelFatal {
+		return ErrInvalidLoggingLevel
+	}
+
 	c.verbose = verbose
 	c.logToFile = logToFile
 	c.logJSON = logJSON
@@ -440,6 +431,9 @@ func (c *Config) SetLogging(verbose, logToFile, logJSON bool, logLevel, logPath 
 
 	// Set the dirty value.
 	c.SetDirty(true)
+
+	// Return.
+	return nil
 }
 
 // Get the session expiration settings.

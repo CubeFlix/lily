@@ -15,11 +15,7 @@ import (
 // Marshal a config object.
 func MarshalConfig(c *config.Config, w io.Writer) error {
 	// Write the config.
-	err := MarshalString(c.GetServerFile(), w)
-	if err != nil {
-		return err
-	}
-	err = MarshalString(c.GetName(), w)
+	err := MarshalString(c.GetName(), w)
 	if err != nil {
 		return err
 	}
@@ -49,15 +45,6 @@ func MarshalConfig(c *config.Config, w io.Writer) error {
 	}
 	binary.LittleEndian.PutUint32(data, uint32(c.GetBacklog()))
 	_, err = w.Write(data)
-	if err != nil {
-		return err
-	}
-	optDaemons, optArgs := c.GetOptionalDaemons()
-	err = MarshalStringSlice(optDaemons, w)
-	if err != nil {
-		return err
-	}
-	err = MarshalMapStringString(optArgs, w)
 	if err != nil {
 		return err
 	}
@@ -165,10 +152,6 @@ func MarshalConfig(c *config.Config, w io.Writer) error {
 // Unmarshal access settings.
 func UnmarshalConfig(r io.Reader) (*config.Config, error) {
 	// Receive the file.
-	file, err := UnmarshalString(r)
-	if err != nil {
-		return nil, err
-	}
 	name, err := UnmarshalString(r)
 	if err != nil {
 		return nil, err
@@ -197,14 +180,6 @@ func UnmarshalConfig(r io.Reader) (*config.Config, error) {
 		return nil, err
 	}
 	backlog := binary.LittleEndian.Uint32(data)
-	optionalDaemons, err := UnmarshalStringSlice(r)
-	if err != nil {
-		return nil, err
-	}
-	optionalArgs, err := UnmarshalMapStringString(r)
-	if err != nil {
-		return nil, err
-	}
 	data = make([]byte, 8)
 	_, err = r.Read(data)
 	if err != nil {
@@ -286,8 +261,8 @@ func UnmarshalConfig(r io.Reader) (*config.Config, error) {
 	}
 
 	// Create the new config object.
-	return config.NewConfig(file, name, host, int(port), driveFiles, int(numWorkers),
-		int(backlog), optionalDaemons, optionalArgs, mainCronInterval, sessionCronInterval,
+	return config.NewConfig("", name, host, int(port), driveFiles, int(numWorkers),
+		int(backlog), mainCronInterval, sessionCronInterval,
 		netTimeout, verbose, logToFile, logJSON, logLevel, logPath,
 		defaultSessionExpiration, allowChangeSessionExpiration,
 		allowNonExpiringSessions, int(perUserSessionLimit), limit, int(maxLimitEvents),

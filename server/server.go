@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/cubeflix/lily/connection"
@@ -41,6 +42,14 @@ func LoadServerFromFile(path string) (*Server, error) {
 		return nil, ErrServerFileInvalid
 	}
 	config, err := marshal.UnmarshalConfig(file)
+	if err != nil {
+		return nil, err
+	}
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	config.SetServerFile(path)
 	if err != nil {
 		file.Close()
 		return nil, err
@@ -181,6 +190,12 @@ func (s *Server) LoadDrives() error {
 	return nil
 }
 
+type nilWriter struct{}
+
+func (w *nilWriter) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
 // Initialize the logging.
 func (s *Server) InitLogging() error {
 	// Get logging settings.
@@ -188,6 +203,7 @@ func (s *Server) InitLogging() error {
 
 	// If not verbose, don't initialize logging.
 	if !verbose {
+		log.SetOutput(&nilWriter{})
 		return nil
 	}
 
