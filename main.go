@@ -45,20 +45,22 @@ func clientFunc() {
 	// sessID := response.Data["id"].([]byte)
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createdirs", map[string]interface{}{"paths": []string{"./mypath"}, "drive": "drive"})
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "renamedrive", map[string]interface{}{"drive": "drive", "newName": "abc"})
+	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "renamedrive", map[string]interface{}{"drive": "drive", "newName": "abc"}, time.Second*5)
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "getsessioninfo", map[string]interface{}{"ids": [][]byte{[]byte{77, 203, 183, 189, 252, 253, 68, 91, 150, 161, 228, 172, 78, 152, 157, 150}}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "addtopathaccessblacklist", map[string]interface{}{"drive": "lilydrive", "path": "d", "users": []string{"lily", "billy"}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "setclearances", map[string]interface{}{"drive": "drive", "path": "d", "access": 2, "modify": 3})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "writefiles", map[string]interface{}{"paths": []string{"a"}, "drive": "drive", "start": []int64{0}, "clear": []bool{true}})
 	cobj := client.NewClient("127.0.0.1", 42069, "c:/users/kevin chen/server.crt", "c:/users/kevin chen/key.pem")
-	conn, err := cobj.MakeConnection(true)
+	// resp, err := cobj.MakeNonChunkRequest(*request)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(resp)
+	resp, err := cobj.UploadFiles(client.NewUserAuth("admin", "admin"), []string{"c:/users/kevin chen/a.exe"}, []string{"a.exe"}, nil, "abc", 4086, time.Second*5)
 	if err != nil {
 		panic(err)
 	}
-	stream, err := cobj.MakeRequest(conn, *request, time.Second*5, true)
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println(resp)
 	// ch := network.NewChunkHandler(stream)
 	// ch.WriteChunkResponseInfo([]network.ChunkInfo{{"a", 2}}, time.Second*5, false)
 	// ch.WriteChunkInfo("a", 10, time.Second*5)
@@ -71,18 +73,6 @@ func clientFunc() {
 
 	// Receive the response.
 	// stream := network.DataStream(network.NewTLSStream(conn))
-	if err := cobj.ReceiveHeader(stream, time.Second*5); err != nil {
-		panic(err)
-	}
-	if err := cobj.ReceiveIgnoreChunkData(stream, time.Second*5); err != nil {
-		panic(err)
-	}
-	response, err := cobj.ReceiveResponse(stream, time.Second*5)
-	if err != nil {
-		panic(err)
-	}
-	conn.Close()
-	fmt.Println(response)
 	// id := response.Data["id"].([]byte)
 
 	// time.Sleep(time.Second * 15)
