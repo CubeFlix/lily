@@ -49,6 +49,23 @@ func authUserOrSession(c *Command) (*user.User, string, error) {
 	return userObj, username, nil
 }
 
+// Authenticate session. Returns a session object and the username.
+func authSession(c *Command) (*session.Session, string, error) {
+	// Authenticate.
+	if (*c.Auth).Type() != "session" {
+		// Invalid auth type.
+		return nil, "", ErrAuthFail
+	}
+	if err := (*c.Auth).Authenticate(); err != nil {
+		// Authenticate.
+		return nil, "", ErrAuthFail
+	}
+
+	s := (*c.Auth).(*session.Session)
+
+	return s, s.GetUsername(), nil
+}
+
 // Get a string.
 func getString(c *Command, paramName string) (string, error) {
 	arg, ok := c.Params[paramName]

@@ -18,7 +18,6 @@ import (
 
 	"github.com/cubeflix/lily/fs"
 	"github.com/cubeflix/lily/marshal"
-	"github.com/cubeflix/lily/security/access"
 
 	"errors"
 	"sync"
@@ -33,9 +32,8 @@ type Drive struct {
 	// Drive settings. Security access determines if a user can access the
 	// drive and if the user can modify the name. Exposing the settings object
 	// so we don't have to write a bunch of getters and setters.
-	name     string
-	path     string
-	Settings *access.AccessSettings
+	name string
+	path string
 
 	// Dirty value.
 	dirty bool
@@ -47,15 +45,13 @@ type Drive struct {
 var ErrPathNotFound = errors.New("lily.drive: Path not found")
 
 // Create a new drive object.
-func NewDrive(name, path string, settings *access.AccessSettings,
-	fs *fs.Directory) *Drive {
+func NewDrive(name, path string, fs *fs.Directory) *Drive {
 	return &Drive{
-		Lock:     sync.RWMutex{},
-		name:     name,
-		path:     path,
-		Settings: settings,
-		dirty:    false,
-		fs:       fs,
+		Lock:  sync.RWMutex{},
+		name:  name,
+		path:  path,
+		dirty: false,
+		fs:    fs,
 	}
 }
 
@@ -336,16 +332,6 @@ func (d *Drive) Marshal(w io.Writer) error {
 		return err
 	}
 
-	// Write the settings. The lock only needs to be acquired when writing the
-	// drive-specific information.
-	d.AcquireRLock()
-	err = marshal.MarshalAccess(d.Settings, w)
-	if err != nil {
-		d.ReleaseRLock()
-		return err
-	}
-	d.ReleaseRLock()
-
 	// Write the filesystem.
 	return marshal.MarshalDirectory(d.fs, w)
 }
@@ -364,12 +350,6 @@ func Unmarshal(r io.Reader) (*Drive, error) {
 		return nil, err
 	}
 
-	// Get the settings.
-	aobj, err := marshal.UnmarshalAccess(r)
-	if err != nil {
-		return nil, err
-	}
-
 	// Get the filesystem.
 	dir, err := marshal.UnmarshalDirectory(r, true, nil)
 	if err != nil {
@@ -377,5 +357,5 @@ func Unmarshal(r io.Reader) (*Drive, error) {
 	}
 
 	// Create the drive object.
-	return NewDrive(name, path, aobj, dir), nil
+	return NewDrive(name, path, dir), nil
 }

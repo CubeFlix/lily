@@ -511,6 +511,64 @@ func AddDriveCommand(c *Command) error {
 	return nil
 }
 
+// Rename drive command.
+func RenameDriveCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+	if !userObj.IsClearanceSufficient(access.ClearanceLevelFive) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+		return nil
+	}
+
+	// Get the arguments.
+	drive, err := getString(c, "drive")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+	newName, err := getString(c, "newName")
+	if err != nil {
+		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
+		return nil
+	}
+
+	_, ok := c.Server.GetDrive(newName)
+	if ok {
+		c.Respond(28, "Drive already exists.", map[string]interface{}{})
+		return nil
+	}
+	dobj, ok := c.Server.GetDrive(drive)
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+	dobj.SetName(newName)
+	driveFile, ok := c.Server.Config().GetDriveFiles()[drive]
+	if !ok {
+		c.Respond(13, "Drive does not exist.", map[string]interface{}{})
+		return nil
+	}
+	err = c.Server.Config().RemoveDriveFiles([]string{drive})
+	if err != nil {
+		return err
+	}
+	err = c.Server.Config().AddDriveFiles(map[string]string{newName: driveFile})
+	if err != nil {
+		return err
+	}
+	c.Server.LockDrives()
+	drives := c.Server.GetDrives()
+	delete(drives, drive)
+	drives[newName] = dobj
+	c.Server.SetDrives(drives)
+	c.Server.UnlockDrives()
+	c.Respond(0, "", map[string]interface{}{})
+	return nil
+}
+
 // Remove drive command.
 func RemoveDriveCommand(c *Command) error {
 	userObj, _, err := authUserOrSession(c)

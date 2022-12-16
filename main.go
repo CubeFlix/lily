@@ -45,7 +45,7 @@ func clientFunc() {
 	// sessID := response.Data["id"].([]byte)
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "readfiles", map[string]interface{}{"paths": []string{"e"}, "drive": "drive", "start": []int64{0}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "createdirs", map[string]interface{}{"paths": []string{"./mypath"}, "drive": "drive"})
-	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "shutdown", map[string]interface{}{})
+	request := client.NewRequest(client.NewUserAuth("admin", "admin"), "renamedrive", map[string]interface{}{"drive": "drive", "newName": "abc"})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "getsessioninfo", map[string]interface{}{"ids": [][]byte{[]byte{77, 203, 183, 189, 252, 253, 68, 91, 150, 161, 228, 172, 78, 152, 157, 150}}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "addtopathaccessblacklist", map[string]interface{}{"drive": "lilydrive", "path": "d", "users": []string{"lily", "billy"}})
 	// request := client.NewRequest(client.NewUserAuth("admin", "admin"), "setclearances", map[string]interface{}{"drive": "drive", "path": "d", "access": 2, "modify": 3})

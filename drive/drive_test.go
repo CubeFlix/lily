@@ -12,11 +12,7 @@ import (
 
 // Test acquiring read and write locks.
 func TestDriveLocks(t *testing.T) {
-	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	d := NewDrive("foo", "path", a, nil)
+	d := NewDrive("foo", "path", nil)
 
 	// Test the locks.
 	d.AcquireRLock()
@@ -27,11 +23,7 @@ func TestDriveLocks(t *testing.T) {
 
 // Test drive getters and setters.
 func TestDriveFuncs(t *testing.T) {
-	a, err := access.NewAccessSettings(access.ClearanceLevelOne, access.ClearanceLevelTwo)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	d := NewDrive("foo", "path", a, nil)
+	d := NewDrive("foo", "path", nil)
 
 	// Test name.
 	if d.GetName() != "foo" {
@@ -92,7 +84,7 @@ func TestDriveDirsFuncs(t *testing.T) {
 		t.Error(err.Error())
 	}
 	d3.SetSubdirsByName(map[string]*fs.Directory{"d": d4})
-	d := NewDrive("foo", "path", a, d1)
+	d := NewDrive("foo", "path", d1)
 
 	// Get a directory by path.
 	dir, err := d.GetDirectoryByPath("b/c/d")
@@ -146,7 +138,7 @@ func TestDriveFilesFuncs(t *testing.T) {
 		t.Error(err.Error())
 	}
 	d3.SetFilesByName(map[string]*fs.File{"d": f})
-	d := NewDrive("foo", "path", a, d1)
+	d := NewDrive("foo", "path", d1)
 
 	// Get a file by path.
 	file, err := d.GetFileByPath("b/c/d")

@@ -388,6 +388,25 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
+### Rename Drive
+
+> Rename a drive on the Lily server. If the new name is taken or invalid, this returns an error.
+
+**Parameters:** 
+
+> - `drive` (type `string`)
+> 
+>   The drive to rename.
+> - `newName` (type `string`)
+> 
+>   The new drive name.
+
+**Chunk Arguments:** None
+
+**Returns:** None
+
+**Chunk Returns:** None
+
 ### Remove Drive
 
 > Remove a drive on the Lily server. Accepts a drive name. If the drive name is invalid, this returns an error. This DOES NOT remove the drive or drive file from the host filesystem, instead, it removes the drive from the server.
@@ -496,7 +515,7 @@ These following commands all require administrator privileges to execute.
 
 ### Shutdown
 
-> Shutdown the Lily server. Returns after all cron jobs have finished and the server has been saved.
+> Shutdown the Lily server and save.
 
 **Parameters:** None
 
@@ -526,22 +545,6 @@ These following commands all require administrator privileges to execute.
 
 ## Session Commands
 
-### Is Expired
-
-> Check if the current session is expired. This command does not update the expiration. This command requires session authentication. If the authentication is invalid (meaning the session does not exist or is expired) it will not return an error.
-
-**Parameters:** None
-
-**Chunk Arguments:** None
-
-**Returns:** 
-
-> - `expired` (type `bool`)
-> 
->   If the session is expired.
-
-**Chunk Returns:** None
-
 ### Reauthenticate
 
 > Reauthenticate the session. This will update the expiration. This command requires session authentication. If the authentication is invalid, this will return an error.
@@ -563,252 +566,6 @@ These following commands all require administrator privileges to execute.
 > - `sessionExpiration` (type `time.Duration`)
 > 
 >   The new expiration time.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-## Drive Commands
-
-### Get Drive Settings
-
-> Get a drive's settings. Requires drive access clearance. If the drive does not exist, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-
-**Chunk Arguments:** None
-
-**Returns:** 
-
-> - `accessClearance` (type `int`)
-> 
->   Access clearance level.
-> - `modifyClearance` (type `int`)
-> 
->   Modify clearance level.
-> - `accessWhitelist` (type `[]string`)
-> 
->   Access whitelist.
-> - `modifyWhitelist` (type `[]string`)
-> 
->   Modify whitelist.
-> - `accessBlacklist` (type `[]string`)
-> 
->   Access blacklist.
-> - `modifyBlacklist` (type `[]string`)
-> 
->   Modify blacklist.
-
-**Chunk Returns:** None
-
-### Set Drive Name
-
-> Rename the drive. Requires drive modify clearance. If the new name is taken or invalid, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `newName` (type `string`)
-> 
->   The new drive name.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Set Drive Access Settings
-
-> Set the drive's access settings. Requires drive modify clearance.
-
-**Parameters:** 
-
-> - `settings` (type `BSONAccessSettings`)
-> 
->   The new access settings.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Set Drive Clearances
-
-> Set the access and modify clearances for a drive. Requires drive modify clearance. If the clearances are invalid, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `access` (type `int`)
-> 
->   The new access clearance.
-> - `modify` (type `int`)
-> 
->   The new modify clearance.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Add to Drive Access Whitelist
-
-> Add users to a drive's access whitelist. Requires drive modify clearance. If a given username already exists, it will be skipped.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to add.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Remove from Drive Access Whitelist
-
-> Remove users from a drive's access whitelist. Requires drive modify clearance. If a given username does not exist, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to remove.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Add to Drive Access Blacklist
-
-> Add users to a drive's access blacklist. Requires drive modify clearance. If a given username already exists, it will be skipped.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to add.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Remove from Drive Access Blacklist
-
-> Remove users from a drive's access blacklist. Requires drive modify clearance. If a given username does not exist, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to remove.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Add to Drive Modify Whitelist
-
-> Add users to a drive's modify whitelist. Requires drive modify clearance. If a given username already exists, it will be skipped.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to add.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Remove from Drive Modify Whitelist
-
-> Remove users from a drive's modify whitelist. Requires drive modify clearance. If a given username does not exist, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to remove.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Add to Drive Modify Blacklist
-
-> Add users to a drive's modify blacklist. Requires drive modify clearance. If a given username already exists, it will be skipped.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to add.
-
-**Chunk Arguments:** None
-
-**Returns:** None
-
-**Chunk Returns:** None
-
-### Remove from Drive Modify Blacklist
-
-> Remove users from a drive's modify blacklist. Requires drive modify clearance. If a given username does not exist, this returns an error.
-
-**Parameters:** 
-
-> - `name` (type `string`)
-> 
->   The name of the drive.
-> - `users` (type `[]string`)
-> 
->   The usernames to remove.
 
 **Chunk Arguments:** None
 

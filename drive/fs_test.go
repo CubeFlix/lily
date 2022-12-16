@@ -30,7 +30,7 @@ func TestCreateDirectories(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -117,7 +117,7 @@ func TestCreateDirectoryTree(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several directories in a tree.
 	err = drive.CreateDirsTree("a", []string{"a", "b", "b/c", "c", "c/d", "c/d/e"}, &access.AccessSettings{}, []*access.AccessSettings{}, true, "foo", u)
@@ -212,7 +212,7 @@ func TestListDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -251,7 +251,7 @@ func TestRenameDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -323,7 +323,7 @@ func TestMoveDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -377,7 +377,7 @@ func TestDeleteDir(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several directories.
 	err = drive.CreateDirs([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -454,7 +454,7 @@ func TestReadFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Add the files.
 	file1, err := fs.NewFile("foo", a)
@@ -574,7 +574,7 @@ func TestWriteFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Add the files.
 	file1, err := fs.NewFile("foo", a)
@@ -659,7 +659,7 @@ func TestRenameFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several files.
 	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -731,7 +731,7 @@ func TestMoveFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several files.
 	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -785,7 +785,7 @@ func TestDeleteFile(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create several files.
 	err = drive.CreateFiles([]string{"a", "b", "c"}, []*access.AccessSettings{}, true, "foo", u)
@@ -838,7 +838,7 @@ func TestStat(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create a file.
 	err = drive.CreateFiles([]string{"a"}, []*access.AccessSettings{}, true, "foo", u)
@@ -886,7 +886,7 @@ func TestHashVerify(t *testing.T) {
 		t.Error(err.Error())
 	}
 	tempdir := t.TempDir()
-	drive := NewDrive("foo", tempdir, a, root)
+	drive := NewDrive("foo", tempdir, root)
 
 	// Create some files.
 	err = drive.CreateFiles([]string{"a", "b"}, []*access.AccessSettings{}, true, "foo", u)

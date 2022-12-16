@@ -141,6 +141,11 @@ Responses in Lily consist of a response code and a response string, an optional 
 **Description:**
 > Invalid log level.
 
+### **Code:** 28
+
+**Description:**
+> Drive already exists.
+
 ### **Code:** 9
 
 **Description:**

@@ -49,7 +49,7 @@ func DriveInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	d := drive.NewDrive(args[0], args[1], accessSettings, root)
+	d := drive.NewDrive(args[0], args[1], root)
 	driveFile = strings.ReplaceAll(driveFile, "%name%", args[0])
 	f, err := os.Create(driveFile)
 	if err != nil {

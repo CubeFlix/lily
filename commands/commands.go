@@ -31,6 +31,7 @@ var COMMANDS = map[string]func(*Command) error{
 	"getallsettings":     GetAllSettingsCommand,
 	"sethostandport":     SetHostAndPortCommand,
 	"adddrive":           AddDriveCommand,
+	"renamedrive":        RenameDriveCommand,
 	"removedrive":        RemoveDriveCommand,
 	"setnumworkers":      SetNumWorkersCommand,
 	"setcronintervals":   SetCronIntervalsCommand,
@@ -38,6 +39,13 @@ var COMMANDS = map[string]func(*Command) error{
 	"setloggingsettings": SetLoggingSettingsCommand,
 	"setratelimit":       SetRateLimitCommand,
 	"shutdown":           ShutdownCommand,
+
+	// User commands.
+	"setpassword": SetPasswordCommand,
+
+	// Session commands.
+	"reauthenticate":    ReauthenticateCommand,
+	"setexpirationtime": SetExpirationTimeCommand,
 
 	// FS drive commands.
 	"createdirs":    CreateDirsCommand,
