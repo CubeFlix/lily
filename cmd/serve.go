@@ -43,6 +43,11 @@ func ServeCommand(cmd *cobra.Command, args []string) {
 
 	// Start cron routines and begin listening.
 	s.StartCronRoutines()
+	fmt.Println(`_____________________  __
+___  /____  _/__  /_ \/ /
+__  /  __  / __  / __  / 
+_  /____/ /  _  /___  /  
+/_____/___/  /_____/_/   `)
 	err = s.Serve()
 	if err != nil {
 		fmt.Println("serve:", err)

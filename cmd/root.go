@@ -24,9 +24,9 @@ var modifyClearance int
 
 // Base Lily command.
 var RootCmd = &cobra.Command{
-	Use:   "lilys",
+	Use:   "lily",
 	Short: "A secure file server.",
-	Long:  `lilys is the Lily file server program.`,
+	Long:  `lily is the Lily file server program.`,
 }
 
 // Version command.

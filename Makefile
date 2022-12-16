@@ -1,5 +1,8 @@
 build:
-	go build -o lilys
+	go build
+
+install:
+	go install
 
 all:
 	build
