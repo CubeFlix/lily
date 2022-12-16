@@ -52,6 +52,7 @@ func (c *Client) MakeNonChunkRequest(r Request) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
+	defer conn.Close()
 	stream, err := c.SendRequestData(conn, r, r.timeout, true)
 	if err != nil {
 		return Response{}, err
@@ -66,7 +67,6 @@ func (c *Client) MakeNonChunkRequest(r Request) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
-	conn.Close()
 	return response, nil
 }
 
@@ -129,6 +129,7 @@ func (c *Client) UploadFiles(a Auth, files, uploadPaths []string, settings []acc
 	if err != nil {
 		return Response{}, err
 	}
+	defer conn.Close()
 	clear := make([]bool, len(files))
 	for i := range clear {
 		clear[i] = true
@@ -173,15 +174,77 @@ func (c *Client) UploadFiles(a Auth, files, uploadPaths []string, settings []acc
 	if err != nil {
 		return Response{}, err
 	}
-	conn.Close()
 	return response, nil
 }
 
 // Download files command.
-func (c *Client) Download(a Auth, files, downloadPaths []string, drive string, timeout time.Duration) {
+func (c *Client) DownloadFiles(a Auth, files, downloadPaths []string, drive string, timeout time.Duration) (Response, error) {
 	if len(files) != len(downloadPaths) {
 		return Response{}, ErrInvalidSliceLength
 	}
+
+	// Create a map of files to download paths.
+	mapFilesToDownloadPaths := map[string]string{}
+	for i := range files {
+		mapFilesToDownloadPaths[files[i]] = downloadPaths[i]
+	}
+
+	// Make the request.
+	conn, err := c.MakeConnection(true)
+	if err != nil {
+		return Response{}, err
+	}
+	clear := make([]bool, len(files))
+	for i := range clear {
+		clear[i] = true
+	}
+	stream, err := c.SendRequestData(conn, *NewRequest(a, "readfiles", map[string]interface{}{"paths": files, "drive": drive}, timeout), timeout, true)
+	if err != nil {
+		return Response{}, err
+	}
+	if err := c.ReceiveHeader(stream, timeout); err != nil {
+		return Response{}, err
+	}
+
+	// Receive the chunks.
+	ch := network.NewChunkHandler(stream)
+
+	// Receive the chunk info.
+	chunkInfo, err := ch.GetChunkRequestInfo(timeout)
+	if err != nil {
+		return Response{}, err
+	}
+	for i := range chunkInfo {
+		currentFile := chunkInfo[i].Name
+		currentDownloadPath := mapFilesToDownloadPaths[currentFile]
+		file, err := os.Create(currentDownloadPath)
+		if err != nil {
+			return Response{}, err
+		}
+		for n := 0; n < chunkInfo[i].NumChunks; n++ {
+			_, size, err := ch.GetChunkInfo(timeout)
+			if err != nil {
+				return Response{}, err
+			}
+			buf := make([]byte, size)
+			err = ch.GetChunk(&buf, timeout)
+			if err != nil {
+				return Response{}, err
+			}
+			_, err = file.Write(buf)
+			if err != nil {
+				return Response{}, err
+			}
+		}
+	}
+	if ch.GetFooter(timeout) != nil {
+		return Response{}, err
+	}
+	response, err := c.ReceiveResponse(stream, timeout)
+	if err != nil {
+		return Response{}, err
+	}
+	return response, nil
 }
 
 // Create a connection.

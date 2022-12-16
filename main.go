@@ -56,7 +56,12 @@ func clientFunc() {
 	// 	panic(err)
 	// }
 	// fmt.Println(resp)
-	resp, err := cobj.UploadFiles(client.NewUserAuth("admin", "admin"), []string{"c:/users/kevin chen/a.exe"}, []string{"a.exe"}, nil, "abc", 4086, time.Second*5)
+	// resp, err := cobj.UploadFiles(client.NewUserAuth("admin", "admin"), []string{"c:/users/kevin chen/a.exe"}, []string{"a.exe"}, nil, "abc", 4086, time.Second*5)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(resp)
+	resp, err := cobj.DownloadFiles(client.NewUserAuth("admin", "admin"), []string{"no.exe"}, []string{"no.exe"}, "abc", time.Second*5)
 	if err != nil {
 		panic(err)
 	}
