@@ -15,3 +15,6 @@
 # vendor/
 .vscode/
 *.~swp
+*.lily
+*.lilyd
+config.ini
