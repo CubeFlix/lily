@@ -779,3 +779,22 @@ func ShutdownCommand(c *Command) error {
 	c.Respond(0, "", map[string]interface{}{})
 	return nil
 }
+
+// Get memory usage command.
+func GetMemoryUsageCommand(c *Command) error {
+	userObj, _, err := authUserOrSession(c)
+	if err != nil {
+		c.Respond(6, "Invalid or expired authentication.", map[string]interface{}{})
+		return nil
+	}
+	if !userObj.IsClearanceSufficient(access.ClearanceLevelFive) {
+		c.Respond(16, "Insufficient clearance for access/modify.", map[string]interface{}{})
+		return nil
+	}
+
+	alloc, total, sys := c.Server.GetMemUsage()
+
+	// Respond.
+	c.Respond(0, "", map[string]interface{}{"alloc": alloc, "total": total, "sys": sys})
+	return nil
+}

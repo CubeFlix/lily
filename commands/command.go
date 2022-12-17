@@ -30,6 +30,7 @@ type Server interface {
 	GetDrive(string) (*drive.Drive, bool)
 	SetDrive(string, *drive.Drive)
 	GetPublicStopChan() chan os.Signal
+	GetMemUsage() (uint64, uint64, uint64)
 }
 
 // The basic command object.

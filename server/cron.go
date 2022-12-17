@@ -63,6 +63,7 @@ func (s *Server) CronWorker() {
 			continue
 		case <-time.After(interval):
 			// Don't stop, interval completed.
+			s.DriveHealth()
 			err := s.CronSave()
 			if err != nil {
 				// Error, log it.

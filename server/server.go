@@ -272,6 +272,9 @@ func (s *Server) Serve() error {
 		return err
 	}
 
+	// Perform a health check.
+	s.DriveHealth()
+
 	log.WithFields(log.Fields{
 		"name": s.config.GetName(),
 	}).Info("starting server")
@@ -430,6 +433,7 @@ func (s *Server) FullyClose() {
 	s.StopServerRoutine()
 	s.StopWorkers()
 	s.StopCronRoutines()
+	s.DriveHealth()
 	err := s.CronSave()
 	if err != nil {
 		log.WithFields(log.Fields{

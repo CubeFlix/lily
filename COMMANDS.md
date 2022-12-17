@@ -525,6 +525,28 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Returns:** None
 
+### Get Memory Usage
+
+> Get memory usage stats.
+
+**Parameters:** None
+
+**Chunk Arguments:** None
+
+**Returns:**
+
+> - `alloc` (type `int64`)
+> 
+>   Total bytes of allocated heap objects.
+> - `total` (type `int64`)
+> 
+>   Total cumulative bytes allocated for heap objects. Does not decrease as objects are freed.
+> - `sys` (type `int64`)
+> 
+>   Total bytes of memory obtained from the OS. 
+
+**Chunk Returns:** None
+
 ## User Commands
 
 ### Set Password

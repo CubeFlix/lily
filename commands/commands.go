@@ -39,6 +39,7 @@ var COMMANDS = map[string]func(*Command) error{
 	"setloggingsettings": SetLoggingSettingsCommand,
 	"setratelimit":       SetRateLimitCommand,
 	"shutdown":           ShutdownCommand,
+	"getmemoryusage":     GetMemoryUsageCommand,
 
 	// User commands.
 	"setpassword": SetPasswordCommand,
