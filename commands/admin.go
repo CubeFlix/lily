@@ -671,7 +671,7 @@ func SetTimeoutIntervalCommand(c *Command) error {
 	}
 
 	// Get the arguments.
-	timeoutInterval, err := getDuration(c, "mainInterval")
+	timeoutInterval, err := getDuration(c, "timeout")
 	if err != nil {
 		c.Respond(12, "Invalid parameters.", map[string]interface{}{})
 		return nil
