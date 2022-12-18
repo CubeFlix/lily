@@ -662,7 +662,11 @@ These following commands all require administrator privileges to execute.
 
 **Chunk Arguments:** None
 
-**Returns:** `list` (type `map[string]PathStatus`)
+**Returns:** 
+
+> - `list` (type `map[string]PathStatus`)
+> 
+>   The contents of the directory.
 
 **Chunk Returns:** None
 
@@ -869,9 +873,9 @@ These following commands all require administrator privileges to execute.
 
 **Returns:** 
 
-> - `stat` (type `[]PathInfo`)
+> - `stat` (type `map[string]PathInfo`)
 > 
->   The destinations.
+>   The statuses of the paths.
 
 **Chunk Returns:** None
 
