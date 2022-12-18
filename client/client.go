@@ -34,21 +34,26 @@ type Client struct {
 
 	certFile string
 	keyFile  string
+
+	insecureSkipVerify bool
+	useCerts           bool
 }
 
 // Create a client.
-func NewClient(host string, port int, certFile, keyFile string) *Client {
+func NewClient(host string, port int, certFile, keyFile string, insecureSkipVerify, useCerts bool) *Client {
 	return &Client{
-		host:     host,
-		port:     port,
-		certFile: certFile,
-		keyFile:  keyFile,
+		host:               host,
+		port:               port,
+		certFile:           certFile,
+		keyFile:            keyFile,
+		insecureSkipVerify: insecureSkipVerify,
+		useCerts:           useCerts,
 	}
 }
 
 // Perform a non-chunk request.
 func (c *Client) MakeNonChunkRequest(r Request) (Response, error) {
-	conn, err := c.MakeConnection(true)
+	conn, err := c.MakeConnection(c.insecureSkipVerify)
 	if err != nil {
 		return Response{}, err
 	}
@@ -249,13 +254,20 @@ func (c *Client) DownloadFiles(a Auth, files, downloadPaths []string, drive stri
 
 // Create a connection.
 func (c *Client) MakeConnection(insecureSkipVerify bool) (*tls.Conn, error) {
-	cert, err := tls.LoadX509KeyPair(c.certFile, c.keyFile)
-	if err != nil {
-		return nil, err
-	}
-	config := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: insecureSkipVerify,
+	var config *tls.Config
+	if c.useCerts {
+		cert, err := tls.LoadX509KeyPair(c.certFile, c.keyFile)
+		if err != nil {
+			return nil, err
+		}
+		config = &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: insecureSkipVerify,
+		}
+	} else {
+		config = &tls.Config{
+			InsecureSkipVerify: insecureSkipVerify,
+		}
 	}
 	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", c.host, c.port), config)
 	if err != nil {
