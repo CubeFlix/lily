@@ -98,11 +98,11 @@ func getDuration(c *Command, paramName string) (time.Duration, error) {
 	if !ok {
 		return 0, ErrParamFail
 	}
-	str, ok := arg.(time.Duration)
+	str, ok := arg.(int64)
 	if !ok {
 		return 0, ErrParamFail
 	}
-	return str, nil
+	return time.Duration(str), nil
 }
 
 // Get a bool.
