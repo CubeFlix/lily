@@ -338,7 +338,7 @@ func GetSessionInfoCommand(c *Command) error {
 			ID:          bytes,
 			Username:    sessionObjs[i].GetUsername(),
 			ExpireAfter: sessionObjs[i].GetExpireAfter(),
-			ExpireAt:    sessionObjs[i].GetExpireAt(),
+			ExpireAt:    sessionObjs[i].GetExpireAt().Unix(),
 		}
 	}
 	c.Respond(0, "", map[string]interface{}{"sessions": sessionInfo})

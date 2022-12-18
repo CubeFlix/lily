@@ -35,7 +35,7 @@ type SessionInfo struct {
 	ID          []byte
 	Username    string
 	ExpireAfter time.Duration
-	ExpireAt    time.Time
+	ExpireAt    int64
 }
 
 var ErrSessionExpired = errors.New("lily.session: Session expired")
