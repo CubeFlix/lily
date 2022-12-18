@@ -38,7 +38,7 @@ type PathStatus struct {
 	Exists       bool
 	Name         string
 	IsFile       bool
-	LastEditTime time.Time
+	LastEditTime int64
 	LastEditor   string
 }
 
@@ -1415,7 +1415,7 @@ func (d *Drive) Stat(paths []string, user *user.User) (map[string]PathStatus, er
 				Exists:       true,
 				Name:         paths[i],
 				IsFile:       false,
-				LastEditTime: root.GetLastEditTime(),
+				LastEditTime: root.GetLastEditTime().Unix(),
 				LastEditor:   root.GetLastEditor(),
 			}
 			continue
@@ -1454,7 +1454,7 @@ func (d *Drive) Stat(paths []string, user *user.User) (map[string]PathStatus, er
 					Exists:       true,
 					Name:         paths[i],
 					IsFile:       listdir[j].File,
-					LastEditTime: lastEditTime,
+					LastEditTime: lastEditTime.Unix(),
 					LastEditor:   lastEditor,
 				}
 				found = true
