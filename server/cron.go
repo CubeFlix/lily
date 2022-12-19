@@ -70,8 +70,6 @@ func (s *Server) CronWorker() {
 				log.WithFields(log.Fields{
 					"error": err.Error(),
 				}).Error("failed to save")
-			} else {
-				log.Info("successfully saved")
 			}
 		}
 	}
@@ -103,6 +101,7 @@ func (s *Server) CronSave() error {
 		}
 		file.Close()
 		d.SetDirty(false)
+		log.Info("successfully saved drive", drive)
 	}
 
 	// Save the server file.
@@ -125,6 +124,7 @@ func (s *Server) CronSave() error {
 		file.Close()
 		s.config.SetDirty(false)
 		s.users.SetDirty(false)
+		log.Info("successfully saved server")
 	}
 
 	return nil
