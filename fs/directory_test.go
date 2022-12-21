@@ -220,10 +220,10 @@ func TestDirectoryListDir(t *testing.T) {
 
 	// Test the list directory command.
 	ldir := d.ListDir()
-	if ldir[1].Name != "file.txt" || ldir[1].File != true || ldir[1].LastEditor != "" {
+	if ldir[1].Name != "file.txt" || ldir[1].IsFile != true || ldir[1].LastEditor != "" {
 		t.Fail()
 	}
-	if ldir[0].Name != "dir" || ldir[0].File != false || ldir[0].LastEditor != "" {
+	if ldir[0].Name != "dir" || ldir[0].IsFile != false || ldir[0].LastEditor != "" {
 		t.Fail()
 	}
 }

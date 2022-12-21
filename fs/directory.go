@@ -50,10 +50,10 @@ type ListDirObj struct {
 	Name string
 
 	// If the items is a file or directory.
-	File bool
+	IsFile bool
 
 	// Last edit time and last editor.
-	LastEditTime time.Time
+	LastEditTime int64
 	LastEditor   string
 }
 
@@ -233,8 +233,8 @@ func (d *Directory) ListDir() []ListDirObj {
 		dirobj.ReleaseRLock()
 		keys[i] = ListDirObj{
 			Name:         k,
-			File:         false,
-			LastEditTime: lastEditTime,
+			IsFile:       false,
+			LastEditTime: lastEditTime.Unix(),
 			LastEditor:   lastEditor,
 		}
 		i++
@@ -248,8 +248,8 @@ func (d *Directory) ListDir() []ListDirObj {
 		fileobj.ReleaseRLock()
 		keys[i] = ListDirObj{
 			Name:         k,
-			File:         true,
-			LastEditTime: lastEditTime,
+			IsFile:       true,
+			LastEditTime: lastEditTime.Unix(),
 			LastEditor:   lastEditor,
 		}
 		i++

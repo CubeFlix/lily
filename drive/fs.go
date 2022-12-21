@@ -1435,7 +1435,7 @@ func (d *Drive) Stat(paths []string, user *user.User) (map[string]PathStatus, er
 				// Found it.
 				var lastEditTime time.Time
 				var lastEditor string
-				if listdir[j].File {
+				if listdir[j].IsFile {
 					fileobj, err := d.GetFileByPath(paths[i])
 					if err != nil {
 						return map[string]PathStatus{}, err
@@ -1453,7 +1453,7 @@ func (d *Drive) Stat(paths []string, user *user.User) (map[string]PathStatus, er
 				outputs[paths[i]] = PathStatus{
 					Exists:       true,
 					Name:         paths[i],
-					IsFile:       listdir[j].File,
+					IsFile:       listdir[j].IsFile,
 					LastEditTime: lastEditTime.Unix(),
 					LastEditor:   lastEditor,
 				}
