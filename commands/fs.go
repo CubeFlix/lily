@@ -861,7 +861,7 @@ func SetClearancesCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -933,7 +933,7 @@ func AddToAccessWhitelistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1000,7 +1000,7 @@ func RemoveFromAccessWhitelistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1066,7 +1066,7 @@ func AddToModifyWhitelistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1132,7 +1132,7 @@ func RemoveFromModifyWhitelistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1198,7 +1198,7 @@ func AddToAccessBlacklistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1265,7 +1265,7 @@ func RemoveFromAccessBlacklistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1331,7 +1331,7 @@ func AddToModifyBlacklistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
@@ -1397,7 +1397,7 @@ func RemoveFromModifyBlacklistCommand(c *Command) error {
 	}
 
 	// Get the original access settings.
-	fobj, err := driveObj.GetFileByPath(path)
+	fobj, err := driveObj.GetFileOrDirectory(path)
 	if err != nil {
 		handleFSError(c, err)
 		return nil
