@@ -101,7 +101,7 @@ func (s *Server) CronSave() error {
 		}
 		file.Close()
 		d.SetDirty(false)
-		log.Info("successfully saved drive", drive)
+		log.Info("successfully saved drive ", drive)
 	}
 
 	// Save the server file.
