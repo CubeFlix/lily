@@ -185,7 +185,7 @@ func (d *Drive) SetDirectoryByPath(path string, directory *fs.Directory) error {
 	current := d.fs
 	for i := 0; i < len(splitPath)-1; i++ {
 		// Get the directory lock.
-		current.Lock.RLock()
+		// current.Lock.RLock()
 
 		// Get the subdirectory for the current directory.
 		subdirs, err := current.GetSubdirsByName([]string{splitPath[i]})
@@ -193,27 +193,27 @@ func (d *Drive) SetDirectoryByPath(path string, directory *fs.Directory) error {
 			if err == fs.ErrItemNotFound {
 				// Replace the item not found error with a more useful path not
 				// found error.
-				current.Lock.RUnlock()
+				// current.Lock.RUnlock()
 				return ErrPathNotFound
 			}
-			current.Lock.RUnlock()
+			// current.Lock.RUnlock()
 			return err
 		}
-		old := current
+		// old := current
 		current = subdirs[0]
 
 		// Release the directory lock.
-		old.Lock.RUnlock()
+		// old.Lock.RUnlock()
 	}
 
 	// Get the directory write lock.
-	current.Lock.Lock()
+	// current.Lock.Lock()
 
 	// Set the final directory object.
 	current.SetSubdirsByName(map[string]*fs.Directory{splitPath[len(splitPath)-1]: directory})
 
 	// Release the directory write lock.
-	current.Lock.Unlock()
+	// current.Lock.Unlock()
 
 	// Return.
 	return nil
@@ -235,7 +235,7 @@ func (d *Drive) GetFileByPath(path string) (*fs.File, error) {
 	current := d.fs
 	for i := 0; i < len(splitPath)-1; i++ {
 		// Get the directory lock.
-		current.Lock.RLock()
+		// current.Lock.RLock()
 
 		// Get the subdirectory for the current directory.
 		subdirs, err := current.GetSubdirsByName([]string{splitPath[i]})
@@ -243,21 +243,21 @@ func (d *Drive) GetFileByPath(path string) (*fs.File, error) {
 			if err == fs.ErrItemNotFound {
 				// Replace the item not found error with a more useful path not
 				// found error.
-				current.Lock.RUnlock()
+				// current.Lock.RUnlock()
 				return nil, ErrPathNotFound
 			}
-			current.Lock.RUnlock()
+			// current.Lock.RUnlock()
 			return nil, err
 		}
-		old := current
+		// old := current
 		current = subdirs[0]
 
 		// Release the directory lock.
-		old.Lock.RUnlock()
+		// old.Lock.RUnlock()
 	}
 
 	// Get the directory read lock.
-	current.Lock.RLock()
+	// current.Lock.RLock()
 
 	// Set the final file object.
 	files, err := current.GetFilesByName([]string{splitPath[len(splitPath)-1]})
@@ -266,7 +266,7 @@ func (d *Drive) GetFileByPath(path string) (*fs.File, error) {
 	}
 
 	// Release the directory read lock.
-	current.Lock.RUnlock()
+	// current.Lock.RUnlock()
 
 	// Return the final file object.
 	return files[0], nil
@@ -284,7 +284,7 @@ func (d *Drive) SetFileByPath(path string, file *fs.File) error {
 	current := d.fs
 	for i := 0; i < len(splitPath)-1; i++ {
 		// Get the directory lock.
-		current.Lock.RLock()
+		// current.Lock.RLock()
 
 		// Get the subdirectory for the current directory.
 		subdirs, err := current.GetSubdirsByName([]string{splitPath[i]})
@@ -292,27 +292,27 @@ func (d *Drive) SetFileByPath(path string, file *fs.File) error {
 			if err == fs.ErrItemNotFound {
 				// Replace the item not found error with a more useful path not
 				// found error.
-				current.Lock.RUnlock()
+				// current.Lock.RUnlock()
 				return ErrPathNotFound
 			}
-			current.Lock.RUnlock()
+			// current.Lock.RUnlock()
 			return err
 		}
-		old := current
+		// old := current
 		current = subdirs[0]
 
 		// Release the directory lock.
-		old.Lock.RUnlock()
+		// old.Lock.RUnlock()
 	}
 
 	// Get the directory write lock.
-	current.Lock.Lock()
+	// current.Lock.Lock()
 
 	// Set the final file object.
 	current.SetFilesByName(map[string]*fs.File{splitPath[len(splitPath)-1]: file})
 
 	// Release the directory write lock.
-	current.Lock.Unlock()
+	// current.Lock.Unlock()
 
 	// Return.
 	return nil
