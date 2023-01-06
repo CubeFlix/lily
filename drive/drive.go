@@ -148,7 +148,7 @@ func (d *Drive) GetDirectoryByPath(path string) (*fs.Directory, error) {
 	current := d.fs
 	for i := range splitPath {
 		// Get the directory lock.
-		current.Lock.RLock()
+		// current.Lock.RLock()
 
 		// Get the subdirectory for the current directory.
 		subdirs, err := current.GetSubdirsByName([]string{splitPath[i]})
@@ -156,17 +156,17 @@ func (d *Drive) GetDirectoryByPath(path string) (*fs.Directory, error) {
 			if err == fs.ErrItemNotFound {
 				// Replace the item not found error with a more useful path not
 				// found error.
-				current.Lock.RUnlock()
+				// current.Lock.RUnlock()
 				return nil, ErrPathNotFound
 			}
-			current.Lock.RUnlock()
+			// current.Lock.RUnlock()
 			return nil, err
 		}
-		old := current
+		// old := current
 		current = subdirs[0]
 
 		// Release the directory lock.
-		old.Lock.RUnlock()
+		// old.Lock.RUnlock()
 	}
 
 	// Return the final directory object.

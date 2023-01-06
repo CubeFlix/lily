@@ -514,6 +514,12 @@ func (d *Drive) MoveDirs(dirs, dests []string, username string, user *user.User)
 		if strings.ContainsAny(split[len(split)-1], IllegalNames) || split[len(split)-1] == "" {
 			return ErrInvalidName
 		}
+
+		// Check that the destination is not inside the dir.
+		if isSubElem, _ := fs.SubElem(dirs[i], dests[i]); isSubElem {
+			// Destination is within dir, there is a problem.
+			return fs.ErrInvalidDirectoryPath
+		}
 	}
 
 	// Move each directory.

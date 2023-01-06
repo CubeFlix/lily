@@ -400,6 +400,10 @@ func (s *Server) Worker() {
 				continue
 			}
 			connection.HandleConnection(tlsConn, s.config.GetTimeout(), s)
+			log.WithFields(log.Fields{
+				"ip":   addr.IP,
+				"port": addr.Port,
+			}).Info("handled connection")
 		}
 	}
 }

@@ -5,6 +5,7 @@ package fs
 
 import (
 	"errors"
+	"os"
 	pathlib "path"
 	"path/filepath"
 	"strings"
@@ -109,4 +110,17 @@ func ValidatePath(path string) bool {
 
 	// If the scope was positive the whole time, return.
 	return true
+}
+
+func SubElem(parent, sub string) (bool, error) {
+	up := ".." + string(os.PathSeparator)
+
+	rel, err := filepath.Rel(parent, sub)
+	if err != nil {
+		return false, err
+	}
+	if !strings.HasPrefix(rel, up) && rel != ".." {
+		return true, nil
+	}
+	return false, nil
 }
