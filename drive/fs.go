@@ -132,7 +132,7 @@ func (d *Drive) CreateDirs(dirs []string, settings []*access.AccessSettings, use
 		newdir.SetLastEditor(username)
 
 		// Create the new directory in the host filesystem.
-		err = os.Mkdir(d.getHostPath(dirs[i]), 0777)
+		err = os.Mkdir(d.getHostPath(dirs[i]), 0755)
 		if err != nil {
 			parent.ReleaseLock()
 			return err
@@ -246,7 +246,7 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 	root.AcquireLock()
 
 	// Create the directory in the root filesystem.
-	err = os.Mkdir(d.getHostPath(parent), 0777)
+	err = os.Mkdir(d.getHostPath(parent), 0755)
 	if err != nil {
 		parentParent.ReleaseLock()
 		return err
@@ -326,7 +326,7 @@ func (d *Drive) CreateDirsTree(parent string, dirs []string, parentSettings *acc
 		newdir.SetLastEditor(username)
 
 		// Create the directory on the host's filesystem.
-		err = os.Mkdir(d.getHostPath(filepath.Join(parent, dirs[i])), 0777)
+		err = os.Mkdir(d.getHostPath(filepath.Join(parent, dirs[i])), 0755)
 		if err != nil {
 			root.ReleaseLock()
 			return err
